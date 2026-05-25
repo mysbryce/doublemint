@@ -1029,7 +1029,8 @@ function emitPrintCall(name: string, args: Expression[], context?: EmitContext):
 
 const RUNTIME_HEADER_MODULES: Record<string, string> = {
   "mint:collections": "collections",
-  "mint:regex": "regex"
+  "mint:regex": "regex",
+  "mint:http": "http"
 };
 
 const RUNTIME_SOURCE_MODULES: Record<string, string> = {

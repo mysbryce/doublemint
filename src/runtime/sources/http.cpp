@@ -1,186 +1,118 @@
-// Bridge between Mint's mint:http surface and cpp-httplib.
-// The cpp-httplib single-header is prepended to this file by
-// scripts/embed-runtime.mjs at build time so the implementation is
-// self-contained inside the generated translation unit.
+// Implementation of Http and Context classes from runtime/headers/http.hpp,
+// using cpp-httplib (prepended at embed time by scripts/embed-runtime.mjs).
 
 namespace doublemint_http_detail {
 
-struct HttpContext {
-  const httplib::Request* request;
-  httplib::Response* response;
+struct ServerHolder {
+  httplib::Server server;
 };
 
-struct ServerEntry {
-  std::unique_ptr<httplib::Server> server;
-};
-
-struct ServerRegistry {
-  std::mutex tableMutex;
-  std::unordered_map<int, std::unique_ptr<ServerEntry>> servers;
-  int counter{0};
-};
-
-[[maybe_unused]] static ServerRegistry& serverRegistry() {
-  static ServerRegistry instance;
-  return instance;
+[[maybe_unused]] static const httplib::Request* asRequest(const void* p) {
+  return reinterpret_cast<const httplib::Request*>(p);
 }
 
-[[maybe_unused]] static httplib::Server* lookupServer(int id) {
-  auto& registry = serverRegistry();
-  std::lock_guard<std::mutex> guard(registry.tableMutex);
-  auto entry = registry.servers.find(id);
-  return entry == registry.servers.end() ? nullptr : entry->second->server.get();
+[[maybe_unused]] static httplib::Response* asResponse(void* p) {
+  return reinterpret_cast<httplib::Response*>(p);
 }
 
-[[maybe_unused]] static HttpContext* lookupContext(std::int64_t handle) {
-  return handle == 0 ? nullptr : reinterpret_cast<HttpContext*>(static_cast<std::uintptr_t>(handle));
-}
-
-}  // namespace doublemint_http_detail
-
-[[maybe_unused]] static int __doublemint_http_create() {
-  auto& registry = doublemint_http_detail::serverRegistry();
-  std::lock_guard<std::mutex> guard(registry.tableMutex);
-  int id = ++registry.counter;
-  auto entry = std::make_unique<doublemint_http_detail::ServerEntry>();
-  entry->server = std::make_unique<httplib::Server>();
-  registry.servers.emplace(id, std::move(entry));
-  return id;
-}
-
-[[maybe_unused]] static void __doublemint_http_destroy(int serverId) {
-  auto& registry = doublemint_http_detail::serverRegistry();
-  std::lock_guard<std::mutex> guard(registry.tableMutex);
-  auto entry = registry.servers.find(serverId);
-  if (entry == registry.servers.end()) { return; }
-  if (entry->second->server) { entry->second->server->stop(); }
-  registry.servers.erase(entry);
-}
-
-namespace doublemint_http_detail {
-
-[[maybe_unused]] static void registerRoute(
-    int serverId, const std::string& method, const std::string& pattern,
-    const std::function<void(std::int64_t)>& handler) {
-  auto* server = lookupServer(serverId);
-  if (server == nullptr) { return; }
-  auto bridge = [handler](const httplib::Request& req, httplib::Response& res) {
-    HttpContext ctx{&req, &res};
-    handler(static_cast<std::int64_t>(reinterpret_cast<std::uintptr_t>(&ctx)));
+[[maybe_unused]] static httplib::Server::Handler makeBridge(
+    const std::function<void(const Context&)>& handler) {
+  return [handler](const httplib::Request& req, httplib::Response& res) {
+    Context ctx(&req, &res);
+    handler(ctx);
   };
-  if (method == "GET") { server->Get(pattern, bridge); }
-  else if (method == "POST") { server->Post(pattern, bridge); }
-  else if (method == "PUT") { server->Put(pattern, bridge); }
-  else if (method == "DELETE") { server->Delete(pattern, bridge); }
-  else if (method == "PATCH") { server->Patch(pattern, bridge); }
-  else if (method == "OPTIONS") { server->Options(pattern, bridge); }
 }
 
 }  // namespace doublemint_http_detail
 
-[[maybe_unused]] static void __doublemint_http_get(int serverId, const std::string& pattern, const std::function<void(std::int64_t)>& handler) {
-  doublemint_http_detail::registerRoute(serverId, "GET", pattern, handler);
+std::string Context::method() const {
+  return doublemint_http_detail::asRequest(req_)->method;
 }
 
-[[maybe_unused]] static void __doublemint_http_post(int serverId, const std::string& pattern, const std::function<void(std::int64_t)>& handler) {
-  doublemint_http_detail::registerRoute(serverId, "POST", pattern, handler);
+std::string Context::path() const {
+  return doublemint_http_detail::asRequest(req_)->path;
 }
 
-[[maybe_unused]] static void __doublemint_http_put(int serverId, const std::string& pattern, const std::function<void(std::int64_t)>& handler) {
-  doublemint_http_detail::registerRoute(serverId, "PUT", pattern, handler);
+std::string Context::body() const {
+  return doublemint_http_detail::asRequest(req_)->body;
 }
 
-[[maybe_unused]] static void __doublemint_http_delete(int serverId, const std::string& pattern, const std::function<void(std::int64_t)>& handler) {
-  doublemint_http_detail::registerRoute(serverId, "DELETE", pattern, handler);
+std::string Context::header(std::string_view name) const {
+  return doublemint_http_detail::asRequest(req_)->get_header_value(std::string(name));
 }
 
-[[maybe_unused]] static void __doublemint_http_patch(int serverId, const std::string& pattern, const std::function<void(std::int64_t)>& handler) {
-  doublemint_http_detail::registerRoute(serverId, "PATCH", pattern, handler);
+std::string Context::param(std::string_view name) const {
+  const auto& params = doublemint_http_detail::asRequest(req_)->path_params;
+  auto entry = params.find(std::string(name));
+  return entry == params.end() ? std::string() : entry->second;
 }
 
-[[maybe_unused]] static void __doublemint_http_options(int serverId, const std::string& pattern, const std::function<void(std::int64_t)>& handler) {
-  doublemint_http_detail::registerRoute(serverId, "OPTIONS", pattern, handler);
+std::string Context::query(std::string_view name) const {
+  return doublemint_http_detail::asRequest(req_)->get_param_value(std::string(name));
 }
 
-[[maybe_unused]] static bool __doublemint_http_listen(int serverId, const std::string& host, int port) {
-  auto* server = doublemint_http_detail::lookupServer(serverId);
-  if (server == nullptr) { return false; }
-  return server->listen(host.empty() ? std::string("0.0.0.0") : host, port);
+void Context::setStatus(int status) const {
+  doublemint_http_detail::asResponse(res_)->status = status;
 }
 
-[[maybe_unused]] static void __doublemint_http_stop(int serverId) {
-  auto* server = doublemint_http_detail::lookupServer(serverId);
-  if (server != nullptr) { server->stop(); }
+void Context::setHeader(std::string_view name, std::string_view value) const {
+  doublemint_http_detail::asResponse(res_)->set_header(std::string(name), std::string(value));
 }
 
-[[maybe_unused]] static std::string __doublemint_http_method(std::int64_t ctxHandle) {
-  auto* ctx = doublemint_http_detail::lookupContext(ctxHandle);
-  return ctx == nullptr ? std::string() : ctx->request->method;
+void Context::text(std::string_view body) const {
+  auto* res = doublemint_http_detail::asResponse(res_);
+  if (res->status == 0 || res->status == -1) { res->status = 200; }
+  res->set_content(std::string(body), "text/plain; charset=utf-8");
 }
 
-[[maybe_unused]] static std::string __doublemint_http_path(std::int64_t ctxHandle) {
-  auto* ctx = doublemint_http_detail::lookupContext(ctxHandle);
-  return ctx == nullptr ? std::string() : ctx->request->path;
+void Context::json(std::string_view body) const {
+  auto* res = doublemint_http_detail::asResponse(res_);
+  if (res->status == 0 || res->status == -1) { res->status = 200; }
+  res->set_content(std::string(body), "application/json; charset=utf-8");
 }
 
-[[maybe_unused]] static std::string __doublemint_http_body(std::int64_t ctxHandle) {
-  auto* ctx = doublemint_http_detail::lookupContext(ctxHandle);
-  return ctx == nullptr ? std::string() : ctx->request->body;
+void Context::html(std::string_view body) const {
+  auto* res = doublemint_http_detail::asResponse(res_);
+  if (res->status == 0 || res->status == -1) { res->status = 200; }
+  res->set_content(std::string(body), "text/html; charset=utf-8");
 }
 
-[[maybe_unused]] static std::string __doublemint_http_header(std::int64_t ctxHandle, const std::string& name) {
-  auto* ctx = doublemint_http_detail::lookupContext(ctxHandle);
-  if (ctx == nullptr) { return std::string(); }
-  return ctx->request->get_header_value(name);
+void Context::send(int status, std::string_view contentType, std::string_view body) const {
+  auto* res = doublemint_http_detail::asResponse(res_);
+  res->status = status;
+  res->set_content(std::string(body), std::string(contentType));
 }
 
-[[maybe_unused]] static std::string __doublemint_http_param(std::int64_t ctxHandle, const std::string& name) {
-  auto* ctx = doublemint_http_detail::lookupContext(ctxHandle);
-  if (ctx == nullptr) { return std::string(); }
-  auto entry = ctx->request->path_params.find(name);
-  return entry == ctx->request->path_params.end() ? std::string() : entry->second;
+Http::Http() : holder_(std::make_shared<doublemint_http_detail::ServerHolder>()) {}
+
+void Http::get(std::string_view pattern, const std::function<void(const Context&)>& handler) {
+  holder_->server.Get(std::string(pattern), doublemint_http_detail::makeBridge(handler));
 }
 
-[[maybe_unused]] static std::string __doublemint_http_query(std::int64_t ctxHandle, const std::string& name) {
-  auto* ctx = doublemint_http_detail::lookupContext(ctxHandle);
-  if (ctx == nullptr) { return std::string(); }
-  return ctx->request->get_param_value(name);
+void Http::post(std::string_view pattern, const std::function<void(const Context&)>& handler) {
+  holder_->server.Post(std::string(pattern), doublemint_http_detail::makeBridge(handler));
 }
 
-[[maybe_unused]] static void __doublemint_http_set_status(std::int64_t ctxHandle, int status) {
-  auto* ctx = doublemint_http_detail::lookupContext(ctxHandle);
-  if (ctx != nullptr) { ctx->response->status = status; }
+void Http::put(std::string_view pattern, const std::function<void(const Context&)>& handler) {
+  holder_->server.Put(std::string(pattern), doublemint_http_detail::makeBridge(handler));
 }
 
-[[maybe_unused]] static void __doublemint_http_set_header(std::int64_t ctxHandle, const std::string& name, const std::string& value) {
-  auto* ctx = doublemint_http_detail::lookupContext(ctxHandle);
-  if (ctx != nullptr) { ctx->response->set_header(name, value); }
+void Http::del(std::string_view pattern, const std::function<void(const Context&)>& handler) {
+  holder_->server.Delete(std::string(pattern), doublemint_http_detail::makeBridge(handler));
 }
 
-[[maybe_unused]] static void __doublemint_http_text(std::int64_t ctxHandle, const std::string& body) {
-  auto* ctx = doublemint_http_detail::lookupContext(ctxHandle);
-  if (ctx == nullptr) { return; }
-  ctx->response->status = ctx->response->status == 0 ? 200 : ctx->response->status;
-  ctx->response->set_content(body, "text/plain; charset=utf-8");
+void Http::patch(std::string_view pattern, const std::function<void(const Context&)>& handler) {
+  holder_->server.Patch(std::string(pattern), doublemint_http_detail::makeBridge(handler));
 }
 
-[[maybe_unused]] static void __doublemint_http_json(std::int64_t ctxHandle, const std::string& body) {
-  auto* ctx = doublemint_http_detail::lookupContext(ctxHandle);
-  if (ctx == nullptr) { return; }
-  ctx->response->status = ctx->response->status == 0 ? 200 : ctx->response->status;
-  ctx->response->set_content(body, "application/json; charset=utf-8");
+void Http::options(std::string_view pattern, const std::function<void(const Context&)>& handler) {
+  holder_->server.Options(std::string(pattern), doublemint_http_detail::makeBridge(handler));
 }
 
-[[maybe_unused]] static void __doublemint_http_html(std::int64_t ctxHandle, const std::string& body) {
-  auto* ctx = doublemint_http_detail::lookupContext(ctxHandle);
-  if (ctx == nullptr) { return; }
-  ctx->response->status = ctx->response->status == 0 ? 200 : ctx->response->status;
-  ctx->response->set_content(body, "text/html; charset=utf-8");
+bool Http::listen(std::string_view host, int port) {
+  return holder_->server.listen(host.empty() ? std::string("0.0.0.0") : std::string(host), port);
 }
 
-[[maybe_unused]] static void __doublemint_http_send(std::int64_t ctxHandle, int status, const std::string& contentType, const std::string& body) {
-  auto* ctx = doublemint_http_detail::lookupContext(ctxHandle);
-  if (ctx == nullptr) { return; }
-  ctx->response->status = status;
-  ctx->response->set_content(body, contentType);
+void Http::stop() {
+  holder_->server.stop();
 }

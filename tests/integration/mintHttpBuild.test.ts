@@ -39,16 +39,16 @@ describe.skipIf(!hasGpp)("mint:http server", () => {
     await writeFile(
       entry,
       `
-import { Http } from "mint:http";
+import { Http, Context } from "mint:http";
 
 export function main(): void {
-  let app: int = Http.create();
-  Http.get(app, "/", fn(ctx: int64): void => Http.text(ctx, "ok"));
-  Http.get(app, "/user/:id", fn(ctx: int64): void => Http.json(ctx, Http.param(ctx, "id")));
-  Http.post(app, "/echo", fn(ctx: int64): void => Http.text(ctx, Http.body(ctx)));
-  Http.get(app, "/agent", fn(ctx: int64): void => Http.text(ctx, Http.header(ctx, "X-Mint")));
-  Http.get(app, "/search", fn(ctx: int64): void => Http.text(ctx, Http.query(ctx, "q")));
-  Http.listen(app, "127.0.0.1", 0);
+  let app: Http = new Http();
+  app.get("/", fn(ctx: Context): void => ctx.text("ok"));
+  app.get("/user/:id", fn(ctx: Context): void => ctx.json(ctx.param("id")));
+  app.post("/echo", fn(ctx: Context): void => ctx.text(ctx.body()));
+  app.get("/agent", fn(ctx: Context): void => ctx.text(ctx.header("X-Mint")));
+  app.get("/search", fn(ctx: Context): void => ctx.text(ctx.query("q")));
+  app.listen("127.0.0.1", 0);
 }
 `,
       "utf8"

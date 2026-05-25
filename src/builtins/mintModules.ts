@@ -538,6 +538,7 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
         "<memory>",
         "<mutex>",
         "<string>",
+        "<string_view>",
         "<unordered_map>"
       ],
       builtinLinkLibraries: {
@@ -547,30 +548,33 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
       imports: [],
       exports: new Map([
         [
+          "Context",
+          classExport("Context", [
+            method("method", [], namedType("string")),
+            method("path", [], namedType("string")),
+            method("body", [], namedType("string")),
+            method("header", [namedType("string")], namedType("string")),
+            method("param", [namedType("string")], namedType("string")),
+            method("query", [namedType("string")], namedType("string")),
+            method("setStatus", [namedType("int")], namedType("void")),
+            method("setHeader", [namedType("string"), namedType("string")], namedType("void")),
+            method("text", [namedType("string")], namedType("void")),
+            method("json", [namedType("string")], namedType("void")),
+            method("html", [namedType("string")], namedType("void")),
+            method("send", [namedType("int"), namedType("string"), namedType("string")], namedType("void"))
+          ])
+        ],
+        [
           "Http",
-          namespaceExport("Http", [
-            functionMember("create", [], namedType("int"), "__doublemint_http_create"),
-            functionMember("destroy", [namedType("int")], namedType("void"), "__doublemint_http_destroy"),
-            functionMember("get", [namedType("int"), namedType("string"), functionType([namedType("int64")], namedType("void"))], namedType("void"), "__doublemint_http_get"),
-            functionMember("post", [namedType("int"), namedType("string"), functionType([namedType("int64")], namedType("void"))], namedType("void"), "__doublemint_http_post"),
-            functionMember("put", [namedType("int"), namedType("string"), functionType([namedType("int64")], namedType("void"))], namedType("void"), "__doublemint_http_put"),
-            functionMember("del", [namedType("int"), namedType("string"), functionType([namedType("int64")], namedType("void"))], namedType("void"), "__doublemint_http_delete"),
-            functionMember("patch", [namedType("int"), namedType("string"), functionType([namedType("int64")], namedType("void"))], namedType("void"), "__doublemint_http_patch"),
-            functionMember("options", [namedType("int"), namedType("string"), functionType([namedType("int64")], namedType("void"))], namedType("void"), "__doublemint_http_options"),
-            functionMember("listen", [namedType("int"), namedType("string"), namedType("int")], namedType("bool"), "__doublemint_http_listen"),
-            functionMember("stop", [namedType("int")], namedType("void"), "__doublemint_http_stop"),
-            functionMember("method", [namedType("int64")], namedType("string"), "__doublemint_http_method"),
-            functionMember("path", [namedType("int64")], namedType("string"), "__doublemint_http_path"),
-            functionMember("body", [namedType("int64")], namedType("string"), "__doublemint_http_body"),
-            functionMember("header", [namedType("int64"), namedType("string")], namedType("string"), "__doublemint_http_header"),
-            functionMember("param", [namedType("int64"), namedType("string")], namedType("string"), "__doublemint_http_param"),
-            functionMember("query", [namedType("int64"), namedType("string")], namedType("string"), "__doublemint_http_query"),
-            functionMember("setStatus", [namedType("int64"), namedType("int")], namedType("void"), "__doublemint_http_set_status"),
-            functionMember("setHeader", [namedType("int64"), namedType("string"), namedType("string")], namedType("void"), "__doublemint_http_set_header"),
-            functionMember("text", [namedType("int64"), namedType("string")], namedType("void"), "__doublemint_http_text"),
-            functionMember("json", [namedType("int64"), namedType("string")], namedType("void"), "__doublemint_http_json"),
-            functionMember("html", [namedType("int64"), namedType("string")], namedType("void"), "__doublemint_http_html"),
-            functionMember("send", [namedType("int64"), namedType("int"), namedType("string"), namedType("string")], namedType("void"), "__doublemint_http_send")
+          classExport("Http", [
+            method("get", [namedType("string"), functionType([namedType("Context")], namedType("void"))], namedType("void")),
+            method("post", [namedType("string"), functionType([namedType("Context")], namedType("void"))], namedType("void")),
+            method("put", [namedType("string"), functionType([namedType("Context")], namedType("void"))], namedType("void")),
+            method("del", [namedType("string"), functionType([namedType("Context")], namedType("void"))], namedType("void")),
+            method("patch", [namedType("string"), functionType([namedType("Context")], namedType("void"))], namedType("void")),
+            method("options", [namedType("string"), functionType([namedType("Context")], namedType("void"))], namedType("void")),
+            method("listen", [namedType("string"), namedType("int")], namedType("bool")),
+            method("stop", [], namedType("void"))
           ])
         ]
       ])
