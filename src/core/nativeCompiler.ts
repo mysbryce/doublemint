@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import type { DoublemintConfig } from "./config.js";
 import { DoublemintDiagnostic } from "../diagnostics/diagnostic.js";
@@ -20,7 +20,7 @@ export async function buildNativeExecutable(
   config: DoublemintConfig,
   options: NativeBuildOptions
 ): Promise<NativeBuildResult> {
-  const compiler = options.compiler ?? config.compiler;
+  const compiler = selectCompiler(options.compiler ?? config.compiler);
   const outputPath = resolve(options.outputPath);
   const cppFiles = emitResult.artifacts
     .filter((artifact) => artifact.filepath.endsWith(".cpp"))
@@ -45,6 +45,31 @@ export async function buildNativeExecutable(
     outputPath,
     args
   };
+}
+
+export function selectCompiler(preferred: string): string {
+  if (commandExists(preferred)) {
+    return preferred;
+  }
+
+  for (const fallback of ["clang++", "g++", "c++"]) {
+    if (fallback !== preferred && commandExists(fallback)) {
+      return fallback;
+    }
+  }
+
+  return preferred;
+}
+
+function commandExists(command: string): boolean {
+  const lookup = process.platform === "win32" ? "where.exe" : "command";
+  const args = process.platform === "win32" ? [command] : ["-v", command];
+  const result = spawnSync(lookup, args, {
+    shell: process.platform !== "win32",
+    stdio: "ignore"
+  });
+
+  return result.status === 0;
 }
 
 function runCompiler(command: string, args: string[]): Promise<void> {

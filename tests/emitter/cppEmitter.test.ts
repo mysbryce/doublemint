@@ -104,9 +104,13 @@ describe("emitCpp", () => {
     expect(byPath.get("build/doublemint/math_utils.cpp")).toContain(
       "#include <cmath>"
     );
+    expect(byPath.get("build/doublemint/math_utils.cpp")).toMatch(
+      /#include <cmath>\n\n#include "math_utils\.hpp"/u
+    );
     expect(byPath.get("build/doublemint/math_utils.cpp")).toContain(
       "return static_cast<float>(sqrt(x));"
     );
+    expect(byPath.get("build/doublemint/main.cpp")).toContain("float x = 10.0f;");
   });
 
   it("emits valid C++ entrypoint for void main", async () => {

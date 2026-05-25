@@ -100,10 +100,7 @@ function emitSource(
   module: ResolvedModule,
   config: DoublemintConfig
 ): CppArtifact {
-  const lines: string[] = [
-    `#include "${basename(module)}.hpp"`,
-    ""
-  ];
+  const lines: string[] = [];
 
   for (const declaration of module.program.body) {
     if (declaration.type === "ExternBlockDeclaration") {
@@ -114,6 +111,9 @@ function emitSource(
   if (module.program.body.some((declaration) => declaration.type === "ExternBlockDeclaration")) {
     lines.push("");
   }
+
+  lines.push(`#include "${basename(module)}.hpp"`);
+  lines.push("");
 
   for (const declaration of functionDeclarations(module.program)) {
     if (declaration.extern) {
@@ -215,22 +215,24 @@ function hasReturnStatement(declaration: FunctionDeclaration): boolean {
 
 function emitVariableDeclaration(statement: VariableDeclaration): string {
   const prefix = statement.kind === "const" ? "const " : "";
-  const init = statement.init ? ` = ${emitExpression(statement.init)}` : "";
+  const init = statement.init
+    ? ` = ${emitExpressionForExpectedType(statement.init, statement.valueType)}`
+    : "";
   return `${prefix}${emitType(statement.valueType)} ${statement.id}${init};`;
 }
 
-function emitExpression(expression: Expression): string {
+function emitExpression(expression: Expression, expectedType?: TypeNode): string {
   switch (expression.type) {
     case "Identifier":
       return expression.name;
     case "Literal":
-      return expression.raw;
+      return emitLiteral(expression, expectedType);
     case "BinaryExpression":
       return `${emitExpression(expression.left)} ${expression.operator} ${emitExpression(expression.right)}`;
     case "AssignmentExpression":
       return `${emitExpression(expression.left)} = ${emitExpression(expression.right)}`;
     case "CallExpression":
-      return `${emitExpression(expression.callee)}(${expression.arguments.map(emitExpression).join(", ")})`;
+      return `${emitExpression(expression.callee)}(${expression.arguments.map((argument) => emitExpression(argument)).join(", ")})`;
     case "MemberExpression":
       return `${emitExpression(expression.object)}.${expression.property}`;
     case "CopyExpression":
@@ -240,6 +242,27 @@ function emitExpression(expression: Expression): string {
     default:
       assertNever(expression);
   }
+}
+
+function emitExpressionForExpectedType(expression: Expression, expectedType: TypeNode): string {
+  return emitExpression(expression, expectedType);
+}
+
+function emitLiteral(
+  expression: Expression & { type: "Literal" },
+  expectedType?: TypeNode
+): string {
+  if (
+    expression.literalKind === "number" &&
+    expectedType?.type === "NamedType" &&
+    expectedType.name === "float" &&
+    expression.raw.includes(".") &&
+    !/[fF]$/u.test(expression.raw)
+  ) {
+    return `${expression.raw}f`;
+  }
+
+  return expression.raw;
 }
 
 function emitType(type: TypeNode): string {

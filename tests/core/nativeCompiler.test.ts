@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   buildNativeExecutable,
+  selectCompiler,
   type DoublemintConfig,
   type EmitResult
 } from "../../src/index.js";
@@ -53,5 +54,9 @@ describe.skipIf(!hasGpp)("buildNativeExecutable", () => {
     expect(result.compiler).toBe("g++");
     expect(result.outputPath).toBe(outputPath);
     expect(result.args).toContain("-std=c++20");
+  });
+
+  it("falls back to an available compiler", () => {
+    expect(selectCompiler("__missing_doublemint_compiler__")).toBe("g++");
   });
 });

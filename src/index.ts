@@ -4,7 +4,7 @@ export { parseProgram } from "./parser/parser.js";
 export { resolveModuleGraph } from "./resolver/moduleGraph.js";
 export { checkModuleGraph } from "./semantic/checker.js";
 export { emitCpp, emitCppToDisk } from "./emitter/cppEmitter.js";
-export { buildNativeExecutable } from "./core/nativeCompiler.js";
+export { buildNativeExecutable, selectCompiler } from "./core/nativeCompiler.js";
 export { DoublemintDiagnostic } from "./diagnostics/diagnostic.js";
 export type { Token, TokenKind, SourceLocation } from "./lexer/token.js";
 export type * from "./parser/ast.js";
