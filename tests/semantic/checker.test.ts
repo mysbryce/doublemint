@@ -115,6 +115,18 @@ describe("checkModuleGraph", () => {
     `);
   });
 
+  it("accepts generic types and new expressions when the base type is known", async () => {
+    await checkEntry(`
+      extern "queue.hpp" {
+        type Queue;
+      }
+
+      function main(): void {
+        let tasks: Queue<string> = new Queue<string>();
+      }
+    `);
+  });
+
   it("rejects const mutation", async () => {
     await expect(
       checkEntry(`

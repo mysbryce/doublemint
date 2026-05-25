@@ -85,12 +85,20 @@ export type TypeNode =
   | PointerTypeNode
   | ReferenceTypeNode
   | ConstTypeNode
+  | GenericTypeNode
   | OptionalTypeNode
   | UnionTypeNode;
 
 export interface NamedTypeNode {
   type: "NamedType";
   name: string;
+  location: SourceLocation;
+}
+
+export interface GenericTypeNode {
+  type: "GenericType";
+  name: string;
+  typeArgs: TypeNode[];
   location: SourceLocation;
 }
 
@@ -241,7 +249,8 @@ export type Expression =
   | StructLiteralExpression
   | LambdaExpression
   | CopyExpression
-  | CastExpression;
+  | CastExpression
+  | NewExpression;
 
 export interface IdentifierExpression {
   type: "Identifier";
@@ -276,6 +285,7 @@ export interface CallExpression {
   type: "CallExpression";
   callee: Expression;
   arguments: Expression[];
+  typeArgs?: TypeNode[];
   location: SourceLocation;
 }
 
@@ -339,5 +349,12 @@ export interface CastExpression {
   type: "CastExpression";
   expression: Expression;
   targetType: TypeNode;
+  location: SourceLocation;
+}
+
+export interface NewExpression {
+  type: "NewExpression";
+  targetType: TypeNode;
+  arguments: Expression[];
   location: SourceLocation;
 }

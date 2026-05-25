@@ -600,6 +600,12 @@ function inferExpressionType(
       assertKnownType(environment, expression.targetType);
       inferExpressionType(environment, scope, expression.expression);
       return expression.targetType;
+    case "NewExpression":
+      assertKnownType(environment, expression.targetType);
+      for (const argument of expression.arguments) {
+        inferExpressionType(environment, scope, argument);
+      }
+      return expression.targetType;
     default:
       assertNever(expression);
   }
@@ -660,6 +666,10 @@ function inferCallType(
   }
 
   const calleeType = inferExpressionType(environment, scope, expression.callee);
+  for (const typeArg of expression.typeArgs ?? []) {
+    assertKnownType(environment, typeArg);
+  }
+
   if (calleeType.type !== "FunctionType") {
     throw new DoublemintDiagnostic({
       code: "DLM4007",
@@ -1031,6 +1041,27 @@ function assertKnownType(environment: ModuleEnvironment, type: TypeNode): void {
     return;
   }
 
+  if (type.type === "GenericType") {
+    for (const typeArg of type.typeArgs) {
+      assertKnownType(environment, typeArg);
+    }
+
+    if (builtInTypes.has(type.name) || type.location.filepath !== environment.module.filepath) {
+      return;
+    }
+
+    if (!environment.types.has(type.name)) {
+      throw new DoublemintDiagnostic({
+        code: "DLM4013",
+        severity: "error",
+        message: `Unknown type "${type.name}".`,
+        location: type.location
+      });
+    }
+
+    return;
+  }
+
   if (type.type === "FunctionType") {
     for (const param of type.params) {
       assertKnownType(environment, param);
@@ -1211,6 +1242,10 @@ function canonicalTypeName(environment: ModuleEnvironment, type: TypeNode): stri
     return `${canonicalTypeName(environment, type.elementType)}[]`;
   }
 
+  if (type.type === "GenericType") {
+    return `${type.name}<${type.typeArgs.map((typeArg) => canonicalTypeName(environment, typeArg)).join(",")}>`;
+  }
+
   if (type.type === "FunctionType") {
     return `function(${type.params
       .map((param) => canonicalTypeName(environment, param))
@@ -1371,6 +1406,10 @@ function typeToString(type: TypeNode): string {
 
   if (type.type === "ArrayType") {
     return `${typeToString(type.elementType)}[]`;
+  }
+
+  if (type.type === "GenericType") {
+    return `${type.name}<${type.typeArgs.map(typeToString).join(", ")}>`;
   }
 
   if (type.type === "FunctionType") {

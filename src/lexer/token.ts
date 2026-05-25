@@ -12,6 +12,7 @@ export type TokenKind =
   | "FUNCTION"
   | "FN"
   | "RETURN"
+  | "NEW"
   | "AS"
   | "IF"
   | "ELSE"

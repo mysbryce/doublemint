@@ -619,15 +619,22 @@ class Parser {
 
   private call(): Expression {
     let expression = this.primary();
+    let pendingTypeArgs: TypeNode[] | undefined;
 
     while (true) {
-      if (this.match("LEFT_PAREN")) {
+      if (this.check("LESS") && this.looksLikeTypeArgumentCall()) {
+        this.advance();
+        pendingTypeArgs = this.typeList("GREATER");
+        this.consume("GREATER", "DLM2073", "Expected '>' after type arguments.");
+      } else if (this.match("LEFT_PAREN")) {
         expression = {
           type: "CallExpression",
           callee: expression,
           arguments: this.arguments(),
+          typeArgs: pendingTypeArgs,
           location: expression.location
         };
+        pendingTypeArgs = undefined;
         this.consume("RIGHT_PAREN", "DLM2036", "Expected ')' after arguments.");
       } else if (this.match("DOT")) {
         const property = this.consume("IDENTIFIER", "DLM2037", "Expected property name.");
@@ -669,6 +676,20 @@ class Parser {
   private primary(): Expression {
     if (this.match("FN")) {
       return this.lambdaExpression();
+    }
+
+    if (this.match("NEW")) {
+      const newToken = this.previous();
+      const targetType = this.typeNode();
+      this.consume("LEFT_PAREN", "DLM2074", "Expected '(' after new type.");
+      const args = this.arguments();
+      this.consume("RIGHT_PAREN", "DLM2075", "Expected ')' after constructor arguments.");
+      return {
+        type: "NewExpression",
+        targetType,
+        arguments: args,
+        location: newToken.location
+      };
     }
 
     if (this.match("IDENTIFIER")) {
@@ -881,6 +902,16 @@ class Parser {
       location: id.location
     };
 
+    if (this.match("LESS")) {
+      typeNode = {
+        type: "GenericType",
+        name: id.lexeme,
+        typeArgs: this.typeList("GREATER"),
+        location: id.location
+      };
+      this.consume("GREATER", "DLM2076", "Expected '>' after generic type arguments.");
+    }
+
     while (this.match("LEFT_BRACKET")) {
       this.consume("RIGHT_BRACKET", "DLM2047", "Expected ']' after array type.");
       typeNode = {
@@ -993,6 +1024,29 @@ class Parser {
 
   private previous(): Token {
     return this.tokens[this.current - 1] ?? this.peek();
+  }
+
+  private tokenAt(offset: number): Token {
+    return this.tokens[this.current + offset] ?? this.tokens[this.tokens.length - 1]!;
+  }
+
+  private looksLikeTypeArgumentCall(): boolean {
+    let depth = 0;
+    for (let offset = 0; ; offset += 1) {
+      const token = this.tokenAt(offset);
+      if (token.kind === "EOF" || token.kind === "SEMICOLON") {
+        return false;
+      }
+
+      if (token.kind === "LESS") {
+        depth += 1;
+      } else if (token.kind === "GREATER") {
+        depth -= 1;
+        if (depth === 0) {
+          return this.tokenAt(offset + 1).kind === "LEFT_PAREN";
+        }
+      }
+    }
   }
 
   private error(token: Token, code: string, message: string): DoublemintDiagnostic {

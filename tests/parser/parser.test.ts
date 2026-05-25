@@ -163,6 +163,44 @@ describe("parseProgram", () => {
     });
   });
 
+  it("parses generic types, generic calls, and new expressions", () => {
+    const program = parse(`
+      function main(): void {
+        let tasks: Queue<string> = new Queue<string>();
+        let config: ServerConfig = JSON.parse<ServerConfig>("{}");
+      }
+    `);
+
+    expect(program.body[0]).toMatchObject({
+      type: "FunctionDeclaration",
+      body: [
+        {
+          type: "VariableDeclaration",
+          valueType: {
+            type: "GenericType",
+            name: "Queue",
+            typeArgs: [{ name: "string" }]
+          },
+          init: {
+            type: "NewExpression",
+            targetType: {
+              type: "GenericType",
+              name: "Queue",
+              typeArgs: [{ name: "string" }]
+            }
+          }
+        },
+        {
+          type: "VariableDeclaration",
+          init: {
+            type: "CallExpression",
+            typeArgs: [{ name: "ServerConfig" }]
+          }
+        }
+      ]
+    });
+  });
+
   it("parses defer statements", () => {
     const program = parse(`
       function main(): void {

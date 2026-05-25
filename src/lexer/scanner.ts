@@ -15,6 +15,7 @@ const keywords = new Map<string, TokenKind>([
   ["function", "FUNCTION"],
   ["fn", "FN"],
   ["return", "RETURN"],
+  ["new", "NEW"],
   ["as", "AS"],
   ["if", "IF"],
   ["else", "ELSE"],

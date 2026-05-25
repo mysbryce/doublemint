@@ -584,6 +584,11 @@ function collectAssignedRootsFromExpression(expression: Expression, roots: Set<s
     case "CastExpression":
       collectAssignedRootsFromExpression(expression.expression, roots);
       break;
+    case "NewExpression":
+      for (const argument of expression.arguments) {
+        collectAssignedRootsFromExpression(argument, roots);
+      }
+      break;
     default:
       assertNever(expression);
   }
@@ -695,6 +700,10 @@ function emitExpression(
       return emitExpression(expression.argument, undefined, context);
     case "CastExpression":
       return `static_cast<${emitType(expression.targetType)}>(${emitExpression(expression.expression, undefined, context)})`;
+    case "NewExpression":
+      return `${emitType(expression.targetType)}(${expression.arguments
+        .map((argument) => emitExpression(argument, undefined, context))
+        .join(", ")})`;
     default:
       assertNever(expression);
   }
@@ -811,6 +820,10 @@ function emitType(type: TypeNode): string {
 
   if (type.type === "ArrayType") {
     return `std::vector<${emitType(type.elementType)}>`;
+  }
+
+  if (type.type === "GenericType") {
+    return `${type.name}<${type.typeArgs.map(emitType).join(", ")}>`;
   }
 
   if (type.type === "FunctionType") {
@@ -1083,6 +1096,8 @@ function expressionUsesPrint(expression: Expression): boolean {
       return expressionUsesPrint(expression.argument);
     case "CastExpression":
       return expressionUsesPrint(expression.expression);
+    case "NewExpression":
+      return expression.arguments.some(expressionUsesPrint);
     default:
       assertNever(expression);
   }
