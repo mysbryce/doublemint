@@ -11,8 +11,9 @@
   ],
   "scripts": {
     "runtime:embed": "node scripts/embed-runtime.mjs",
-    "prebuild": "pnpm runtime:embed",
-    "pretest": "pnpm runtime:embed",
+    "manifest:refresh": "node scripts/refresh-manifest.mjs",
+    "prebuild": "pnpm runtime:embed && pnpm manifest:refresh",
+    "pretest": "pnpm runtime:embed && pnpm manifest:refresh",
     "build": "tsup",
     "check": "tsc --noEmit",
     "pack:vsix": "node scripts/pack-vsix.mjs",
