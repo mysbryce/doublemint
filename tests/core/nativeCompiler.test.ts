@@ -20,6 +20,9 @@ const config: DoublemintConfig = {
   cppStandard: "c++20",
   compiler: "g++",
   includeDirs: [],
+  libraryDirs: [],
+  linkLibraries: [],
+  linkerFlags: [],
   warningsAsErrors: true,
   optimization: "O3"
 };
@@ -54,6 +57,38 @@ describe.skipIf(!hasGpp)("buildNativeExecutable", () => {
     expect(result.compiler).toBe("g++");
     expect(result.outputPath).toBe(outputPath);
     expect(result.args).toContain("-std=c++20");
+    await expect(access(outputPath)).resolves.toBeUndefined();
+  });
+
+  it("passes configured linker arguments after source files", async () => {
+    const cppPath = join(tempDir, "main.cpp");
+    const outputPath = join(tempDir, "linked", "app.exe");
+    await writeFile(cppPath, "int main() { return 0; }\n", "utf8");
+    const emitResult: EmitResult = {
+      artifacts: [
+        {
+          filepath: cppPath,
+          content: "int main() { return 0; }\n"
+        }
+      ]
+    };
+
+    const result = await buildNativeExecutable(
+      emitResult,
+      {
+        ...config,
+        libraryDirs: [join(tempDir, "lib")],
+        linkLibraries: [],
+        linkerFlags: ["-Wl,--as-needed"]
+      },
+      {
+        outputPath,
+        compiler: "g++"
+      }
+    );
+
+    expect(result.args).toContain(`-L${join(tempDir, "lib")}`);
+    expect(result.args).toContain("-Wl,--as-needed");
     await expect(access(outputPath)).resolves.toBeUndefined();
   });
 

@@ -35,6 +35,9 @@ export async function buildNativeExecutable(
     ...config.includeDirs.map((includeDir) => `-I${includeDir}`),
     ...Array.from(new Set(cppFiles.map((filepath) => `-I${dirname(filepath)}`))),
     ...cppFiles,
+    ...(config.libraryDirs ?? []).map((libraryDir) => `-L${libraryDir}`),
+    ...(config.linkLibraries ?? []).map((library) => `-l${library}`),
+    ...(config.linkerFlags ?? []),
     "-o",
     outputPath
   ];

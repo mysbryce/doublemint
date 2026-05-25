@@ -7,6 +7,9 @@ export interface DoublemintConfig {
   cppStandard: "c++20" | "c++23";
   compiler: "clang++" | "g++" | string;
   includeDirs: string[];
+  libraryDirs?: string[];
+  linkLibraries?: string[];
+  linkerFlags?: string[];
   warningsAsErrors: boolean;
   optimization: "O0" | "O1" | "O2" | "O3" | "Os";
 }
@@ -17,6 +20,9 @@ const defaultConfig: DoublemintConfig = {
   cppStandard: "c++20",
   compiler: "clang++",
   includeDirs: [],
+  libraryDirs: [],
+  linkLibraries: [],
+  linkerFlags: [],
   warningsAsErrors: true,
   optimization: "O3"
 };
@@ -30,7 +36,10 @@ export async function loadConfig(cwd: string): Promise<DoublemintConfig> {
     return {
       ...defaultConfig,
       ...parsed,
-      includeDirs: parsed.includeDirs ?? defaultConfig.includeDirs
+      includeDirs: parsed.includeDirs ?? defaultConfig.includeDirs,
+      libraryDirs: parsed.libraryDirs ?? defaultConfig.libraryDirs,
+      linkLibraries: parsed.linkLibraries ?? defaultConfig.linkLibraries,
+      linkerFlags: parsed.linkerFlags ?? defaultConfig.linkerFlags
     };
   } catch (error) {
     if (isMissingFileError(error)) {
@@ -49,4 +58,3 @@ function isMissingFileError(error: unknown): boolean {
     error.code === "ENOENT"
   );
 }
-

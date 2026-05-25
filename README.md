@@ -93,6 +93,9 @@ If the configured compiler is missing, Doublemint falls back to `clang++`, `g++`
   "cppStandard": "c++20",
   "compiler": "clang++",
   "includeDirs": [],
+  "libraryDirs": [],
+  "linkLibraries": [],
+  "linkerFlags": [],
   "warningsAsErrors": true,
   "optimization": "O3"
 }
@@ -150,7 +153,6 @@ extern "./native.hpp" {
 Current interop limits:
 
 - no C++ classes, methods, templates, or overload sets
-- no linker flag config for libraries that need `-l...`
 - no calling convention annotations such as `__stdcall`
 - no native resource lifetime helpers yet
 

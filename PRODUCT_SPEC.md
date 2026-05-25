@@ -43,6 +43,7 @@ The first production foundation must support:
 - `.hpp` and `.cpp` emission per module.
 - Optional native compiler invocation from the CLI.
 - Project configuration through `doublemint.config.json`.
+- Native linker configuration through `libraryDirs`, `linkLibraries`, and `linkerFlags`.
 
 ## Language Decisions
 
