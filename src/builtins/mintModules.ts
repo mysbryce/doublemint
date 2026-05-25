@@ -256,6 +256,196 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
         ["println", topLevelFunctionExport("println", [], namedType("void"), "__doublemint_println")]
       ])
     }
+  ],
+  [
+    "mint:json",
+    {
+      builtin: true,
+      builtinIncludes: ["<cstdlib>", "<sstream>", "<string>", "<string_view>"],
+      program: emptyProgram("mint:json"),
+      imports: [],
+      exports: new Map([
+        [
+          "Json",
+          namespaceExport("Json", [
+            functionMember("stringify", [namedType("string")], namedType("string"), "__doublemint_json_stringify"),
+            functionMember("stringifyInt", [namedType("int")], namedType("string"), "__doublemint_json_stringify_int"),
+            functionMember("stringifyBool", [namedType("bool")], namedType("string"), "__doublemint_json_stringify_bool"),
+            functionMember("parseInt", [namedType("string")], namedType("int"), "__doublemint_json_parse_int"),
+            functionMember("parseString", [namedType("string")], namedType("string"), "__doublemint_json_parse_string")
+          ])
+        ]
+      ])
+    }
+  ],
+  [
+    "mint:log",
+    {
+      builtin: true,
+      builtinIncludes: ["<iostream>", "<string>", "<string_view>"],
+      program: emptyProgram("mint:log"),
+      imports: [],
+      exports: new Map([
+        [
+          "Log",
+          namespaceExport("Log", [
+            functionMember("info", [namedType("string")], namedType("void"), "__doublemint_log_info"),
+            functionMember("warn", [namedType("string")], namedType("void"), "__doublemint_log_warn"),
+            functionMember("error", [namedType("string")], namedType("void"), "__doublemint_log_error"),
+            functionMember("debug", [namedType("string")], namedType("void"), "__doublemint_log_debug")
+          ])
+        ]
+      ])
+    }
+  ],
+  [
+    "mint:crypto",
+    {
+      builtin: true,
+      builtinIncludes: ["<cstdint>", "<iomanip>", "<sstream>", "<string>", "<string_view>"],
+      program: emptyProgram("mint:crypto"),
+      imports: [],
+      exports: new Map([
+        [
+          "Crypto",
+          namespaceExport("Crypto", [
+            functionMember("hashFnv1a", [namedType("string")], namedType("int"), "__doublemint_crypto_fnv1a"),
+            functionMember("xorCipher", [namedType("string"), namedType("string")], namedType("string"), "__doublemint_crypto_xor"),
+            functionMember("toHex", [namedType("int")], namedType("string"), "__doublemint_crypto_to_hex")
+          ])
+        ]
+      ])
+    }
+  ],
+  [
+    "mint:net",
+    {
+      builtin: true,
+      builtinIncludes: ["<sstream>", "<string>", "<string_view>"],
+      program: emptyProgram("mint:net"),
+      imports: [],
+      exports: new Map([
+        [
+          "Url",
+          namespaceExport("Url", [
+            functionMember("scheme", [namedType("string")], namedType("string"), "__doublemint_url_scheme"),
+            functionMember("host", [namedType("string")], namedType("string"), "__doublemint_url_host"),
+            functionMember("path", [namedType("string")], namedType("string"), "__doublemint_url_path"),
+            functionMember("encodeComponent", [namedType("string")], namedType("string"), "__doublemint_url_encode")
+          ])
+        ],
+        [
+          "Http",
+          namespaceExport("Http", [
+            functionMember("buildGet", [namedType("string"), namedType("string")], namedType("string"), "__doublemint_http_build_get")
+          ])
+        ]
+      ])
+    }
+  ],
+  [
+    "mint:async",
+    {
+      builtin: true,
+      builtinIncludes: ["<chrono>", "<cstddef>", "<numeric>", "<thread>", "<vector>"],
+      program: emptyProgram("mint:async"),
+      imports: [],
+      exports: new Map([
+        [
+          "Async",
+          namespaceExport("Async", [
+            functionMember("sleepMs", [namedType("int")], namedType("void"), "__doublemint_async_sleep_ms"),
+            functionMember("parallelSum", [arrayType(namedType("int"))], namedType("int"), "__doublemint_async_parallel_sum"),
+            functionMember("hardwareThreads", [], namedType("int"), "__doublemint_async_hardware_threads")
+          ])
+        ]
+      ])
+    }
+  ],
+  [
+    "mint:memory",
+    {
+      builtin: true,
+      builtinIncludes: ["<atomic>", "<cstdint>"],
+      program: emptyProgram("mint:memory"),
+      imports: [],
+      exports: new Map([
+        [
+          "Memory",
+          namespaceExport("Memory", [
+            functionMember("recordAlloc", [namedType("int")], namedType("void"), "__doublemint_memory_record_alloc"),
+            functionMember("recordFree", [namedType("int")], namedType("void"), "__doublemint_memory_record_free"),
+            functionMember("bytesUsed", [], namedType("int"), "__doublemint_memory_bytes_used"),
+            functionMember("peakBytes", [], namedType("int"), "__doublemint_memory_peak_bytes"),
+            functionMember("reset", [], namedType("void"), "__doublemint_memory_reset")
+          ])
+        ]
+      ])
+    }
+  ],
+  [
+    "mint:simd",
+    {
+      builtin: true,
+      builtinIncludes: ["<algorithm>", "<cstddef>", "<numeric>", "<vector>"],
+      program: emptyProgram("mint:simd"),
+      imports: [],
+      exports: new Map([
+        [
+          "Simd",
+          namespaceExport("Simd", [
+            functionMember("addArrays", [arrayType(namedType("int")), arrayType(namedType("int"))], arrayType(namedType("int")), "__doublemint_simd_add"),
+            functionMember("scaleArray", [arrayType(namedType("int")), namedType("int")], arrayType(namedType("int")), "__doublemint_simd_scale"),
+            functionMember("dotProduct", [arrayType(namedType("int")), arrayType(namedType("int"))], namedType("int"), "__doublemint_simd_dot"),
+            functionMember("sum", [arrayType(namedType("int"))], namedType("int"), "__doublemint_simd_sum")
+          ])
+        ]
+      ])
+    }
+  ],
+  [
+    "mint:db",
+    {
+      builtin: true,
+      builtinIncludes: ["<string>", "<string_view>", "<unordered_map>"],
+      program: emptyProgram("mint:db"),
+      imports: [],
+      exports: new Map([
+        [
+          "KV",
+          namespaceExport("KV", [
+            functionMember("set", [namedType("string"), namedType("string")], namedType("void"), "__doublemint_kv_set"),
+            functionMember("get", [namedType("string"), namedType("string")], namedType("string"), "__doublemint_kv_get"),
+            functionMember("has", [namedType("string")], namedType("bool"), "__doublemint_kv_has"),
+            functionMember("remove", [namedType("string")], namedType("void"), "__doublemint_kv_remove"),
+            functionMember("size", [], namedType("int"), "__doublemint_kv_size"),
+            functionMember("clear", [], namedType("void"), "__doublemint_kv_clear")
+          ])
+        ]
+      ])
+    }
+  ],
+  [
+    "mint:ui",
+    {
+      builtin: true,
+      builtinIncludes: ["<iostream>", "<sstream>", "<string>", "<string_view>"],
+      program: emptyProgram("mint:ui"),
+      imports: [],
+      exports: new Map([
+        [
+          "Terminal",
+          namespaceExport("Terminal", [
+            functionMember("clear", [], namedType("void"), "__doublemint_term_clear"),
+            functionMember("moveCursor", [namedType("int"), namedType("int")], namedType("void"), "__doublemint_term_move_cursor"),
+            functionMember("setColor", [namedType("int")], namedType("void"), "__doublemint_term_set_color"),
+            functionMember("resetColor", [], namedType("void"), "__doublemint_term_reset_color"),
+            functionMember("bold", [namedType("string")], namedType("string"), "__doublemint_term_bold"),
+            functionMember("colorize", [namedType("string"), namedType("int")], namedType("string"), "__doublemint_term_colorize")
+          ])
+        ]
+      ])
+    }
   ]
 ]);
 
@@ -273,4 +463,108 @@ export function resolveBuiltinModule(source: string): ResolvedModule | null {
     filepath: source,
     ...module
   };
+}
+
+function formatTypeNode(node: TypeNode): string {
+  switch (node.type) {
+    case "NamedType":
+      return node.name;
+    case "GenericType":
+      return `${node.name}<${node.typeArgs.map(formatTypeNode).join(", ")}>`;
+    case "ArrayType":
+      return `${formatTypeNode(node.elementType)}[]`;
+    case "TupleType":
+      return `(${node.elements.map(formatTypeNode).join(", ")})`;
+    case "FunctionType":
+      return `fn(${node.params.map(formatTypeNode).join(", ")}): ${formatTypeNode(node.returnType)}`;
+    case "PointerType":
+      return `${formatTypeNode(node.pointee)}*`;
+    case "ReferenceType":
+      return `${formatTypeNode(node.referent)}&`;
+    case "ConstType":
+      return `const ${formatTypeNode(node.valueType)}`;
+    case "OptionalType":
+      return `${formatTypeNode(node.valueType)}?`;
+    case "UnionType":
+      return node.options.map(formatTypeNode).join(" | ");
+    default:
+      return "unknown";
+  }
+}
+
+export interface BuiltinManifestMember {
+  name: string;
+  kind: "function" | "value";
+  params?: string[];
+  returnType?: string;
+  valueType?: string;
+}
+
+export interface BuiltinManifestExport {
+  name: string;
+  kind: "namespace" | "function" | "class" | "type";
+  members?: BuiltinManifestMember[];
+  params?: string[];
+  returnType?: string;
+}
+
+export interface BuiltinManifest {
+  modules: Record<string, { exports: BuiltinManifestExport[] }>;
+}
+
+export function buildBuiltinManifest(): BuiltinManifest {
+  const manifest: BuiltinManifest = { modules: {} };
+
+  for (const [source, module] of builtinModules) {
+    const exports: BuiltinManifestExport[] = [];
+
+    for (const [, moduleExport] of module.exports) {
+      if (!moduleExport.builtin) {
+        continue;
+      }
+
+      if (moduleExport.namespaceMembers) {
+        exports.push({
+          name: moduleExport.name,
+          kind: "namespace",
+          members: [...moduleExport.namespaceMembers.values()].map((member) => ({
+            name: member.name,
+            kind: member.kind,
+            params: member.params?.map(formatTypeNode),
+            returnType: member.returnType ? formatTypeNode(member.returnType) : undefined,
+            valueType: member.valueType ? formatTypeNode(member.valueType) : undefined
+          }))
+        });
+        continue;
+      }
+
+      if (moduleExport.classMethods) {
+        exports.push({
+          name: moduleExport.name,
+          kind: "class",
+          members: [...moduleExport.classMethods.values()].map((method) => ({
+            name: method.name,
+            kind: "function",
+            params: method.params.map(formatTypeNode),
+            returnType: formatTypeNode(method.returnType)
+          }))
+        });
+        continue;
+      }
+
+      if (moduleExport.functionType) {
+        exports.push({
+          name: moduleExport.name,
+          kind: "function",
+          params: moduleExport.functionType.params.map(formatTypeNode),
+          returnType: formatTypeNode(moduleExport.functionType.returnType)
+        });
+        continue;
+      }
+    }
+
+    manifest.modules[source] = { exports };
+  }
+
+  return manifest;
 }

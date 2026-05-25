@@ -13,6 +13,7 @@
     "build": "tsup",
     "check": "tsc --noEmit",
     "pack:vsix": "node scripts/pack-vsix.mjs",
+    "build:examples": "node scripts/build-examples.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "dev": "tsx src/cli.ts"

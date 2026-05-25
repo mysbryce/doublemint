@@ -12,19 +12,27 @@ let diagnostics;
 let output;
 let pendingTimers = new Map();
 let extensionRoot = "";
+let builtinManifest = { modules: {} };
 
 function activate(context) {
   extensionRoot = context.extensionPath;
   diagnostics = vscode.languages.createDiagnosticCollection("doublemint");
   output = vscode.window.createOutputChannel(OUTPUT_CHANNEL_NAME);
+  builtinManifest = loadBuiltinManifest(extensionRoot);
 
   context.subscriptions.push(diagnostics, output);
   context.subscriptions.push(
     vscode.languages.registerCompletionItemProvider(
       LANGUAGE_ID,
       { provideCompletionItems },
-      "."
+      ".",
+      "{",
+      ",",
+      " ",
+      "\""
     ),
+    vscode.languages.registerHoverProvider(LANGUAGE_ID, { provideHover }),
+    vscode.languages.registerDefinitionProvider(LANGUAGE_ID, { provideDefinition }),
     vscode.workspace.onDidOpenTextDocument(scheduleDiagnostics),
     vscode.workspace.onDidSaveTextDocument(runDiagnostics),
     vscode.workspace.onDidChangeTextDocument((event) => scheduleDiagnostics(event.document)),
@@ -41,7 +49,25 @@ function activate(context) {
 
 function provideCompletionItems(document, position) {
   const text = document.getText();
+
+  const importBraceCompletions = completeImportBrace(document, position);
+  if (importBraceCompletions) {
+    return importBraceCompletions;
+  }
+
+  const importSourceCompletions = completeImportSource(document, position);
+  if (importSourceCompletions) {
+    return importSourceCompletions;
+  }
+
   const model = buildCompletionModel(text);
+  const builtinImports = collectBuiltinImports(text, builtinManifest);
+  const memberCompletions = completeBuiltinMember(document, position, builtinImports);
+
+  if (memberCompletions) {
+    return memberCompletions;
+  }
+
   const fieldCompletions = completeFields(document, position, model);
 
   if (fieldCompletions) {
@@ -51,8 +77,76 @@ function provideCompletionItems(document, position) {
   return [
     ...keywordCompletions(),
     ...typeCompletions(model),
-    ...symbolCompletions(model)
+    ...symbolCompletions(model),
+    ...builtinSymbolCompletions(builtinImports)
   ];
+}
+
+function completeImportBrace(document, position) {
+  const lineText = document.lineAt(position.line).text;
+  const before = lineText.slice(0, position.character);
+  const after = lineText.slice(position.character);
+
+  const braceMatch = /\bimport(?:\s+type)?\s*\{([^}]*)$/u.exec(before);
+  if (!braceMatch) {
+    return null;
+  }
+
+  const tailMatch = /^([^}]*)\}\s*from\s*"([^"]+)"/u.exec(after);
+  if (!tailMatch) {
+    return null;
+  }
+
+  const source = tailMatch[2];
+  const moduleEntry = builtinManifest.modules[source];
+  if (!moduleEntry) {
+    return null;
+  }
+
+  const alreadyImported = new Set(
+    `${braceMatch[1]},${tailMatch[1]}`
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean)
+  );
+
+  return moduleEntry.exports
+    .filter((entry) => !alreadyImported.has(entry.name))
+    .map((entry) => {
+      const kind = entry.kind === "function"
+        ? vscode.CompletionItemKind.Function
+        : entry.kind === "class"
+          ? vscode.CompletionItemKind.Class
+          : vscode.CompletionItemKind.Module;
+      const item = new vscode.CompletionItem(entry.name, kind);
+      item.detail = `${entry.kind} from ${source}`;
+      item.insertText = entry.name;
+      if (entry.kind === "function") {
+        item.documentation = `(${(entry.params || []).join(", ")}) -> ${entry.returnType || "void"}`;
+      } else if (entry.members) {
+        item.documentation = `Members: ${entry.members.map((m) => m.name).join(", ")}`;
+      }
+      return item;
+    });
+}
+
+function completeImportSource(document, position) {
+  const lineText = document.lineAt(position.line).text;
+  const before = lineText.slice(0, position.character);
+
+  const sourceMatch = /\bimport(?:\s+type)?\s*\{[^}]*\}\s*from\s*"([^"]*)$/u.exec(before);
+  if (!sourceMatch) {
+    return null;
+  }
+
+  return Object.keys(builtinManifest.modules).map((source) => {
+    const item = new vscode.CompletionItem(source, vscode.CompletionItemKind.Module);
+    item.detail = "Doublemint builtin module";
+    const moduleEntry = builtinManifest.modules[source];
+    item.documentation = `Exports: ${moduleEntry.exports.map((entry) => entry.name).join(", ")}`;
+    item.insertText = source;
+    return item;
+  });
 }
 
 function deactivate() {
@@ -407,6 +501,348 @@ function firstTokenEnd(text, start) {
   }
 
   return start + 1;
+}
+
+function provideHover(document, position) {
+  const wordRange = document.getWordRangeAtPosition(position, /[A-Za-z_][A-Za-z0-9_]*/u);
+  if (!wordRange) {
+    return null;
+  }
+
+  const word = document.getText(wordRange);
+  const text = document.getText();
+  const builtinImports = collectBuiltinImports(text, builtinManifest);
+  const lineText = document.lineAt(position.line).text;
+  const before = lineText.slice(0, wordRange.start.character);
+  const memberMatch = /([A-Za-z_][A-Za-z0-9_]*)\.$/u.exec(before);
+
+  if (memberMatch) {
+    const owner = builtinImports.get(memberMatch[1]);
+    if (owner && owner.members) {
+      const member = owner.members.find((entry) => entry.name === word);
+      if (member) {
+        return new vscode.Hover(renderMember(owner, member), wordRange);
+      }
+    }
+  }
+
+  const direct = builtinImports.get(word);
+  if (direct) {
+    return new vscode.Hover(renderExport(direct), wordRange);
+  }
+
+  const userSymbols = collectUserSymbols(document);
+  const userSymbol = userSymbols.get(word);
+  if (userSymbol) {
+    return new vscode.Hover(renderUserSymbol(userSymbol, document.uri.fsPath), wordRange);
+  }
+
+  return null;
+}
+
+function provideDefinition(document, position) {
+  const wordRange = document.getWordRangeAtPosition(position, /[A-Za-z_][A-Za-z0-9_]*/u);
+  if (!wordRange) {
+    return null;
+  }
+
+  const word = document.getText(wordRange);
+  const userSymbols = collectUserSymbols(document);
+  const symbol = userSymbols.get(word);
+  if (!symbol || !symbol.location) {
+    return null;
+  }
+
+  const uri = vscode.Uri.file(symbol.location.filepath);
+  const pos = new vscode.Position(symbol.location.line, symbol.location.character);
+  return new vscode.Location(uri, pos);
+}
+
+function renderUserSymbol(symbol, currentFilepath) {
+  const md = new vscode.MarkdownString();
+  md.appendCodeblock(symbol.signature, "doublemint");
+  if (symbol.location) {
+    const sameFileFlag = sameFile(symbol.location.filepath, currentFilepath);
+    const origin = sameFileFlag
+      ? `line ${symbol.location.line + 1}`
+      : `${path.basename(symbol.location.filepath)}:${symbol.location.line + 1}`;
+    md.appendMarkdown(`\n_${symbol.kind}${sameFileFlag ? "" : " (imported)"} • ${origin}_`);
+  } else {
+    md.appendMarkdown(`\n_${symbol.kind}_`);
+  }
+  return md;
+}
+
+function renderExport(entry) {
+  const md = new vscode.MarkdownString();
+  md.appendCodeblock(formatExportSignature(entry), "doublemint");
+  md.appendMarkdown(`\n_${entry.kind} from \`${entry.source}\`_`);
+  if (entry.members && entry.members.length > 0) {
+    md.appendMarkdown(`\n\n**Members:** ${entry.members.map((m) => `\`${m.name}\``).join(", ")}`);
+  }
+  return md;
+}
+
+function renderMember(owner, member) {
+  const md = new vscode.MarkdownString();
+  md.appendCodeblock(formatMemberSignature(owner.name, member), "doublemint");
+  md.appendMarkdown(`\n_${member.kind} of ${owner.kind} \`${owner.name}\` (\`${owner.source}\`)_`);
+  return md;
+}
+
+function formatExportSignature(entry) {
+  if (entry.kind === "function") {
+    const params = entry.params || [];
+    return `function ${entry.name}(${params.join(", ")}): ${entry.returnType || "void"}`;
+  }
+  if (entry.kind === "namespace") {
+    return `namespace ${entry.name}`;
+  }
+  if (entry.kind === "class") {
+    return `class ${entry.name}`;
+  }
+  return `${entry.kind} ${entry.name}`;
+}
+
+function formatMemberSignature(ownerName, member) {
+  if (member.kind === "function") {
+    const params = member.params || [];
+    return `${ownerName}.${member.name}(${params.join(", ")}): ${member.returnType || "void"}`;
+  }
+  return `${ownerName}.${member.name}: ${member.valueType || "value"}`;
+}
+
+function collectUserSymbols(document) {
+  const seen = new Set();
+  const symbols = new Map();
+  const baseDir = path.dirname(document.uri.fsPath);
+
+  indexFile(document.uri.fsPath, document.getText(), symbols, seen);
+
+  const importRegex = /\bimport(?:\s+type)?\s*\{([^}]*)\}\s*from\s*"([^"]+)"\s*;/gu;
+  for (const match of document.getText().matchAll(importRegex)) {
+    const source = match[2];
+    if (source.startsWith("mint:")) {
+      continue;
+    }
+    const resolved = resolveImportPath(baseDir, source);
+    if (!resolved || seen.has(resolved.toLowerCase())) {
+      continue;
+    }
+    try {
+      const text = fs.readFileSync(resolved, "utf8");
+      indexFile(resolved, text, symbols, seen);
+    } catch {
+      // ignore missing imports
+    }
+  }
+
+  return symbols;
+}
+
+function resolveImportPath(baseDir, source) {
+  const candidates = [];
+  if (source.endsWith(".dlm")) {
+    candidates.push(path.resolve(baseDir, source));
+  } else {
+    candidates.push(path.resolve(baseDir, `${source}.dlm`));
+    candidates.push(path.resolve(baseDir, source, "main.dlm"));
+  }
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+function indexFile(filepath, source, symbols, seen) {
+  const key = filepath.toLowerCase();
+  if (seen.has(key)) {
+    return;
+  }
+  seen.add(key);
+
+  const clean = stripPreservingOffsets(source);
+  const lineStarts = computeLineStarts(source);
+
+  const functionRegex = /\b(export\s+)?function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*:\s*([^{;]+)/gu;
+  for (const match of clean.matchAll(functionRegex)) {
+    const nameIndex = match.index + match[0].indexOf(match[2]);
+    const params = parseParams(match[3]);
+    const returnType = match[4].trim();
+    const signature = `function ${match[2]}(${params
+      .map((param) => `${param.name}: ${param.type}`)
+      .join(", ")}): ${returnType}`;
+    upsert(symbols, match[2], {
+      name: match[2],
+      kind: "function",
+      signature,
+      params,
+      returnType,
+      location: locationAt(filepath, lineStarts, nameIndex)
+    });
+  }
+
+  const structRegex = /\b(export\s+)?struct\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{([\s\S]*?)\}/gu;
+  for (const match of clean.matchAll(structRegex)) {
+    const nameIndex = match.index + match[0].indexOf(match[2]);
+    const fields = [];
+    for (const field of match[3].matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([^;]+);/gu)) {
+      fields.push({ name: field[1], type: field[2].trim() });
+    }
+    const signature = `struct ${match[2]} { ${fields
+      .map((field) => `${field.name}: ${field.type}`)
+      .join("; ")} }`;
+    upsert(symbols, match[2], {
+      name: match[2],
+      kind: "struct",
+      signature,
+      fields,
+      location: locationAt(filepath, lineStarts, nameIndex)
+    });
+  }
+
+  const aliasRegex = /\b(export\s+)?type\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);/gu;
+  for (const match of clean.matchAll(aliasRegex)) {
+    const nameIndex = match.index + match[0].indexOf(match[2]);
+    upsert(symbols, match[2], {
+      name: match[2],
+      kind: "type alias",
+      signature: `type ${match[2]} = ${match[3].trim()}`,
+      location: locationAt(filepath, lineStarts, nameIndex)
+    });
+  }
+}
+
+function upsert(map, key, value) {
+  if (!map.has(key)) {
+    map.set(key, value);
+  }
+}
+
+function locationAt(filepath, lineStarts, offset) {
+  let lo = 0;
+  let hi = lineStarts.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >>> 1;
+    if (lineStarts[mid] <= offset) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  return { filepath, line: lo, character: offset - lineStarts[lo] };
+}
+
+function computeLineStarts(source) {
+  const starts = [0];
+  for (let index = 0; index < source.length; index += 1) {
+    if (source.charCodeAt(index) === 10) {
+      starts.push(index + 1);
+    }
+  }
+  return starts;
+}
+
+function stripPreservingOffsets(source) {
+  return source
+    .replace(/\/\/.*$/gmu, (match) => " ".repeat(match.length))
+    .replace(/\/\*[\s\S]*?\*\//gu, (match) => match.replace(/[^\n]/gu, " "))
+    .replace(/"(?:\\.|[^"\\])*"/gu, (match) =>
+      match.length <= 2 ? match : `"${" ".repeat(match.length - 2)}"`
+    );
+}
+
+function loadBuiltinManifest(root) {
+  const manifestPath = path.join(root, "builtin-manifest.json");
+  try {
+    if (fs.existsSync(manifestPath)) {
+      return JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    }
+  } catch (error) {
+    if (output) {
+      output.appendLine(`Failed to load builtin manifest: ${error.message}`);
+    }
+  }
+  return { modules: {} };
+}
+
+function collectBuiltinImports(source, manifest) {
+  const map = new Map();
+  const importRegex = /\bimport(?:\s+type)?\s*\{([^}]*)\}\s*from\s*"(mint:[A-Za-z0-9_]+)"\s*;/gu;
+  for (const match of source.matchAll(importRegex)) {
+    const names = match[1]
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean);
+    const moduleEntry = manifest.modules[match[2]];
+    if (!moduleEntry) {
+      continue;
+    }
+    for (const name of names) {
+      const exportEntry = moduleEntry.exports.find((entry) => entry.name === name);
+      if (exportEntry) {
+        map.set(name, { ...exportEntry, source: match[2] });
+      }
+    }
+  }
+  return map;
+}
+
+function completeBuiltinMember(document, position, builtinImports) {
+  const linePrefix = document.lineAt(position.line).text.slice(0, position.character);
+  const match = /([A-Za-z_][A-Za-z0-9_]*)\.$/u.exec(linePrefix);
+  if (!match) {
+    return null;
+  }
+
+  const entry = builtinImports.get(match[1]);
+  if (!entry || !entry.members) {
+    return null;
+  }
+
+  return entry.members.map((member) => {
+    const kind = member.kind === "function"
+      ? vscode.CompletionItemKind.Method
+      : vscode.CompletionItemKind.Field;
+    const item = new vscode.CompletionItem(member.name, kind);
+    if (member.kind === "function") {
+      const params = member.params || [];
+      const snippet = params.map((type, index) => `\${${index + 1}:${type}}`).join(", ");
+      item.insertText = new vscode.SnippetString(`${member.name}(${snippet})`);
+      item.detail = `(${params.join(", ")}) -> ${member.returnType || "void"}`;
+    } else {
+      item.insertText = member.name;
+      item.detail = member.valueType || "value";
+    }
+    item.documentation = `${entry.name} from ${entry.source}`;
+    return item;
+  });
+}
+
+function builtinSymbolCompletions(builtinImports) {
+  const items = [];
+  for (const [name, entry] of builtinImports) {
+    if (entry.kind === "function") {
+      const params = entry.params || [];
+      const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Function);
+      const snippet = params.map((type, index) => `\${${index + 1}:${type}}`).join(", ");
+      item.insertText = new vscode.SnippetString(`${name}(${snippet})`);
+      item.detail = `builtin from ${entry.source}`;
+      item.documentation = `(${params.join(", ")}) -> ${entry.returnType || "void"}`;
+      items.push(item);
+      continue;
+    }
+
+    const kind = entry.kind === "class"
+      ? vscode.CompletionItemKind.Class
+      : vscode.CompletionItemKind.Module;
+    const item = new vscode.CompletionItem(name, kind);
+    item.detail = `builtin ${entry.kind} from ${entry.source}`;
+    items.push(item);
+  }
+  return items;
 }
 
 module.exports = {

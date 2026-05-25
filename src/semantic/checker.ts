@@ -239,6 +239,13 @@ function symbolFromExport(name: string, moduleExport: ModuleExport): SemanticSym
         location: moduleExport.location
       };
     }
+
+    throw new DoublemintDiagnostic({
+      code: "DLM4001",
+      severity: "error",
+      message: `Unsupported builtin import symbol "${name}".`,
+      location: moduleExport.location
+    });
   }
 
   const declaration = moduleExport.declaration;

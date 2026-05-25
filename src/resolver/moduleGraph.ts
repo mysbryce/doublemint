@@ -265,7 +265,7 @@ function collectExports(program: Program): Map<string, ModuleExport> {
   return exports;
 }
 
-function exportFromDeclaration(declaration: Declaration): ModuleExport | null {
+function exportFromDeclaration(declaration: Declaration): AstModuleExport | null {
   if (declaration.type === "TypeAliasDeclaration" && declaration.exported) {
     return {
       name: declaration.id,

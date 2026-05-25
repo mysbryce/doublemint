@@ -1,0 +1,780 @@
+{
+  "modules": {
+    "mint:fs": {
+      "exports": [
+        {
+          "name": "File",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "exists",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "readToString",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "readToBytes",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "int[]"
+            },
+            {
+              "name": "writeString",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "appendString",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "void"
+            }
+          ]
+        },
+        {
+          "name": "Path",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "join",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "basename",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            }
+          ]
+        }
+      ]
+    },
+    "mint:math": {
+      "exports": [
+        {
+          "name": "Math",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "PI",
+              "kind": "value",
+              "valueType": "double"
+            },
+            {
+              "name": "sin",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "sqrt",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "pow",
+              "kind": "function",
+              "params": [
+                "double",
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "roundToInt",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "int"
+            }
+          ]
+        }
+      ]
+    },
+    "mint:time": {
+      "exports": [
+        {
+          "name": "Time",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "nowInMs",
+              "kind": "function",
+              "params": [],
+              "returnType": "int"
+            }
+          ]
+        },
+        {
+          "name": "Profiler",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "start",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "stop",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "int"
+            }
+          ]
+        }
+      ]
+    },
+    "mint:collections": {
+      "exports": [
+        {
+          "name": "Queue",
+          "kind": "class",
+          "members": [
+            {
+              "name": "push",
+              "kind": "function",
+              "params": [
+                "T"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "pop",
+              "kind": "function",
+              "params": [],
+              "returnType": "T"
+            },
+            {
+              "name": "empty",
+              "kind": "function",
+              "params": [],
+              "returnType": "bool"
+            },
+            {
+              "name": "size",
+              "kind": "function",
+              "params": [],
+              "returnType": "int"
+            }
+          ]
+        },
+        {
+          "name": "Set",
+          "kind": "class",
+          "members": [
+            {
+              "name": "add",
+              "kind": "function",
+              "params": [
+                "T"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "has",
+              "kind": "function",
+              "params": [
+                "T"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "size",
+              "kind": "function",
+              "params": [],
+              "returnType": "int"
+            }
+          ]
+        },
+        {
+          "name": "Stack",
+          "kind": "class",
+          "members": [
+            {
+              "name": "push",
+              "kind": "function",
+              "params": [
+                "T"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "pop",
+              "kind": "function",
+              "params": [],
+              "returnType": "T"
+            },
+            {
+              "name": "empty",
+              "kind": "function",
+              "params": [],
+              "returnType": "bool"
+            },
+            {
+              "name": "size",
+              "kind": "function",
+              "params": [],
+              "returnType": "int"
+            }
+          ]
+        }
+      ]
+    },
+    "mint:os": {
+      "exports": [
+        {
+          "name": "OS",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "isLinux",
+              "kind": "function",
+              "params": [],
+              "returnType": "bool"
+            },
+            {
+              "name": "isWindows",
+              "kind": "function",
+              "params": [],
+              "returnType": "bool"
+            },
+            {
+              "name": "execute",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            }
+          ]
+        },
+        {
+          "name": "Env",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "get",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "string"
+            }
+          ]
+        }
+      ]
+    },
+    "mint:regex": {
+      "exports": [
+        {
+          "name": "Regex",
+          "kind": "class",
+          "members": [
+            {
+              "name": "test",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "replace",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "string"
+            }
+          ]
+        }
+      ]
+    },
+    "mint:io": {
+      "exports": [
+        {
+          "name": "IO",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "readLine",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            }
+          ]
+        },
+        {
+          "name": "print",
+          "kind": "function",
+          "params": [],
+          "returnType": "void"
+        },
+        {
+          "name": "println",
+          "kind": "function",
+          "params": [],
+          "returnType": "void"
+        }
+      ]
+    },
+    "mint:json": {
+      "exports": [
+        {
+          "name": "Json",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "stringify",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "stringifyInt",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "stringifyBool",
+              "kind": "function",
+              "params": [
+                "bool"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "parseInt",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "parseString",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            }
+          ]
+        }
+      ]
+    },
+    "mint:log": {
+      "exports": [
+        {
+          "name": "Log",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "info",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "warn",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "error",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "debug",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "void"
+            }
+          ]
+        }
+      ]
+    },
+    "mint:crypto": {
+      "exports": [
+        {
+          "name": "Crypto",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "hashFnv1a",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "xorCipher",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "toHex",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "string"
+            }
+          ]
+        }
+      ]
+    },
+    "mint:net": {
+      "exports": [
+        {
+          "name": "Url",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "scheme",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "host",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "path",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "encodeComponent",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            }
+          ]
+        },
+        {
+          "name": "Http",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "buildGet",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "string"
+            }
+          ]
+        }
+      ]
+    },
+    "mint:async": {
+      "exports": [
+        {
+          "name": "Async",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "sleepMs",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "parallelSum",
+              "kind": "function",
+              "params": [
+                "int[]"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "hardwareThreads",
+              "kind": "function",
+              "params": [],
+              "returnType": "int"
+            }
+          ]
+        }
+      ]
+    },
+    "mint:memory": {
+      "exports": [
+        {
+          "name": "Memory",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "recordAlloc",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "recordFree",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "bytesUsed",
+              "kind": "function",
+              "params": [],
+              "returnType": "int"
+            },
+            {
+              "name": "peakBytes",
+              "kind": "function",
+              "params": [],
+              "returnType": "int"
+            },
+            {
+              "name": "reset",
+              "kind": "function",
+              "params": [],
+              "returnType": "void"
+            }
+          ]
+        }
+      ]
+    },
+    "mint:simd": {
+      "exports": [
+        {
+          "name": "Simd",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "addArrays",
+              "kind": "function",
+              "params": [
+                "int[]",
+                "int[]"
+              ],
+              "returnType": "int[]"
+            },
+            {
+              "name": "scaleArray",
+              "kind": "function",
+              "params": [
+                "int[]",
+                "int"
+              ],
+              "returnType": "int[]"
+            },
+            {
+              "name": "dotProduct",
+              "kind": "function",
+              "params": [
+                "int[]",
+                "int[]"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "sum",
+              "kind": "function",
+              "params": [
+                "int[]"
+              ],
+              "returnType": "int"
+            }
+          ]
+        }
+      ]
+    },
+    "mint:db": {
+      "exports": [
+        {
+          "name": "KV",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "set",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "get",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "has",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "remove",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "size",
+              "kind": "function",
+              "params": [],
+              "returnType": "int"
+            },
+            {
+              "name": "clear",
+              "kind": "function",
+              "params": [],
+              "returnType": "void"
+            }
+          ]
+        }
+      ]
+    },
+    "mint:ui": {
+      "exports": [
+        {
+          "name": "Terminal",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "clear",
+              "kind": "function",
+              "params": [],
+              "returnType": "void"
+            },
+            {
+              "name": "moveCursor",
+              "kind": "function",
+              "params": [
+                "int",
+                "int"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "setColor",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "resetColor",
+              "kind": "function",
+              "params": [],
+              "returnType": "void"
+            },
+            {
+              "name": "bold",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "colorize",
+              "kind": "function",
+              "params": [
+                "string",
+                "int"
+              ],
+              "returnType": "string"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
