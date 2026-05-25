@@ -216,4 +216,44 @@ describe("parseProgram", () => {
       ]
     });
   });
+
+  it("parses tuple literals and tuple index expressions", () => {
+    const program = parse(`
+      function pair(): [int, string] {
+        return (1, "mint");
+      }
+
+      function main(): void {
+        let value: [int, string] = pair();
+        print(value[0]);
+      }
+    `);
+
+    expect(program.body[0]).toMatchObject({
+      type: "FunctionDeclaration",
+      returnType: { type: "TupleType", elements: [{ name: "int" }, { name: "string" }] },
+      body: [
+        {
+          type: "ReturnStatement",
+          argument: {
+            type: "TupleLiteral",
+            elements: [{ type: "Literal", value: 1 }, { type: "Literal", value: "mint" }]
+          }
+        }
+      ]
+    });
+    expect(program.body[1]).toMatchObject({
+      type: "FunctionDeclaration",
+      body: [
+        { type: "VariableDeclaration" },
+        {
+          type: "ExpressionStatement",
+          expression: {
+            type: "CallExpression",
+            arguments: [{ type: "IndexExpression" }]
+          }
+        }
+      ]
+    });
+  });
 });

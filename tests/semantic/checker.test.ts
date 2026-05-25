@@ -487,4 +487,59 @@ describe("checkModuleGraph", () => {
       code: "DLM4014"
     });
   });
+
+  it("accepts tuple return values and tuple indexing", async () => {
+    await expect(
+      checkEntry(`
+        function pair(): [int, string] {
+          return (1, "mint");
+        }
+
+        function main(): void {
+          let value: [int, string] = pair();
+          print(value[0]);
+          print(value[1]);
+        }
+      `)
+    ).resolves.toBeUndefined();
+  });
+
+  it("rejects tuple literals with mismatched element types", async () => {
+    await expect(
+      checkEntry(`
+        function pair(): [int, string] {
+          return ("bad", 1);
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4014"
+    });
+  });
+
+  it("rejects tuple indexes out of range", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          let value: [int, string] = (1, "mint");
+          print(value[2]);
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4028"
+    });
+  });
+
+  it("rejects dynamic tuple indexes", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          let value: [int, string] = (1, "mint");
+          let index: int = 0;
+          print(value[index]);
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4027"
+    });
+  });
 });

@@ -151,6 +151,7 @@ export type Expression =
   | MemberExpression
   | IndexExpression
   | ArrayLiteralExpression
+  | TupleLiteralExpression
   | StructLiteralExpression
   | CopyExpression
   | CastExpression;
@@ -202,11 +203,19 @@ export interface IndexExpression {
   type: "IndexExpression";
   object: Expression;
   index: Expression;
+  accessKind?: "array" | "tuple";
+  tupleIndex?: number;
   location: SourceLocation;
 }
 
 export interface ArrayLiteralExpression {
   type: "ArrayLiteral";
+  elements: Expression[];
+  location: SourceLocation;
+}
+
+export interface TupleLiteralExpression {
+  type: "TupleLiteral";
   elements: Expression[];
   location: SourceLocation;
 }

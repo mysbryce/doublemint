@@ -24,6 +24,10 @@ function loopTotal(): int {
   return total;
 }
 
+function identityPair(): [int, string] {
+  return (7, "mint");
+}
+
 function showBranch(enabled: bool): void {
   if (enabled) {
     print("branch: enabled");
@@ -34,11 +38,14 @@ function showBranch(enabled: bool): void {
 
 export function main(): void {
   let profile: Profile = Profile { id: 7, name: "mint", level: 3 };
+  let pair: [int, string] = identityPair();
   profile.level = profile.level + 1;
 
   print("doublemint language tour");
   print(profile.name);
   print(profile.level);
+  print(pair[0]);
+  print(pair[1]);
   print(firstValue());
   print(loopTotal());
   showBranch(true);

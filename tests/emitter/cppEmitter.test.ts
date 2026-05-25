@@ -270,4 +270,34 @@ describe("emitCpp", () => {
       "std::cout << profile.name << std::endl;"
     );
   });
+
+  it("emits tuple literals and tuple access", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      function pair(): [int, string] {
+        return (1, "mint");
+      }
+
+      export function main(): void {
+        let value: [int, string] = pair();
+        print(value[0]);
+      }
+      `
+    );
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+
+    const result = emitCpp(graph, config);
+    const byPath = new Map(
+      result.artifacts.map((artifact) => [artifact.filepath, artifact.content])
+    );
+
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      'return std::tuple<int, std::string>{1, "mint"};'
+    );
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      "std::cout << std::get<0>(value) << std::endl;"
+    );
+  });
 });

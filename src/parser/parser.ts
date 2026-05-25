@@ -599,7 +599,21 @@ class Parser {
     }
 
     if (this.match("LEFT_PAREN")) {
+      const tupleToken = this.previous();
       const expression = this.expression();
+      if (this.match("COMMA")) {
+        const elements = [expression];
+        do {
+          elements.push(this.expression());
+        } while (this.match("COMMA"));
+        this.consume("RIGHT_PAREN", "DLM2057", "Expected ')' after tuple literal.");
+        return {
+          type: "TupleLiteral",
+          elements,
+          location: tupleToken.location
+        };
+      }
+
       this.consume("RIGHT_PAREN", "DLM2038", "Expected ')' after expression.");
       return expression;
     }

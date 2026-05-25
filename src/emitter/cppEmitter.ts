@@ -193,7 +193,9 @@ function emitStatement(statement: Statement, declaration: FunctionDeclaration): 
         return "return 0;";
       }
 
-      return statement.argument ? `return ${emitExpression(statement.argument)};` : "return;";
+      return statement.argument
+        ? `return ${emitExpressionForExpectedType(statement.argument, declaration.returnType)};`
+        : "return;";
     case "IfStatement":
       return emitIfStatement(statement, declaration);
     case "WhileStatement":
@@ -318,9 +320,15 @@ function emitExpression(expression: Expression, expectedType?: TypeNode): string
     case "MemberExpression":
       return `${emitExpression(expression.object)}.${expression.property}`;
     case "IndexExpression":
+      if (expression.accessKind === "tuple") {
+        return `std::get<${expression.tupleIndex}>(${emitExpression(expression.object)})`;
+      }
+
       return `${emitExpression(expression.object)}[${emitExpression(expression.index)}]`;
     case "ArrayLiteral":
       return emitArrayLiteral(expression, expectedType);
+    case "TupleLiteral":
+      return emitTupleLiteral(expression, expectedType);
     case "StructLiteral":
       return emitStructLiteral(expression);
     case "CopyExpression":
@@ -330,6 +338,26 @@ function emitExpression(expression: Expression, expectedType?: TypeNode): string
     default:
       assertNever(expression);
   }
+}
+
+function emitTupleLiteral(
+  expression: Expression & { type: "TupleLiteral" },
+  expectedType?: TypeNode
+): string {
+  const elements = expression.elements
+    .map((element, index) =>
+      emitExpression(
+        element,
+        expectedType?.type === "TupleType" ? expectedType.elements[index] : undefined
+      )
+    )
+    .join(", ");
+
+  if (expectedType?.type === "TupleType") {
+    return `${emitType(expectedType)}{${elements}}`;
+  }
+
+  return `std::make_tuple(${elements})`;
 }
 
 function emitStructLiteral(expression: Expression & { type: "StructLiteral" }): string {
@@ -478,6 +506,8 @@ function expressionUsesPrint(expression: Expression): boolean {
     case "IndexExpression":
       return expressionUsesPrint(expression.object) || expressionUsesPrint(expression.index);
     case "ArrayLiteral":
+      return expression.elements.some(expressionUsesPrint);
+    case "TupleLiteral":
       return expression.elements.some(expressionUsesPrint);
     case "StructLiteral":
       return expression.fields.some((field) => expressionUsesPrint(field.value));

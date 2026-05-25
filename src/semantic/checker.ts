@@ -462,6 +462,8 @@ function inferExpressionType(
       return inferIndexType(environment, scope, expression);
     case "ArrayLiteral":
       return inferArrayLiteralType(environment, scope, expression);
+    case "TupleLiteral":
+      return inferTupleLiteralType(environment, scope, expression);
     case "StructLiteral":
       return inferStructLiteralType(environment, scope, expression);
     case "CopyExpression":
@@ -584,6 +586,33 @@ function inferIndexType(
   const objectType = inferExpressionType(environment, scope, expression.object);
   const indexType = inferExpressionType(environment, scope, expression.index);
 
+  if (objectType.type === "TupleType") {
+    const tupleIndex = constantTupleIndex(expression.index);
+
+    if (tupleIndex === null) {
+      throw new DoublemintDiagnostic({
+        code: "DLM4027",
+        severity: "error",
+        message: "Tuple index must be a numeric literal.",
+        location: expression.index.location
+      });
+    }
+
+    const elementType = objectType.elements[tupleIndex];
+    if (!elementType) {
+      throw new DoublemintDiagnostic({
+        code: "DLM4028",
+        severity: "error",
+        message: `Tuple index ${tupleIndex} is out of range.`,
+        location: expression.index.location
+      });
+    }
+
+    expression.accessKind = "tuple";
+    expression.tupleIndex = tupleIndex;
+    return elementType;
+  }
+
   if (objectType.type !== "ArrayType") {
     throw new DoublemintDiagnostic({
       code: "DLM4018",
@@ -602,6 +631,7 @@ function inferIndexType(
     });
   }
 
+  expression.accessKind = "array";
   return objectType.elementType;
 }
 
@@ -629,6 +659,20 @@ function inferArrayLiteralType(
   return {
     type: "ArrayType",
     elementType,
+    location: expression.location
+  };
+}
+
+function inferTupleLiteralType(
+  environment: ModuleEnvironment,
+  scope: Scope,
+  expression: Expression & { type: "TupleLiteral" }
+): TypeNode {
+  return {
+    type: "TupleType",
+    elements: expression.elements.map((element) =>
+      inferExpressionType(environment, scope, element)
+    ),
     location: expression.location
   };
 }
@@ -804,6 +848,20 @@ function assertAssignable(
     return;
   }
 
+  if (expected.type === "TupleType" && actual.type === "TupleType") {
+    if (expected.elements.length === actual.elements.length) {
+      for (let index = 0; index < expected.elements.length; index += 1) {
+        assertAssignable(
+          environment,
+          expected.elements[index]!,
+          actual.elements[index]!,
+          location
+        );
+      }
+      return;
+    }
+  }
+
   if (isNumericType(environment, expected) && isNumericType(environment, actual)) {
     return;
   }
@@ -851,6 +909,22 @@ function isEqualityOperator(operator: string): boolean {
 
 function isOrderingOperator(operator: string): boolean {
   return operator === "<" || operator === "<=" || operator === ">" || operator === ">=";
+}
+
+function constantTupleIndex(expression: Expression): number | null {
+  const value = expression.type === "Literal" ? expression.value : null;
+
+  if (
+    expression.type !== "Literal" ||
+    expression.literalKind !== "number" ||
+    typeof value !== "number" ||
+    !Number.isInteger(value) ||
+    value < 0
+  ) {
+    return null;
+  }
+
+  return value;
 }
 
 function widerNumericType(
