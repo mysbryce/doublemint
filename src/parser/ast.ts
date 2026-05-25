@@ -95,6 +95,7 @@ export type Statement =
   | IfStatement
   | WhileStatement
   | ForStatement
+  | SwitchStatement
   | ExpressionStatement;
 
 export interface VariableDeclaration {
@@ -132,6 +133,21 @@ export interface ForStatement {
   init: VariableDeclaration | Expression | null;
   condition: Expression | null;
   increment: Expression | null;
+  body: Statement[];
+  location: SourceLocation;
+}
+
+export interface SwitchStatement {
+  type: "SwitchStatement";
+  discriminant: Expression;
+  cases: SwitchCase[];
+  defaultBranch: Statement[];
+  location: SourceLocation;
+}
+
+export interface SwitchCase {
+  type: "SwitchCase";
+  test: Expression;
   body: Statement[];
   location: SourceLocation;
 }

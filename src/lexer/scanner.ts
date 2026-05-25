@@ -19,6 +19,9 @@ const keywords = new Map<string, TokenKind>([
   ["else", "ELSE"],
   ["while", "WHILE"],
   ["for", "FOR"],
+  ["switch", "SWITCH"],
+  ["case", "CASE"],
+  ["default", "DEFAULT"],
   ["true", "TRUE"],
   ["false", "FALSE"]
 ]);

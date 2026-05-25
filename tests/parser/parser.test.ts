@@ -256,4 +256,38 @@ describe("parseProgram", () => {
       ]
     });
   });
+
+  it("parses switch statements", () => {
+    const program = parse(`
+      function main(): void {
+        let name: string = "mint";
+        switch (name) {
+          case "mint": {
+            print("yes");
+          }
+          default: {
+            print("no");
+          }
+        }
+      }
+    `);
+
+    expect(program.body[0]).toMatchObject({
+      type: "FunctionDeclaration",
+      body: [
+        { type: "VariableDeclaration", id: "name" },
+        {
+          type: "SwitchStatement",
+          discriminant: { type: "Identifier", name: "name" },
+          cases: [
+            {
+              test: { type: "Literal", value: "mint" },
+              body: [{ type: "ExpressionStatement" }]
+            }
+          ],
+          defaultBranch: [{ type: "ExpressionStatement" }]
+        }
+      ]
+    });
+  });
 });

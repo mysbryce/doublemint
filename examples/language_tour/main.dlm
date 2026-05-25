@@ -36,6 +36,17 @@ function showBranch(enabled: bool): void {
   }
 }
 
+function describeName(name: string): void {
+  switch (name) {
+    case "mint": {
+      print("switch: mint");
+    }
+    default: {
+      print("switch: other");
+    }
+  }
+}
+
 export function main(): void {
   let profile: Profile = Profile { id: 7, name: "mint", level: 3 };
   let pair: [int, string] = identityPair();
@@ -48,6 +59,7 @@ export function main(): void {
   print(pair[1]);
   print(firstValue());
   print(loopTotal());
+  describeName(profile.name);
   showBranch(true);
   showBranch(false);
 }

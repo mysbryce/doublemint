@@ -12,6 +12,7 @@ import type {
   StructDeclaration,
   StructField,
   StructLiteralField,
+  SwitchCase,
   TypeAliasDeclaration,
   TypeNode,
   VariableDeclaration
@@ -273,6 +274,10 @@ class Parser {
       return this.forStatement();
     }
 
+    if (this.match("SWITCH")) {
+      return this.switchStatement();
+    }
+
     return this.expressionStatement();
   }
 
@@ -374,6 +379,52 @@ class Parser {
     const init = this.expression();
     this.consume("SEMICOLON", "DLM2053", "Expected ';' after for initializer.");
     return init;
+  }
+
+  private switchStatement(): Statement {
+    const switchToken = this.previous();
+    this.consume("LEFT_PAREN", "DLM2058", "Expected '(' after switch.");
+    const discriminant = this.expression();
+    this.consume("RIGHT_PAREN", "DLM2059", "Expected ')' after switch value.");
+    this.consume("LEFT_BRACE", "DLM2060", "Expected '{' before switch cases.");
+    const cases: SwitchCase[] = [];
+    let defaultBranch: Statement[] | null = null;
+
+    while (!this.check("RIGHT_BRACE") && !this.isAtEnd()) {
+      if (this.match("CASE")) {
+        const caseToken = this.previous();
+        const test = this.expression();
+        this.consume("COLON", "DLM2061", "Expected ':' after switch case.");
+        cases.push({
+          type: "SwitchCase" as const,
+          test,
+          body: this.block(),
+          location: caseToken.location
+        });
+        continue;
+      }
+
+      if (this.match("DEFAULT")) {
+        if (defaultBranch) {
+          throw this.error(this.previous(), "DLM2062", "Switch can only have one default case.");
+        }
+
+        this.consume("COLON", "DLM2063", "Expected ':' after switch default.");
+        defaultBranch = this.block();
+        continue;
+      }
+
+      throw this.error(this.peek(), "DLM2064", "Expected switch case or default.");
+    }
+
+    this.consume("RIGHT_BRACE", "DLM2065", "Expected '}' after switch.");
+    return {
+      type: "SwitchStatement",
+      discriminant,
+      cases,
+      defaultBranch: defaultBranch ?? [],
+      location: switchToken.location
+    };
   }
 
   private expressionStatement(): Statement {

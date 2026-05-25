@@ -542,4 +542,56 @@ describe("checkModuleGraph", () => {
       code: "DLM4027"
     });
   });
+
+  it("accepts switch statements over comparable values", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          let name: string = "mint";
+          switch (name) {
+            case "mint": {
+              print("yes");
+            }
+            default: {
+              print("no");
+            }
+          }
+        }
+      `)
+    ).resolves.toBeUndefined();
+  });
+
+  it("rejects switch cases with mismatched types", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          let value: int = 1;
+          switch (value) {
+            case "bad": {
+              print("bad");
+            }
+          }
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4014"
+    });
+  });
+
+  it("keeps switch case locals block-scoped", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          switch (1) {
+            case 1: {
+              let inside: int = 1;
+            }
+          }
+          print(inside);
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4003"
+    });
+  });
 });

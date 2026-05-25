@@ -24,6 +24,10 @@ export interface EmitResult {
   artifacts: CppArtifact[];
 }
 
+interface EmitContext {
+  switchCounter: number;
+}
+
 export async function emitCppToDisk(
   graph: ModuleGraph,
   config: DoublemintConfig
@@ -156,9 +160,10 @@ function emitStruct(declaration: StructDeclaration): string {
 
 function emitFunctionDefinition(declaration: FunctionDeclaration): string {
   const lines = [`${emitFunctionSignature(declaration)} {`];
+  const context: EmitContext = { switchCounter: 0 };
 
   for (const statement of declaration.body) {
-    lines.push(`  ${emitStatement(statement, declaration)}`);
+    lines.push(`  ${emitStatement(statement, declaration, context)}`);
   }
 
   if (isVoidMain(declaration) && !hasReturnStatement(declaration)) {
@@ -184,7 +189,11 @@ function emitParameterType(type: TypeNode): string {
   return emitType(type);
 }
 
-function emitStatement(statement: Statement, declaration: FunctionDeclaration): string {
+function emitStatement(
+  statement: Statement,
+  declaration: FunctionDeclaration,
+  context: EmitContext
+): string {
   switch (statement.type) {
     case "VariableDeclaration":
       return emitVariableDeclaration(statement);
@@ -197,11 +206,13 @@ function emitStatement(statement: Statement, declaration: FunctionDeclaration): 
         ? `return ${emitExpressionForExpectedType(statement.argument, declaration.returnType)};`
         : "return;";
     case "IfStatement":
-      return emitIfStatement(statement, declaration);
+      return emitIfStatement(statement, declaration, context);
     case "WhileStatement":
-      return emitWhileStatement(statement, declaration);
+      return emitWhileStatement(statement, declaration, context);
     case "ForStatement":
-      return emitForStatement(statement, declaration);
+      return emitForStatement(statement, declaration, context);
+    case "SwitchStatement":
+      return emitSwitchStatement(statement, declaration, context);
     case "ExpressionStatement":
       return `${emitExpression(statement.expression)};`;
     default:
@@ -211,12 +222,13 @@ function emitStatement(statement: Statement, declaration: FunctionDeclaration): 
 
 function emitIfStatement(
   statement: Statement & { type: "IfStatement" },
-  declaration: FunctionDeclaration
+  declaration: FunctionDeclaration,
+  context: EmitContext
 ): string {
   const lines = [`if (${emitExpression(statement.condition)}) {`];
 
   for (const nestedStatement of statement.thenBranch) {
-    lines.push(`  ${emitStatement(nestedStatement, declaration)}`);
+    lines.push(`  ${emitStatement(nestedStatement, declaration, context)}`);
   }
 
   if (statement.elseBranch.length === 0) {
@@ -226,7 +238,7 @@ function emitIfStatement(
 
   lines.push("} else {");
   for (const nestedStatement of statement.elseBranch) {
-    lines.push(`  ${emitStatement(nestedStatement, declaration)}`);
+    lines.push(`  ${emitStatement(nestedStatement, declaration, context)}`);
   }
   lines.push("}");
   return lines.join("\n  ");
@@ -234,12 +246,13 @@ function emitIfStatement(
 
 function emitWhileStatement(
   statement: Statement & { type: "WhileStatement" },
-  declaration: FunctionDeclaration
+  declaration: FunctionDeclaration,
+  context: EmitContext
 ): string {
   const lines = [`while (${emitExpression(statement.condition)}) {`];
 
   for (const nestedStatement of statement.body) {
-    lines.push(`  ${emitStatement(nestedStatement, declaration)}`);
+    lines.push(`  ${emitStatement(nestedStatement, declaration, context)}`);
   }
 
   lines.push("}");
@@ -248,7 +261,8 @@ function emitWhileStatement(
 
 function emitForStatement(
   statement: Statement & { type: "ForStatement" },
-  declaration: FunctionDeclaration
+  declaration: FunctionDeclaration,
+  context: EmitContext
 ): string {
   const init =
     statement.init?.type === "VariableDeclaration"
@@ -261,7 +275,40 @@ function emitForStatement(
   const lines = [`for (${init}; ${condition}; ${increment}) {`];
 
   for (const nestedStatement of statement.body) {
-    lines.push(`  ${emitStatement(nestedStatement, declaration)}`);
+    lines.push(`  ${emitStatement(nestedStatement, declaration, context)}`);
+  }
+
+  lines.push("}");
+  return lines.join("\n  ");
+}
+
+function emitSwitchStatement(
+  statement: Statement & { type: "SwitchStatement" },
+  declaration: FunctionDeclaration,
+  context: EmitContext
+): string {
+  const tempName = `__dlm_switch_${context.switchCounter}`;
+  context.switchCounter += 1;
+  const lines = ["{", `  const auto ${tempName} = ${emitExpression(statement.discriminant)};`];
+
+  for (let index = 0; index < statement.cases.length; index += 1) {
+    const switchCase = statement.cases[index]!;
+    const prefix = index === 0 ? "if" : "else if";
+    lines.push(`  ${prefix} (${tempName} == ${emitExpression(switchCase.test)}) {`);
+
+    for (const nestedStatement of switchCase.body) {
+      lines.push(`    ${emitStatement(nestedStatement, declaration, context)}`);
+    }
+
+    lines.push("  }");
+  }
+
+  if (statement.defaultBranch.length > 0) {
+    lines.push(statement.cases.length > 0 ? "  else {" : "  if (true) {");
+    for (const nestedStatement of statement.defaultBranch) {
+      lines.push(`    ${emitStatement(nestedStatement, declaration, context)}`);
+    }
+    lines.push("  }");
   }
 
   lines.push("}");
@@ -478,6 +525,16 @@ function statementUsesPrint(statement: Statement): boolean {
         (statement.condition ? expressionUsesPrint(statement.condition) : false) ||
         (statement.increment ? expressionUsesPrint(statement.increment) : false) ||
         statement.body.some(statementUsesPrint)
+      );
+    case "SwitchStatement":
+      return (
+        expressionUsesPrint(statement.discriminant) ||
+        statement.cases.some(
+          (switchCase) =>
+            expressionUsesPrint(switchCase.test) ||
+            switchCase.body.some(statementUsesPrint)
+        ) ||
+        statement.defaultBranch.some(statementUsesPrint)
       );
     case "ExpressionStatement":
       return expressionUsesPrint(statement.expression);

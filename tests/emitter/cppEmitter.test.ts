@@ -300,4 +300,38 @@ describe("emitCpp", () => {
       "std::cout << std::get<0>(value) << std::endl;"
     );
   });
+
+  it("emits switch statements as if else chains", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      export function main(): void {
+        let name: string = "mint";
+        switch (name) {
+          case "mint": {
+            print("yes");
+          }
+          default: {
+            print("no");
+          }
+        }
+      }
+      `
+    );
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+
+    const result = emitCpp(graph, config);
+    const byPath = new Map(
+      result.artifacts.map((artifact) => [artifact.filepath, artifact.content])
+    );
+
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      "const auto __dlm_switch_0 = name;"
+    );
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      'if (__dlm_switch_0 == "mint") {'
+    );
+    expect(byPath.get("build/doublemint/main.cpp")).toContain("else {");
+  });
 });

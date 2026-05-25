@@ -345,6 +345,25 @@ function validateStatement(
       }
       break;
     }
+    case "SwitchStatement": {
+      const discriminantType = inferExpressionType(environment, scope, statement.discriminant);
+
+      for (const switchCase of statement.cases) {
+        const testType = inferExpressionType(environment, scope, switchCase.test);
+        assertAssignable(environment, discriminantType, testType, switchCase.test.location);
+
+        const caseScope = scope.createChild();
+        for (const nestedStatement of switchCase.body) {
+          validateStatement(environment, caseScope, returnType, nestedStatement);
+        }
+      }
+
+      const defaultScope = scope.createChild();
+      for (const nestedStatement of statement.defaultBranch) {
+        validateStatement(environment, defaultScope, returnType, nestedStatement);
+      }
+      break;
+    }
     case "ExpressionStatement":
       inferExpressionType(environment, scope, statement.expression);
       break;
