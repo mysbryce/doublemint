@@ -334,6 +334,58 @@ struct PatternByte {
 #endif
 }
 
+[[maybe_unused]] static std::int64_t __doublemint_process_find_window_by_class(const std::string& className) {
+#ifdef _WIN32
+  HWND hwnd = ::FindWindowA(className.c_str(), nullptr);
+  return hwnd == nullptr ? 0 : static_cast<std::int64_t>(reinterpret_cast<std::uintptr_t>(hwnd));
+#else
+  (void)className;
+  return 0;
+#endif
+}
+
+[[maybe_unused]] static std::int64_t __doublemint_process_find_window_by_title(const std::string& title) {
+#ifdef _WIN32
+  HWND hwnd = ::FindWindowA(nullptr, title.c_str());
+  return hwnd == nullptr ? 0 : static_cast<std::int64_t>(reinterpret_cast<std::uintptr_t>(hwnd));
+#else
+  (void)title;
+  return 0;
+#endif
+}
+
+[[maybe_unused]] static std::int64_t __doublemint_process_find_child_window(std::int64_t parent, const std::string& className) {
+#ifdef _WIN32
+  if (parent == 0) { return 0; }
+  HWND child = ::FindWindowExA(
+      reinterpret_cast<HWND>(static_cast<std::uintptr_t>(parent)),
+      nullptr,
+      className.c_str(),
+      nullptr);
+  return child == nullptr ? 0 : static_cast<std::int64_t>(reinterpret_cast<std::uintptr_t>(child));
+#else
+  (void)parent;
+  (void)className;
+  return 0;
+#endif
+}
+
+[[maybe_unused]] static std::string __doublemint_process_get_window_text(std::int64_t hwnd) {
+#ifdef _WIN32
+  if (hwnd == 0) { return std::string(); }
+  HWND target = reinterpret_cast<HWND>(static_cast<std::uintptr_t>(hwnd));
+  LRESULT length = ::SendMessageA(target, WM_GETTEXTLENGTH, 0, 0);
+  if (length <= 0) { return std::string(); }
+  std::string buffer(static_cast<std::size_t>(length) + 1, '\0');
+  LRESULT copied = ::SendMessageA(target, WM_GETTEXT, static_cast<WPARAM>(length + 1), reinterpret_cast<LPARAM>(buffer.data()));
+  buffer.resize(static_cast<std::size_t>(copied));
+  return buffer;
+#else
+  (void)hwnd;
+  return std::string();
+#endif
+}
+
 [[maybe_unused]] static std::int64_t __doublemint_process_pointer_chain(
     std::int64_t handle, std::int64_t base, const std::vector<int>& offsets) {
 #ifdef _WIN32

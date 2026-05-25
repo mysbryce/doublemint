@@ -518,7 +518,11 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
             functionMember("moduleSize", [namedType("int64"), namedType("string")], namedType("int"), "__doublemint_process_module_size"),
             functionMember("aobScan", [namedType("int64"), namedType("string")], namedType("int64"), "__doublemint_process_aob_scan"),
             functionMember("aobScanModule", [namedType("int64"), namedType("string"), namedType("string")], namedType("int64"), "__doublemint_process_aob_scan_module"),
-            functionMember("pointerChain", [namedType("int64"), namedType("int64"), arrayType(namedType("int"))], namedType("int64"), "__doublemint_process_pointer_chain")
+            functionMember("pointerChain", [namedType("int64"), namedType("int64"), arrayType(namedType("int"))], namedType("int64"), "__doublemint_process_pointer_chain"),
+            functionMember("findWindowByClass", [namedType("string")], namedType("int64"), "__doublemint_process_find_window_by_class"),
+            functionMember("findWindowByTitle", [namedType("string")], namedType("int64"), "__doublemint_process_find_window_by_title"),
+            functionMember("findChildWindow", [namedType("int64"), namedType("string")], namedType("int64"), "__doublemint_process_find_child_window"),
+            functionMember("getWindowText", [namedType("int64")], namedType("string"), "__doublemint_process_get_window_text")
           ])
         ]
       ])
