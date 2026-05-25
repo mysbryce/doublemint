@@ -1,10 +1,8 @@
 #!/usr/bin/env node
-import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { loadConfig } from "./core/config.js";
 import { DoublemintDiagnostic } from "./diagnostics/diagnostic.js";
-import { scanTokens } from "./lexer/scanner.js";
-import { parseProgram } from "./parser/parser.js";
+import { resolveModuleGraph } from "./resolver/moduleGraph.js";
 
 const command = process.argv[2];
 const entry = process.argv[3];
@@ -34,13 +32,11 @@ async function main(): Promise<void> {
 
   const config = await loadConfig(process.cwd());
   const entryPath = resolve(process.cwd(), entry);
-  const source = await readFile(entryPath, "utf8");
-  const tokens = scanTokens(source, entryPath);
-  const program = parseProgram(tokens, entryPath);
+  const graph = await resolveModuleGraph(entryPath);
 
   if (command === "check") {
     console.log(
-      `OK ${program.body.length} declarations parsed using ${config.cppStandard}.`
+      `OK ${graph.modules.size} modules resolved using ${config.cppStandard}.`
     );
     return;
   }
