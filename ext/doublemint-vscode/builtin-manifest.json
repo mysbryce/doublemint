@@ -1096,6 +1096,39 @@
                 "int[]"
               ],
               "returnType": "int64"
+            },
+            {
+              "name": "findWindowByClass",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "int64"
+            },
+            {
+              "name": "findWindowByTitle",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "int64"
+            },
+            {
+              "name": "findChildWindow",
+              "kind": "function",
+              "params": [
+                "int64",
+                "string"
+              ],
+              "returnType": "int64"
+            },
+            {
+              "name": "getWindowText",
+              "kind": "function",
+              "params": [
+                "int64"
+              ],
+              "returnType": "string"
             }
           ]
         }
