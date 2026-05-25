@@ -41,8 +41,10 @@ export class DoublemintDiagnostic extends Error {
       ` --> ${this.location.filepath}:${this.location.line}:${this.location.column}`
     ];
 
-    if (this.sourceLine) {
-      lines.push(`  | ${this.sourceLine}`);
+    const sourceLine = this.sourceLine ?? this.location.sourceLine;
+
+    if (sourceLine) {
+      lines.push(`  | ${sourceLine}`);
       lines.push(`  | ${pointer}`);
     }
 
@@ -53,4 +55,3 @@ export class DoublemintDiagnostic extends Error {
     return lines.join("\n");
   }
 }
-

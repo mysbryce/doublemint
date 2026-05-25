@@ -30,11 +30,14 @@ class Scanner {
   private column = 1;
   private tokenLine = 1;
   private tokenColumn = 1;
+  private readonly sourceLines: string[];
 
   constructor(
     private readonly source: string,
     private readonly filepath: string
-  ) {}
+  ) {
+    this.sourceLines = source.split(/\r?\n/u);
+  }
 
   scan(): Token[] {
     while (!this.isAtEnd()) {
@@ -217,18 +220,17 @@ class Scanner {
       filepath: this.filepath,
       line: this.tokenLine,
       column: this.tokenColumn,
-      offset: this.start
+      offset: this.start,
+      sourceLine: this.sourceLines[this.tokenLine - 1] ?? ""
     };
   }
 
   private error(code: string, message: string): DoublemintDiagnostic {
-    const sourceLine = this.source.split(/\r?\n/u)[this.tokenLine - 1] ?? "";
     return new DoublemintDiagnostic({
       code,
       severity: "error",
       message,
-      location: this.location(),
-      sourceLine
+      location: this.location()
     });
   }
 }

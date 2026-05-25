@@ -38,6 +38,7 @@ export interface SourceLocation {
   line: number;
   column: number;
   offset: number;
+  sourceLine?: string;
 }
 
 export interface Token {
