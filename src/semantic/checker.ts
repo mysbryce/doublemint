@@ -336,7 +336,12 @@ function inferExpressionType(
       }
 
       if (symbol.functionType) {
-        return symbol.functionType.returnType;
+        throw new DoublemintDiagnostic({
+          code: "DLM4016",
+          severity: "error",
+          message: `Function "${expression.name}" must be called before its return value can be used.`,
+          location: expression.location
+        });
       }
 
       throw new DoublemintDiagnostic({

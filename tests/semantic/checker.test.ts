@@ -143,4 +143,103 @@ describe("checkModuleGraph", () => {
       code: "DLM4013"
     });
   });
+
+  it("rejects duplicate local names", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          let count: int = 1;
+          let count: int = 2;
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4015"
+    });
+  });
+
+  it("rejects duplicate parameter names", async () => {
+    await expect(
+      checkEntry(`
+        function add(value: int, value: int): int {
+          return value;
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4015"
+    });
+  });
+
+  it("rejects return type mismatches", async () => {
+    await expect(
+      checkEntry(`
+        function answer(): int {
+          return "nope";
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4014"
+    });
+  });
+
+  it("rejects missing struct fields", async () => {
+    await expect(
+      checkEntry(`
+        struct Profile {
+          level: int;
+        }
+
+        function main(): void {
+          let profile: Profile;
+          profile.missing = 1;
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4010"
+    });
+  });
+
+  it("rejects calls to non-functions", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          let count: int = 1;
+          count();
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4007"
+    });
+  });
+
+  it("rejects assigning through call results", async () => {
+    await expect(
+      checkEntry(`
+        function count(): int {
+          return 1;
+        }
+
+        function main(): void {
+          count() = 2;
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4011"
+    });
+  });
+
+  it("rejects using a function as a value without calling it", async () => {
+    await expect(
+      checkEntry(`
+        function count(): int {
+          return 1;
+        }
+
+        function main(): void {
+          let value: int = count;
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4016"
+    });
+  });
 });
