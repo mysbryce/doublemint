@@ -527,6 +527,54 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
         ]
       ])
     }
+  ],
+  [
+    "mint:http",
+    {
+      builtin: true,
+      builtinIncludes: [
+        "<cstdint>",
+        "<functional>",
+        "<memory>",
+        "<mutex>",
+        "<string>",
+        "<unordered_map>"
+      ],
+      builtinLinkLibraries: {
+        win32: ["ws2_32"]
+      },
+      program: emptyProgram("mint:http"),
+      imports: [],
+      exports: new Map([
+        [
+          "Http",
+          namespaceExport("Http", [
+            functionMember("create", [], namedType("int"), "__doublemint_http_create"),
+            functionMember("destroy", [namedType("int")], namedType("void"), "__doublemint_http_destroy"),
+            functionMember("get", [namedType("int"), namedType("string"), functionType([namedType("int64")], namedType("void"))], namedType("void"), "__doublemint_http_get"),
+            functionMember("post", [namedType("int"), namedType("string"), functionType([namedType("int64")], namedType("void"))], namedType("void"), "__doublemint_http_post"),
+            functionMember("put", [namedType("int"), namedType("string"), functionType([namedType("int64")], namedType("void"))], namedType("void"), "__doublemint_http_put"),
+            functionMember("del", [namedType("int"), namedType("string"), functionType([namedType("int64")], namedType("void"))], namedType("void"), "__doublemint_http_delete"),
+            functionMember("patch", [namedType("int"), namedType("string"), functionType([namedType("int64")], namedType("void"))], namedType("void"), "__doublemint_http_patch"),
+            functionMember("options", [namedType("int"), namedType("string"), functionType([namedType("int64")], namedType("void"))], namedType("void"), "__doublemint_http_options"),
+            functionMember("listen", [namedType("int"), namedType("string"), namedType("int")], namedType("bool"), "__doublemint_http_listen"),
+            functionMember("stop", [namedType("int")], namedType("void"), "__doublemint_http_stop"),
+            functionMember("method", [namedType("int64")], namedType("string"), "__doublemint_http_method"),
+            functionMember("path", [namedType("int64")], namedType("string"), "__doublemint_http_path"),
+            functionMember("body", [namedType("int64")], namedType("string"), "__doublemint_http_body"),
+            functionMember("header", [namedType("int64"), namedType("string")], namedType("string"), "__doublemint_http_header"),
+            functionMember("param", [namedType("int64"), namedType("string")], namedType("string"), "__doublemint_http_param"),
+            functionMember("query", [namedType("int64"), namedType("string")], namedType("string"), "__doublemint_http_query"),
+            functionMember("setStatus", [namedType("int64"), namedType("int")], namedType("void"), "__doublemint_http_set_status"),
+            functionMember("setHeader", [namedType("int64"), namedType("string"), namedType("string")], namedType("void"), "__doublemint_http_set_header"),
+            functionMember("text", [namedType("int64"), namedType("string")], namedType("void"), "__doublemint_http_text"),
+            functionMember("json", [namedType("int64"), namedType("string")], namedType("void"), "__doublemint_http_json"),
+            functionMember("html", [namedType("int64"), namedType("string")], namedType("void"), "__doublemint_http_html"),
+            functionMember("send", [namedType("int64"), namedType("int"), namedType("string"), namedType("string")], namedType("void"), "__doublemint_http_send")
+          ])
+        ]
+      ])
+    }
   ]
 ]);
 

@@ -74,6 +74,7 @@ export interface ResolvedModule {
   filepath: string;
   builtin?: boolean;
   builtinIncludes?: string[];
+  builtinLinkLibraries?: Partial<Record<NodeJS.Platform, string[]>>;
   program: Program;
   imports: ResolvedImport[];
   exports: Map<string, ModuleExport>;

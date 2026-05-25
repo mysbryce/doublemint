@@ -41,6 +41,7 @@ export async function buildNativeExecutable(
     ...nativeSources,
     ...(config.libraryDirs ?? []).map((libraryDir) => `-L${libraryDir}`),
     ...(config.linkLibraries ?? []).map((library) => `-l${library}`),
+    ...emitResult.linkLibraries.map((library) => `-l${library}`),
     ...(config.linkerFlags ?? []),
     "-o",
     outputPath

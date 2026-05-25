@@ -1133,6 +1133,216 @@
           ]
         }
       ]
+    },
+    "mint:http": {
+      "exports": [
+        {
+          "name": "Http",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "create",
+              "kind": "function",
+              "params": [],
+              "returnType": "int"
+            },
+            {
+              "name": "destroy",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "get",
+              "kind": "function",
+              "params": [
+                "int",
+                "string",
+                "fn(int64): void"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "post",
+              "kind": "function",
+              "params": [
+                "int",
+                "string",
+                "fn(int64): void"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "put",
+              "kind": "function",
+              "params": [
+                "int",
+                "string",
+                "fn(int64): void"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "del",
+              "kind": "function",
+              "params": [
+                "int",
+                "string",
+                "fn(int64): void"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "patch",
+              "kind": "function",
+              "params": [
+                "int",
+                "string",
+                "fn(int64): void"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "options",
+              "kind": "function",
+              "params": [
+                "int",
+                "string",
+                "fn(int64): void"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "listen",
+              "kind": "function",
+              "params": [
+                "int",
+                "string",
+                "int"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "stop",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "method",
+              "kind": "function",
+              "params": [
+                "int64"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "path",
+              "kind": "function",
+              "params": [
+                "int64"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "body",
+              "kind": "function",
+              "params": [
+                "int64"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "header",
+              "kind": "function",
+              "params": [
+                "int64",
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "param",
+              "kind": "function",
+              "params": [
+                "int64",
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "query",
+              "kind": "function",
+              "params": [
+                "int64",
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "setStatus",
+              "kind": "function",
+              "params": [
+                "int64",
+                "int"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "setHeader",
+              "kind": "function",
+              "params": [
+                "int64",
+                "string",
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "text",
+              "kind": "function",
+              "params": [
+                "int64",
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "json",
+              "kind": "function",
+              "params": [
+                "int64",
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "html",
+              "kind": "function",
+              "params": [
+                "int64",
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "send",
+              "kind": "function",
+              "params": [
+                "int64",
+                "int",
+                "string",
+                "string"
+              ],
+              "returnType": "void"
+            }
+          ]
+        }
+      ]
     }
   }
 }

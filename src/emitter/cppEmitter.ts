@@ -24,6 +24,7 @@ export interface CppArtifact {
 
 export interface EmitResult {
   artifacts: CppArtifact[];
+  linkLibraries: string[];
 }
 
 interface EmitContext {
@@ -50,8 +51,17 @@ export async function emitCppToDisk(
 
 export function emitCpp(graph: ModuleGraph, config: DoublemintConfig): EmitResult {
   const artifacts: CppArtifact[] = [];
+  const linkLibraries = new Set<string>();
+  const platform = process.platform;
 
   for (const module of graph.modules.values()) {
+    const libs = module.builtinLinkLibraries?.[platform];
+    if (libs) {
+      for (const lib of libs) {
+        linkLibraries.add(lib);
+      }
+    }
+
     if (module.builtin) {
       continue;
     }
@@ -60,7 +70,7 @@ export function emitCpp(graph: ModuleGraph, config: DoublemintConfig): EmitResul
     artifacts.push(emitSource(graph, module, config));
   }
 
-  return { artifacts };
+  return { artifacts, linkLibraries: [...linkLibraries] };
 }
 
 function emitHeader(
@@ -1035,7 +1045,8 @@ const RUNTIME_SOURCE_MODULES: Record<string, string> = {
   "mint:simd": "simd",
   "mint:db": "db",
   "mint:term": "term",
-  "mint:process": "process"
+  "mint:process": "process",
+  "mint:http": "http"
 };
 
 function lookupRuntime(map: Record<string, string>, key: string): string {

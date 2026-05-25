@@ -47,7 +47,8 @@ describe.skipIf(!hasGpp)("buildNativeExecutable", () => {
           filepath: cppPath,
           content: "int main() { return 0; }\n"
         }
-      ]
+      ],
+      linkLibraries: []
     };
 
     const result = await buildNativeExecutable(emitResult, config, {
@@ -71,7 +72,8 @@ describe.skipIf(!hasGpp)("buildNativeExecutable", () => {
           filepath: cppPath,
           content: "int main() { return 0; }\n"
         }
-      ]
+      ],
+      linkLibraries: []
     };
 
     const result = await buildNativeExecutable(
