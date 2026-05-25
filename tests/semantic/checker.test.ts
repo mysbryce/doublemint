@@ -357,4 +357,52 @@ describe("checkModuleGraph", () => {
       code: "DLM4020"
     });
   });
+
+  it("accepts loops and comparison expressions", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          let total: int = 0;
+          while (total < 3) {
+            total = total + 1;
+          }
+          for (let i: int = 0; i <= 3; i = i + 1) {
+            total = total + i;
+          }
+          if (total != 0) {
+            print(total);
+          }
+        }
+      `)
+    ).resolves.toBeUndefined();
+  });
+
+  it("rejects non-bool loop conditions", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          while (1) {
+            print("bad");
+          }
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4014"
+    });
+  });
+
+  it("keeps for initializer locals scoped to the loop", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          for (let i: int = 0; i < 1; i = i + 1) {
+            print(i);
+          }
+          print(i);
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4003"
+    });
+  });
 });

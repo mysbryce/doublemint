@@ -93,6 +93,8 @@ export type Statement =
   | VariableDeclaration
   | ReturnStatement
   | IfStatement
+  | WhileStatement
+  | ForStatement
   | ExpressionStatement;
 
 export interface VariableDeclaration {
@@ -115,6 +117,22 @@ export interface IfStatement {
   condition: Expression;
   thenBranch: Statement[];
   elseBranch: Statement[];
+  location: SourceLocation;
+}
+
+export interface WhileStatement {
+  type: "WhileStatement";
+  condition: Expression;
+  body: Statement[];
+  location: SourceLocation;
+}
+
+export interface ForStatement {
+  type: "ForStatement";
+  init: VariableDeclaration | Expression | null;
+  condition: Expression | null;
+  increment: Expression | null;
+  body: Statement[];
   location: SourceLocation;
 }
 
@@ -152,7 +170,7 @@ export interface LiteralExpression {
 
 export interface BinaryExpression {
   type: "BinaryExpression";
-  operator: "+" | "-" | "*" | "/";
+  operator: "+" | "-" | "*" | "/" | "==" | "!=" | "<" | "<=" | ">" | ">=";
   left: Expression;
   right: Expression;
   location: SourceLocation;

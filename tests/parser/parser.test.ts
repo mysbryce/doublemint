@@ -153,4 +153,37 @@ describe("parseProgram", () => {
       ]
     });
   });
+
+  it("parses while and for loops with comparisons", () => {
+    const program = parse(`
+      function main(): void {
+        let total: int = 0;
+        while (total < 3) {
+          total = total + 1;
+        }
+        for (let i: int = 0; i <= 3; i = i + 1) {
+          total = total + i;
+        }
+      }
+    `);
+
+    expect(program.body[0]).toMatchObject({
+      type: "FunctionDeclaration",
+      body: [
+        { type: "VariableDeclaration", id: "total" },
+        {
+          type: "WhileStatement",
+          condition: { type: "BinaryExpression", operator: "<" },
+          body: [{ type: "ExpressionStatement" }]
+        },
+        {
+          type: "ForStatement",
+          init: { type: "VariableDeclaration", id: "i" },
+          condition: { type: "BinaryExpression", operator: "<=" },
+          increment: { type: "AssignmentExpression" },
+          body: [{ type: "ExpressionStatement" }]
+        }
+      ]
+    });
+  });
 });

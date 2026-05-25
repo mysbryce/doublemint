@@ -210,4 +210,33 @@ describe("emitCpp", () => {
     expect(byPath.get("build/doublemint/main.cpp")).toContain("values[0] = values[1];");
     expect(byPath.get("build/doublemint/main.cpp")).toContain("return values[0];");
   });
+
+  it("emits while and for loops", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      export function main(): void {
+        let total: int = 0;
+        while (total < 3) {
+          total = total + 1;
+        }
+        for (let i: int = 0; i <= 3; i = i + 1) {
+          total = total + i;
+        }
+      }
+      `
+    );
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+
+    const result = emitCpp(graph, config);
+    const byPath = new Map(
+      result.artifacts.map((artifact) => [artifact.filepath, artifact.content])
+    );
+
+    expect(byPath.get("build/doublemint/main.cpp")).toContain("while (total < 3) {");
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      "for (int i = 0; i <= 3; i = i + 1) {"
+    );
+  });
 });

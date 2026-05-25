@@ -4,6 +4,20 @@ function firstValue(): int {
   return values[0];
 }
 
+function loopTotal(): int {
+  let total: int = 0;
+
+  while (total < 2) {
+    total = total + 1;
+  }
+
+  for (let i: int = 0; i < 3; i = i + 1) {
+    total = total + i;
+  }
+
+  return total;
+}
+
 function showBranch(enabled: bool): void {
   if (enabled) {
     print("branch: enabled");
@@ -15,7 +29,7 @@ function showBranch(enabled: bool): void {
 export function main(): void {
   print("doublemint language tour");
   print(firstValue());
+  print(loopTotal());
   showBranch(true);
   showBranch(false);
 }
-

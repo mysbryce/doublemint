@@ -17,6 +17,8 @@ const keywords = new Map<string, TokenKind>([
   ["as", "AS"],
   ["if", "IF"],
   ["else", "ELSE"],
+  ["while", "WHILE"],
+  ["for", "FOR"],
   ["true", "TRUE"],
   ["false", "FALSE"]
 ]);
@@ -101,7 +103,19 @@ class Scanner {
         this.addToken("STAR");
         break;
       case "=":
-        this.addToken("EQUAL");
+        this.addToken(this.match("=") ? "EQUAL_EQUAL" : "EQUAL");
+        break;
+      case "!":
+        if (!this.match("=")) {
+          throw this.error("DLM1001", `Unexpected character "${char}".`);
+        }
+        this.addToken("BANG_EQUAL");
+        break;
+      case "<":
+        this.addToken(this.match("=") ? "LESS_EQUAL" : "LESS");
+        break;
+      case ">":
+        this.addToken(this.match("=") ? "GREATER_EQUAL" : "GREATER");
         break;
       case "-":
         this.addToken(this.match(">") ? "ARROW" : "MINUS");

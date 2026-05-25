@@ -196,6 +196,10 @@ function emitStatement(statement: Statement, declaration: FunctionDeclaration): 
       return statement.argument ? `return ${emitExpression(statement.argument)};` : "return;";
     case "IfStatement":
       return emitIfStatement(statement, declaration);
+    case "WhileStatement":
+      return emitWhileStatement(statement, declaration);
+    case "ForStatement":
+      return emitForStatement(statement, declaration);
     case "ExpressionStatement":
       return `${emitExpression(statement.expression)};`;
     default:
@@ -226,6 +230,42 @@ function emitIfStatement(
   return lines.join("\n  ");
 }
 
+function emitWhileStatement(
+  statement: Statement & { type: "WhileStatement" },
+  declaration: FunctionDeclaration
+): string {
+  const lines = [`while (${emitExpression(statement.condition)}) {`];
+
+  for (const nestedStatement of statement.body) {
+    lines.push(`  ${emitStatement(nestedStatement, declaration)}`);
+  }
+
+  lines.push("}");
+  return lines.join("\n  ");
+}
+
+function emitForStatement(
+  statement: Statement & { type: "ForStatement" },
+  declaration: FunctionDeclaration
+): string {
+  const init =
+    statement.init?.type === "VariableDeclaration"
+      ? emitVariableDeclaration(statement.init, false)
+      : statement.init
+        ? emitExpression(statement.init)
+        : "";
+  const condition = statement.condition ? emitExpression(statement.condition) : "";
+  const increment = statement.increment ? emitExpression(statement.increment) : "";
+  const lines = [`for (${init}; ${condition}; ${increment}) {`];
+
+  for (const nestedStatement of statement.body) {
+    lines.push(`  ${emitStatement(nestedStatement, declaration)}`);
+  }
+
+  lines.push("}");
+  return lines.join("\n  ");
+}
+
 function emitFunctionReturnType(declaration: FunctionDeclaration): string {
   if (isVoidMain(declaration)) {
     return "int";
@@ -247,12 +287,16 @@ function hasReturnStatement(declaration: FunctionDeclaration): boolean {
   return declaration.body.some((statement) => statement.type === "ReturnStatement");
 }
 
-function emitVariableDeclaration(statement: VariableDeclaration): string {
+function emitVariableDeclaration(
+  statement: VariableDeclaration,
+  withSemicolon = true
+): string {
   const prefix = statement.kind === "const" ? "const " : "";
   const init = statement.init
     ? ` = ${emitExpressionForExpectedType(statement.init, statement.valueType)}`
     : "";
-  return `${prefix}${emitType(statement.valueType)} ${statement.id}${init};`;
+  const suffix = withSemicolon ? ";" : "";
+  return `${prefix}${emitType(statement.valueType)} ${statement.id}${init}${suffix}`;
 }
 
 function emitExpression(expression: Expression, expectedType?: TypeNode): string {
@@ -379,6 +423,24 @@ function statementUsesPrint(statement: Statement): boolean {
         expressionUsesPrint(statement.condition) ||
         statement.thenBranch.some(statementUsesPrint) ||
         statement.elseBranch.some(statementUsesPrint)
+      );
+    case "WhileStatement":
+      return (
+        expressionUsesPrint(statement.condition) ||
+        statement.body.some(statementUsesPrint)
+      );
+    case "ForStatement":
+      return (
+        (statement.init
+          ? statement.init.type === "VariableDeclaration"
+            ? statement.init.init
+              ? expressionUsesPrint(statement.init.init)
+              : false
+            : expressionUsesPrint(statement.init)
+          : false) ||
+        (statement.condition ? expressionUsesPrint(statement.condition) : false) ||
+        (statement.increment ? expressionUsesPrint(statement.increment) : false) ||
+        statement.body.some(statementUsesPrint)
       );
     case "ExpressionStatement":
       return expressionUsesPrint(statement.expression);

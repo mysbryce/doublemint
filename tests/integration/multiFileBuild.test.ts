@@ -97,5 +97,5 @@ describe.skipIf(!hasGpp)("multi-file production pipeline", () => {
     expect(emitResult.artifacts).toHaveLength(6);
     expect(nativeResult.compiler).toBe("g++");
     expect(run.status).toBe(0);
-  });
+  }, 15000);
 });

@@ -299,6 +299,52 @@ function validateStatement(
       }
       break;
     }
+    case "WhileStatement": {
+      const conditionType = inferExpressionType(environment, scope, statement.condition);
+      assertAssignable(
+        environment,
+        namedType("bool", statement.condition.location),
+        conditionType,
+        statement.condition.location
+      );
+
+      const bodyScope = scope.createChild();
+      for (const nestedStatement of statement.body) {
+        validateStatement(environment, bodyScope, returnType, nestedStatement);
+      }
+      break;
+    }
+    case "ForStatement": {
+      const loopScope = scope.createChild();
+
+      if (statement.init) {
+        if (statement.init.type === "VariableDeclaration") {
+          validateVariableDeclaration(environment, loopScope, statement.init);
+        } else {
+          inferExpressionType(environment, loopScope, statement.init);
+        }
+      }
+
+      if (statement.condition) {
+        const conditionType = inferExpressionType(environment, loopScope, statement.condition);
+        assertAssignable(
+          environment,
+          namedType("bool", statement.condition.location),
+          conditionType,
+          statement.condition.location
+        );
+      }
+
+      if (statement.increment) {
+        inferExpressionType(environment, loopScope, statement.increment);
+      }
+
+      const bodyScope = loopScope.createChild();
+      for (const nestedStatement of statement.body) {
+        validateStatement(environment, bodyScope, returnType, nestedStatement);
+      }
+      break;
+    }
     case "ExpressionStatement":
       inferExpressionType(environment, scope, statement.expression);
       break;
@@ -375,6 +421,22 @@ function inferExpressionType(
       const left = inferExpressionType(environment, scope, expression.left);
       const right = inferExpressionType(environment, scope, expression.right);
 
+      if (isEqualityOperator(expression.operator)) {
+        if (
+          !typesEqual(environment, left, right) &&
+          !(isNumericType(environment, left) && isNumericType(environment, right))
+        ) {
+          throw new DoublemintDiagnostic({
+            code: "DLM4021",
+            severity: "error",
+            message: `Operator "${expression.operator}" requires comparable operands.`,
+            location: expression.location
+          });
+        }
+
+        return namedType("bool", expression.location);
+      }
+
       if (!isNumericType(environment, left) || !isNumericType(environment, right)) {
         throw new DoublemintDiagnostic({
           code: "DLM4005",
@@ -382,6 +444,10 @@ function inferExpressionType(
           message: `Operator "${expression.operator}" requires numeric operands.`,
           location: expression.location
         });
+      }
+
+      if (isOrderingOperator(expression.operator)) {
+        return namedType("bool", expression.location);
       }
 
       return widerNumericType(environment, left, right, expression.location);
@@ -705,6 +771,14 @@ function canonicalTypeName(environment: ModuleEnvironment, type: TypeNode): stri
 
 function isNumericType(environment: ModuleEnvironment, type: TypeNode): boolean {
   return numericTypes.has(canonicalTypeName(environment, type));
+}
+
+function isEqualityOperator(operator: string): boolean {
+  return operator === "==" || operator === "!=";
+}
+
+function isOrderingOperator(operator: string): boolean {
+  return operator === "<" || operator === "<=" || operator === ">" || operator === ">=";
 }
 
 function widerNumericType(

@@ -14,6 +14,8 @@ export type TokenKind =
   | "AS"
   | "IF"
   | "ELSE"
+  | "WHILE"
+  | "FOR"
   | "TRUE"
   | "FALSE"
   | "IDENTIFIER"
@@ -35,6 +37,12 @@ export type TokenKind =
   | "STAR"
   | "SLASH"
   | "EQUAL"
+  | "EQUAL_EQUAL"
+  | "BANG_EQUAL"
+  | "LESS"
+  | "LESS_EQUAL"
+  | "GREATER"
+  | "GREATER_EQUAL"
   | "EOF";
 
 export interface SourceLocation {

@@ -264,6 +264,14 @@ class Parser {
       return this.ifStatement();
     }
 
+    if (this.match("WHILE")) {
+      return this.whileStatement();
+    }
+
+    if (this.match("FOR")) {
+      return this.forStatement();
+    }
+
     return this.expressionStatement();
   }
 
@@ -314,6 +322,59 @@ class Parser {
     };
   }
 
+  private whileStatement(): Statement {
+    const whileToken = this.previous();
+    this.consume("LEFT_PAREN", "DLM2048", "Expected '(' after while.");
+    const condition = this.expression();
+    this.consume("RIGHT_PAREN", "DLM2049", "Expected ')' after while condition.");
+    const body = this.block();
+
+    return {
+      type: "WhileStatement",
+      condition,
+      body,
+      location: whileToken.location
+    };
+  }
+
+  private forStatement(): Statement {
+    const forToken = this.previous();
+    this.consume("LEFT_PAREN", "DLM2050", "Expected '(' after for.");
+    const init = this.forInit();
+    const condition = this.check("SEMICOLON") ? null : this.expression();
+    this.consume("SEMICOLON", "DLM2051", "Expected ';' after for condition.");
+    const increment = this.check("RIGHT_PAREN") ? null : this.expression();
+    this.consume("RIGHT_PAREN", "DLM2052", "Expected ')' after for clauses.");
+    const body = this.block();
+
+    return {
+      type: "ForStatement",
+      init,
+      condition,
+      increment,
+      body,
+      location: forToken.location
+    };
+  }
+
+  private forInit(): VariableDeclaration | Expression | null {
+    if (this.match("SEMICOLON")) {
+      return null;
+    }
+
+    if (this.match("LET")) {
+      return this.variableDeclaration("let");
+    }
+
+    if (this.match("CONST")) {
+      return this.variableDeclaration("const");
+    }
+
+    const init = this.expression();
+    this.consume("SEMICOLON", "DLM2053", "Expected ';' after for initializer.");
+    return init;
+  }
+
   private expressionStatement(): Statement {
     const expression = this.expression();
     this.consume("SEMICOLON", "DLM2035", "Expected ';' after expression.");
@@ -330,13 +391,47 @@ class Parser {
   }
 
   private assignment(): Expression {
-    const expression = this.cast();
+    const expression = this.equality();
 
     if (this.match("EQUAL")) {
       return {
         type: "AssignmentExpression",
         left: expression,
         right: this.assignment(),
+        location: expression.location
+      };
+    }
+
+    return expression;
+  }
+
+  private equality(): Expression {
+    let expression = this.comparison();
+
+    while (this.match("EQUAL_EQUAL", "BANG_EQUAL")) {
+      const operator = this.previous();
+      expression = {
+        type: "BinaryExpression",
+        operator: operator.lexeme as "==" | "!=",
+        left: expression,
+        right: this.comparison(),
+        location: expression.location
+      };
+    }
+
+    return expression;
+  }
+
+  private comparison(): Expression {
+    let expression = this.cast();
+
+    while (this.match("LESS", "LESS_EQUAL", "GREATER", "GREATER_EQUAL")) {
+      const operator = this.previous();
+      expression = {
+        type: "BinaryExpression",
+        operator: operator.lexeme as "<" | "<=" | ">" | ">=",
+        left: expression,
+        right: this.cast(),
         location: expression.location
       };
     }
