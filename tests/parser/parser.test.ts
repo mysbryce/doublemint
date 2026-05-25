@@ -125,4 +125,32 @@ describe("parseProgram", () => {
       ]
     });
   });
+
+  it("parses array types, literals, and index expressions", () => {
+    const program = parse(`
+      function main(): void {
+        let values: int[] = [1, 2, 3];
+        values[0] = values[1];
+      }
+    `);
+
+    expect(program.body[0]).toMatchObject({
+      type: "FunctionDeclaration",
+      body: [
+        {
+          type: "VariableDeclaration",
+          valueType: { type: "ArrayType", elementType: { name: "int" } },
+          init: { type: "ArrayLiteral", elements: [{}, {}, {}] }
+        },
+        {
+          type: "ExpressionStatement",
+          expression: {
+            type: "AssignmentExpression",
+            left: { type: "IndexExpression" },
+            right: { type: "IndexExpression" }
+          }
+        }
+      ]
+    });
+  });
 });

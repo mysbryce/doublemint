@@ -69,7 +69,7 @@ export interface Parameter {
   location: SourceLocation;
 }
 
-export type TypeNode = NamedTypeNode | TupleTypeNode;
+export type TypeNode = NamedTypeNode | TupleTypeNode | ArrayTypeNode;
 
 export interface NamedTypeNode {
   type: "NamedType";
@@ -80,6 +80,12 @@ export interface NamedTypeNode {
 export interface TupleTypeNode {
   type: "TupleType";
   elements: TypeNode[];
+  location: SourceLocation;
+}
+
+export interface ArrayTypeNode {
+  type: "ArrayType";
+  elementType: TypeNode;
   location: SourceLocation;
 }
 
@@ -125,6 +131,8 @@ export type Expression =
   | AssignmentExpression
   | CallExpression
   | MemberExpression
+  | IndexExpression
+  | ArrayLiteralExpression
   | CopyExpression
   | CastExpression;
 
@@ -168,6 +176,19 @@ export interface MemberExpression {
   type: "MemberExpression";
   object: Expression;
   property: string;
+  location: SourceLocation;
+}
+
+export interface IndexExpression {
+  type: "IndexExpression";
+  object: Expression;
+  index: Expression;
+  location: SourceLocation;
+}
+
+export interface ArrayLiteralExpression {
+  type: "ArrayLiteral";
+  elements: Expression[];
   location: SourceLocation;
 }
 

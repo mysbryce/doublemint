@@ -426,6 +426,15 @@ class Parser {
           property: property.lexeme,
           location: expression.location
         };
+      } else if (this.match("LEFT_BRACKET")) {
+        const index = this.expression();
+        this.consume("RIGHT_BRACKET", "DLM2045", "Expected ']' after index expression.");
+        expression = {
+          type: "IndexExpression",
+          object: expression,
+          index,
+          location: expression.location
+        };
       } else {
         return expression;
       }
@@ -495,6 +504,24 @@ class Parser {
       return expression;
     }
 
+    if (this.match("LEFT_BRACKET")) {
+      const arrayToken = this.previous();
+      const elements: Expression[] = [];
+
+      if (!this.check("RIGHT_BRACKET")) {
+        do {
+          elements.push(this.expression());
+        } while (this.match("COMMA"));
+      }
+
+      this.consume("RIGHT_BRACKET", "DLM2046", "Expected ']' after array literal.");
+      return {
+        type: "ArrayLiteral",
+        elements,
+        location: arrayToken.location
+      };
+    }
+
     throw this.error(this.peek(), "DLM2039", `Expected expression but found ${this.peek().kind}.`);
   }
 
@@ -518,11 +545,22 @@ class Parser {
     }
 
     const id = this.consume("IDENTIFIER", "DLM2041", "Expected type name.");
-    return {
+    let typeNode: TypeNode = {
       type: "NamedType",
       name: id.lexeme,
       location: id.location
     };
+
+    while (this.match("LEFT_BRACKET")) {
+      this.consume("RIGHT_BRACKET", "DLM2047", "Expected ']' after array type.");
+      typeNode = {
+        type: "ArrayType",
+        elementType: typeNode,
+        location: id.location
+      };
+    }
+
+    return typeNode;
   }
 
   private identifierList(context: string): string[] {

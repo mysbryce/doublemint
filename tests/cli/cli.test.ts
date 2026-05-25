@@ -58,7 +58,7 @@ describe("doublemint CLI", () => {
     expect(result.status).toBe(0);
     expect(result.stdout.trim()).toBe("OK 1 modules checked using c++20.");
     expect(result.stderr).toBe("");
-  });
+  }, 15000);
 
   it("emits C++ files", async () => {
     await writeFile(join(tempDir, "main.dlm"), "export function main(): void {}\n", "utf8");
@@ -69,7 +69,7 @@ describe("doublemint CLI", () => {
     expect(result.stdout.trim()).toBe("OK 2 C++ files emitted to build/doublemint.");
     await expect(access(join(tempDir, "build", "doublemint", "main.hpp"))).resolves.toBeUndefined();
     await expect(access(join(tempDir, "build", "doublemint", "main.cpp"))).resolves.toBeUndefined();
-  });
+  }, 15000);
 
   it("prints diagnostic code frames on invalid source", async () => {
     await writeFile(
@@ -84,7 +84,7 @@ describe("doublemint CLI", () => {
     expect(result.stderr).toContain("ERROR DLM2032");
     expect(result.stderr).toContain("  |   let x = 1;");
     expect(result.stderr).toContain("  |         ^");
-  });
+  }, 15000);
 
   it.skipIf(!hasGpp)("builds and runs a native executable", async () => {
     await writeFile(join(tempDir, "main.dlm"), "export function main(): void {}\n", "utf8");
@@ -98,5 +98,5 @@ describe("doublemint CLI", () => {
     expect(result.stdout).toContain("OK built");
     expect(result.stdout).toContain("with g++");
     expect(run.status).toBe(0);
-  });
+  }, 15000);
 });

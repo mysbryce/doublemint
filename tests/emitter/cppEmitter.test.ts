@@ -183,4 +183,31 @@ describe("emitCpp", () => {
       'std::cout << "yes" << std::endl;'
     );
   });
+
+  it("emits arrays as std::vector and index access", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      export function first(): int {
+        let values: int[] = [1, 2, 3];
+        values[0] = values[1];
+        return values[0];
+      }
+      `
+    );
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+
+    const result = emitCpp(graph, config);
+    const byPath = new Map(
+      result.artifacts.map((artifact) => [artifact.filepath, artifact.content])
+    );
+
+    expect(byPath.get("build/doublemint/main.hpp")).toContain("#include <vector>");
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      "std::vector<int> values = {1, 2, 3};"
+    );
+    expect(byPath.get("build/doublemint/main.cpp")).toContain("values[0] = values[1];");
+    expect(byPath.get("build/doublemint/main.cpp")).toContain("return values[0];");
+  });
 });

@@ -392,6 +392,10 @@ function inferExpressionType(
       return inferCallType(environment, scope, expression);
     case "MemberExpression":
       return inferMemberType(environment, scope, expression);
+    case "IndexExpression":
+      return inferIndexType(environment, scope, expression);
+    case "ArrayLiteral":
+      return inferArrayLiteralType(environment, scope, expression);
     case "CopyExpression":
       return inferExpressionType(environment, scope, expression.argument);
     case "CastExpression":
@@ -504,6 +508,63 @@ function inferMemberType(
   return field.valueType;
 }
 
+function inferIndexType(
+  environment: ModuleEnvironment,
+  scope: Scope,
+  expression: Expression & { type: "IndexExpression" }
+): TypeNode {
+  const objectType = inferExpressionType(environment, scope, expression.object);
+  const indexType = inferExpressionType(environment, scope, expression.index);
+
+  if (objectType.type !== "ArrayType") {
+    throw new DoublemintDiagnostic({
+      code: "DLM4018",
+      severity: "error",
+      message: `Type "${typeToString(objectType)}" is not indexable.`,
+      location: expression.location
+    });
+  }
+
+  if (!isNumericType(environment, indexType)) {
+    throw new DoublemintDiagnostic({
+      code: "DLM4019",
+      severity: "error",
+      message: "Array index must be numeric.",
+      location: expression.index.location
+    });
+  }
+
+  return objectType.elementType;
+}
+
+function inferArrayLiteralType(
+  environment: ModuleEnvironment,
+  scope: Scope,
+  expression: Expression & { type: "ArrayLiteral" }
+): TypeNode {
+  if (expression.elements.length === 0) {
+    throw new DoublemintDiagnostic({
+      code: "DLM4020",
+      severity: "error",
+      message: "Empty array literals need an annotated element type.",
+      location: expression.location
+    });
+  }
+
+  const elementType = inferExpressionType(environment, scope, expression.elements[0]!);
+
+  for (const element of expression.elements.slice(1)) {
+    const actualType = inferExpressionType(environment, scope, element);
+    assertAssignable(environment, elementType, actualType, element.location);
+  }
+
+  return {
+    type: "ArrayType",
+    elementType,
+    location: expression.location
+  };
+}
+
 function assertMutableAssignmentTarget(scope: Scope, expression: Expression): void {
   const root = assignmentRoot(expression);
 
@@ -549,6 +610,10 @@ function assignmentRoot(expression: Expression): { name: string; location: Sourc
     return assignmentRoot(expression.object);
   }
 
+  if (expression.type === "IndexExpression") {
+    return assignmentRoot(expression.object);
+  }
+
   return null;
 }
 
@@ -557,6 +622,11 @@ function assertKnownType(environment: ModuleEnvironment, type: TypeNode): void {
     for (const element of type.elements) {
       assertKnownType(environment, element);
     }
+    return;
+  }
+
+  if (type.type === "ArrayType") {
+    assertKnownType(environment, type.elementType);
     return;
   }
 
@@ -591,6 +661,11 @@ function assertAssignable(
     return;
   }
 
+  if (expected.type === "ArrayType" && actual.type === "ArrayType") {
+    assertAssignable(environment, expected.elementType, actual.elementType, location);
+    return;
+  }
+
   if (isNumericType(environment, expected) && isNumericType(environment, actual)) {
     return;
   }
@@ -610,6 +685,10 @@ function typesEqual(environment: ModuleEnvironment, left: TypeNode, right: TypeN
 function canonicalTypeName(environment: ModuleEnvironment, type: TypeNode): string {
   if (type.type === "TupleType") {
     return `[${type.elements.map((element) => canonicalTypeName(environment, element)).join(",")}]`;
+  }
+
+  if (type.type === "ArrayType") {
+    return `${canonicalTypeName(environment, type.elementType)}[]`;
   }
 
   if (type.name === "number") {
@@ -683,6 +762,10 @@ function namedType(name: string, location: SourceLocation): TypeNode {
 function typeToString(type: TypeNode): string {
   if (type.type === "TupleType") {
     return `[${type.elements.map(typeToString).join(", ")}]`;
+  }
+
+  if (type.type === "ArrayType") {
+    return `${typeToString(type.elementType)}[]`;
   }
 
   return type.name;

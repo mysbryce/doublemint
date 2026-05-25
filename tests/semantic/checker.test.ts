@@ -308,4 +308,53 @@ describe("checkModuleGraph", () => {
       code: "DLM4003"
     });
   });
+
+  it("accepts arrays and index assignment", async () => {
+    await expect(
+      checkEntry(`
+        function first(): int {
+          let values: int[] = [1, 2, 3];
+          values[0] = values[1];
+          return values[0];
+        }
+      `)
+    ).resolves.toBeUndefined();
+  });
+
+  it("rejects array literals with mismatched elements", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          let values: int[] = [1, "two"];
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4014"
+    });
+  });
+
+  it("rejects indexing non-array values", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          let value: int = 1;
+          value[0] = 2;
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4018"
+    });
+  });
+
+  it("rejects empty array literals without element inference", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          let values: int[] = [];
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4020"
+    });
+  });
 });

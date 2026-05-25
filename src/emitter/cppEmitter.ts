@@ -60,6 +60,7 @@ function emitHeader(
     "",
     "#include <string>",
     "#include <tuple>",
+    "#include <vector>",
     ""
   ];
 
@@ -272,6 +273,10 @@ function emitExpression(expression: Expression, expectedType?: TypeNode): string
       return `${emitExpression(expression.callee)}(${expression.arguments.map((argument) => emitExpression(argument)).join(", ")})`;
     case "MemberExpression":
       return `${emitExpression(expression.object)}.${expression.property}`;
+    case "IndexExpression":
+      return `${emitExpression(expression.object)}[${emitExpression(expression.index)}]`;
+    case "ArrayLiteral":
+      return emitArrayLiteral(expression, expectedType);
     case "CopyExpression":
       return emitExpression(expression.argument);
     case "CastExpression":
@@ -279,6 +284,22 @@ function emitExpression(expression: Expression, expectedType?: TypeNode): string
     default:
       assertNever(expression);
   }
+}
+
+function emitArrayLiteral(
+  expression: Expression & { type: "ArrayLiteral" },
+  expectedType?: TypeNode
+): string {
+  const elementType = expectedType?.type === "ArrayType" ? expectedType.elementType : undefined;
+  const elements = expression.elements
+    .map((element) => emitExpression(element, elementType))
+    .join(", ");
+
+  if (expectedType?.type === "ArrayType") {
+    return `{${elements}}`;
+  }
+
+  return `std::vector{${elements}}`;
 }
 
 function emitExpressionForExpectedType(expression: Expression, expectedType: TypeNode): string {
@@ -305,6 +326,10 @@ function emitLiteral(
 function emitType(type: TypeNode): string {
   if (type.type === "TupleType") {
     return `std::tuple<${type.elements.map(emitType).join(", ")}>`;
+  }
+
+  if (type.type === "ArrayType") {
+    return `std::vector<${emitType(type.elementType)}>`;
   }
 
   switch (type.name) {
@@ -379,6 +404,10 @@ function expressionUsesPrint(expression: Expression): boolean {
       );
     case "MemberExpression":
       return expressionUsesPrint(expression.object);
+    case "IndexExpression":
+      return expressionUsesPrint(expression.object) || expressionUsesPrint(expression.index);
+    case "ArrayLiteral":
+      return expression.elements.some(expressionUsesPrint);
     case "CopyExpression":
       return expressionUsesPrint(expression.argument);
     case "CastExpression":
