@@ -20,6 +20,7 @@ const config: DoublemintConfig = {
   cppStandard: "c++20",
   compiler: "g++",
   includeDirs: [],
+  nativeSources: [],
   libraryDirs: [],
   linkLibraries: [],
   linkerFlags: [],

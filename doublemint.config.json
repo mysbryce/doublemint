@@ -4,6 +4,7 @@
   "cppStandard": "c++20",
   "compiler": "clang++",
   "includeDirs": [],
+  "nativeSources": [],
   "libraryDirs": [],
   "linkLibraries": [],
   "linkerFlags": [],

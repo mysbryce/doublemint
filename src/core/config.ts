@@ -7,6 +7,7 @@ export interface DoublemintConfig {
   cppStandard: "c++20" | "c++23";
   compiler: "clang++" | "g++" | string;
   includeDirs: string[];
+  nativeSources?: string[];
   libraryDirs?: string[];
   linkLibraries?: string[];
   linkerFlags?: string[];
@@ -20,6 +21,7 @@ const defaultConfig: DoublemintConfig = {
   cppStandard: "c++20",
   compiler: "clang++",
   includeDirs: [],
+  nativeSources: [],
   libraryDirs: [],
   linkLibraries: [],
   linkerFlags: [],
@@ -37,6 +39,7 @@ export async function loadConfig(cwd: string): Promise<DoublemintConfig> {
       ...defaultConfig,
       ...parsed,
       includeDirs: parsed.includeDirs ?? defaultConfig.includeDirs,
+      nativeSources: parsed.nativeSources ?? defaultConfig.nativeSources,
       libraryDirs: parsed.libraryDirs ?? defaultConfig.libraryDirs,
       linkLibraries: parsed.linkLibraries ?? defaultConfig.linkLibraries,
       linkerFlags: parsed.linkerFlags ?? defaultConfig.linkerFlags

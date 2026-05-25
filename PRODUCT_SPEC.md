@@ -44,6 +44,7 @@ The first production foundation must support:
 - Optional native compiler invocation from the CLI.
 - Project configuration through `doublemint.config.json`.
 - Native linker configuration through `libraryDirs`, `linkLibraries`, and `linkerFlags`.
+- Native source compilation through `nativeSources`.
 
 ## Language Decisions
 

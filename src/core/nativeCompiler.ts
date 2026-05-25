@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 import { mkdir } from "node:fs/promises";
 import type { DoublemintConfig } from "./config.js";
 import { DoublemintDiagnostic } from "../diagnostics/diagnostic.js";
@@ -26,6 +26,9 @@ export async function buildNativeExecutable(
   const cppFiles = emitResult.artifacts
     .filter((artifact) => artifact.filepath.endsWith(".cpp"))
     .map((artifact) => artifact.filepath);
+  const nativeSources = (config.nativeSources ?? []).map((source) =>
+    isAbsolute(source) ? source : resolve(source)
+  );
   const args = [
     `-std=${config.cppStandard}`,
     `-${config.optimization}`,
@@ -35,6 +38,7 @@ export async function buildNativeExecutable(
     ...config.includeDirs.map((includeDir) => `-I${includeDir}`),
     ...Array.from(new Set(cppFiles.map((filepath) => `-I${dirname(filepath)}`))),
     ...cppFiles,
+    ...nativeSources,
     ...(config.libraryDirs ?? []).map((libraryDir) => `-L${libraryDir}`),
     ...(config.linkLibraries ?? []).map((library) => `-l${library}`),
     ...(config.linkerFlags ?? []),

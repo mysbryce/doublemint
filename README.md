@@ -93,6 +93,7 @@ If the configured compiler is missing, Doublemint falls back to `clang++`, `g++`
   "cppStandard": "c++20",
   "compiler": "clang++",
   "includeDirs": [],
+  "nativeSources": [],
   "libraryDirs": [],
   "linkLibraries": [],
   "linkerFlags": [],
@@ -147,6 +148,16 @@ extern "./native.hpp" {
   type FILE;
   function puts_alias(text: const char*): int as "std::puts";
   function close_ref(file: FILE&): int as "native_close";
+}
+```
+
+Local native `.c` / `.cpp` files can be compiled into the final binary with
+`nativeSources`:
+
+```json
+{
+  "includeDirs": ["native"],
+  "nativeSources": ["native/native_math.cpp"]
 }
 ```
 
