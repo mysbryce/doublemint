@@ -267,10 +267,12 @@ function keywordCompletions() {
     keyword("switch"),
     keyword("case"),
     keyword("default"),
+    keyword("defer"),
     keyword("as"),
     keyword("fn"),
     keyword("true"),
-    keyword("false")
+    keyword("false"),
+    keyword("null")
   ];
 }
 

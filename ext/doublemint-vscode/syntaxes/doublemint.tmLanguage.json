@@ -135,7 +135,7 @@
       "patterns": [
         {
           "name": "keyword.control.doublemint",
-          "match": "\\b(?:if|else|while|for|switch|case|default|return|as)\\b"
+          "match": "\\b(?:if|else|while|for|switch|case|default|defer|return|as)\\b"
         },
         {
           "name": "storage.modifier.doublemint",
@@ -155,7 +155,7 @@
         },
         {
           "name": "constant.language.boolean.doublemint",
-          "match": "\\b(?:true|false)\\b"
+          "match": "\\b(?:true|false|null)\\b"
         }
       ]
     },
@@ -175,7 +175,7 @@
       "patterns": [
         {
           "name": "keyword.operator.doublemint",
-          "match": "==|!=|<=|>=|=>|[-+*/=<>.]"
+          "match": "==|!=|<=|>=|=>|[-+*/=&<>.]"
         },
         {
           "name": "punctuation.separator.doublemint",
@@ -189,4 +189,3 @@
     }
   }
 }
-
