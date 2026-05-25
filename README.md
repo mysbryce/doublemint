@@ -58,6 +58,12 @@ Build the multi-file example:
 node dist/cli.js build examples/player/main.dlm --out build/player/app.exe
 ```
 
+Build the language tour example:
+
+```bash
+node dist/cli.js build examples/language_tour/main.dlm --out build/language-tour/app.exe
+```
+
 Override compiler:
 
 ```bash
