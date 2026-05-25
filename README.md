@@ -52,6 +52,16 @@ Build a native executable:
 node dist/cli.js build examples/main.dlm --out build/doublemint/app.exe
 ```
 
+Build and choose where generated C++ source is kept:
+
+```bash
+node dist/cli.js build examples/main.dlm --out build/doublemint/app.exe --cpp-out build/doublemint/raw
+```
+
+The `build` command always leaves generated `.hpp` and `.cpp` files on disk.
+By default they are written to `outDir` from `doublemint.config.json`; use
+`--cpp-out` to keep per-build raw C++ next to a chosen binary.
+
 Build the multi-file example:
 
 ```bash
@@ -67,7 +77,7 @@ node dist/cli.js build examples/language_tour/main.dlm --out build/language-tour
 Override compiler:
 
 ```bash
-node dist/cli.js build examples/main.dlm --out build/doublemint/app.exe --compiler g++
+node dist/cli.js build examples/main.dlm --out build/doublemint/app.exe --compiler g++ --cpp-out build/doublemint/raw
 ```
 
 If the configured compiler is missing, Doublemint falls back to `clang++`, `g++`, then `c++` when available.
@@ -87,6 +97,52 @@ If the configured compiler is missing, Doublemint falls back to `clang++`, `g++`
   "optimization": "O3"
 }
 ```
+
+## Editor
+
+VS Code syntax highlighting, autocomplete, and realtime diagnostics live in `ext/doublemint-vscode`.
+Diagnostics call `doublemint check --stdin-filepath` with the current editor
+buffer and surface parser, resolver, and semantic errors in VS Code.
+
+For development:
+
+```bash
+code ext/doublemint-vscode
+```
+
+Press `F5`, then open a `.dlm` file in the Extension Development Host.
+
+Pack a VSIX with the latest compiler CLI bundled:
+
+```bash
+pnpm pack:vsix
+```
+
+Output:
+
+```text
+build/doublemint-vscode-0.1.0.vsix
+```
+
+## Native C/C++ Interop
+
+Doublemint can call simple C/C++ free functions through `extern "header"`:
+
+```typescript
+extern "cmath" {
+  function sqrt(num: double): double;
+}
+```
+
+This emits `#include <cmath>` and calls `sqrt(...)` from generated C++.
+
+Current interop limits:
+
+- no namespace-qualified names such as `std::chrono::...`
+- no C++ classes, methods, templates, or overload sets
+- no pointer/reference types in `.dlm`
+- no opaque native types yet
+- no linker flag config for libraries that need `-l...`
 
 ## Current Language Subset
 
@@ -111,9 +167,11 @@ Supported now:
 - `switch` with `case` and `default`
 - vector-backed arrays
 - tuple values and tuple indexing
+- tuple destructuring declarations
 - struct object literals
 - lambda expressions with `function(...)` types
 - `as` casts
+- safe local string literals emitted as `std::string_view`
 
 Example:
 
@@ -130,9 +188,10 @@ function scoreLabel(): [int, string] {
 
 export function main(): void {
   let profile: Profile = Profile { id: 1, name: "mint", level: 3 };
-  let label: [int, string] = scoreLabel();
+  const [score, name] = scoreLabel();
   let inc: function(int): int = fn (value: int): int => value + 1;
   let values: int[] = [1, 2, 3];
+  const local: string = "local-view";
 
   for (let i: int = 0; i < 3; i = i + 1) {
     values[0] = values[0] + values[i];
@@ -140,7 +199,7 @@ export function main(): void {
 
   switch (profile.name) {
     case "mint": {
-      print(label[1]);
+      print(name);
     }
     default: {
       print("unknown");
@@ -148,7 +207,8 @@ export function main(): void {
   }
 
   if (values[0] > 1) {
-    print(inc(profile.level));
+    print(inc(profile.level + score));
+    print(local);
   }
 }
 ```
@@ -183,11 +243,10 @@ Not supported yet:
 - classes
 - generics
 - packages
-- destructuring assignment
 - object methods
 - CMake generation
-- editor tooling
+- editor diagnostics/LSP tooling
 - rich type inference
-- `std::string_view` lifetime optimization
+- advanced interprocedural `std::string_view` lifetime optimization
 
 See `PRODUCT_SPEC.md` and `docs/adr/ADR-0001-production-foundation.md` for product direction and architecture decisions.

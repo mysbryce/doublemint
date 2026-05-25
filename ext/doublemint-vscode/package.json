@@ -1,0 +1,63 @@
+{
+  "name": "doublemint-vscode",
+  "displayName": "Doublemint",
+  "description": "Syntax highlighting, autocomplete, and realtime diagnostics for the Doublemint .dlm language.",
+  "version": "0.1.0",
+  "publisher": "doublemint",
+  "main": "./extension.js",
+  "scripts": {
+    "vscode:prepublish": "node scripts/bundle-cli.mjs"
+  },
+  "activationEvents": [
+    "onLanguage:doublemint"
+  ],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "doublemint",
+        "aliases": [
+          "Doublemint",
+          "doublemint"
+        ],
+        "extensions": [
+          ".dlm"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "doublemint",
+        "scopeName": "source.doublemint",
+        "path": "./syntaxes/doublemint.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "Doublemint",
+      "properties": {
+        "doublemint.diagnostics.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run Doublemint diagnostics for .dlm files."
+        },
+        "doublemint.diagnostics.command": {
+          "type": "string",
+          "default": "",
+          "description": "Optional command used for diagnostics. Defaults to workspace dist/cli.js, workspace node_modules/.bin/doublemint, then doublemint from PATH."
+        },
+        "doublemint.diagnostics.debounceMs": {
+          "type": "number",
+          "default": 350,
+          "minimum": 0,
+          "description": "Delay before running diagnostics after edits."
+        }
+      }
+    }
+  }
+}

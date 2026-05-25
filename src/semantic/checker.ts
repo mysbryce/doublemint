@@ -3,6 +3,7 @@ import type { SourceLocation } from "../lexer/token.js";
 import type {
   AssignmentExpression,
   Declaration,
+  DestructuringDeclaration,
   Expression,
   FunctionDeclaration,
   MemberExpression,
@@ -277,6 +278,9 @@ function validateStatement(
     case "VariableDeclaration":
       validateVariableDeclaration(environment, scope, statement);
       break;
+    case "DestructuringDeclaration":
+      validateDestructuringDeclaration(environment, scope, statement);
+      break;
     case "ReturnStatement": {
       const actualType = statement.argument
         ? inferExpressionType(environment, scope, statement.argument)
@@ -369,6 +373,45 @@ function validateStatement(
       break;
     default:
       assertNever(statement);
+  }
+}
+
+function validateDestructuringDeclaration(
+  environment: ModuleEnvironment,
+  scope: Scope,
+  declaration: DestructuringDeclaration
+): void {
+  const initType = inferExpressionType(environment, scope, declaration.init);
+  const tupleType = resolveTupleType(environment, initType);
+
+  if (!tupleType) {
+    throw new DoublemintDiagnostic({
+      code: "DLM4029",
+      severity: "error",
+      message: `Cannot destructure non-tuple type "${typeToString(initType)}".`,
+      location: declaration.location
+    });
+  }
+
+  if (declaration.ids.length !== tupleType.elements.length) {
+    throw new DoublemintDiagnostic({
+      code: "DLM4030",
+      severity: "error",
+      message: `Tuple destructuring expects ${tupleType.elements.length} bindings but got ${declaration.ids.length}.`,
+      location: declaration.location
+    });
+  }
+
+  for (let index = 0; index < declaration.ids.length; index += 1) {
+    const valueType = tupleType.elements[index]!;
+    assertKnownType(environment, valueType);
+    scope.declare({
+      name: declaration.ids[index]!,
+      kind: "variable",
+      valueType,
+      mutability: declaration.kind === "let" ? "mutable" : "immutable",
+      location: declaration.location
+    });
   }
 }
 
@@ -1074,6 +1117,24 @@ function resolveStruct(
 
   if (symbol?.typeAlias) {
     return resolveStruct(environment, symbol.typeAlias.valueType);
+  }
+
+  return null;
+}
+
+function resolveTupleType(
+  environment: ModuleEnvironment,
+  type: TypeNode
+): (TypeNode & { type: "TupleType" }) | null {
+  if (type.type === "TupleType") {
+    return type;
+  }
+
+  if (type.type === "NamedType") {
+    const symbol = environment.types.get(type.name);
+    if (symbol?.typeAlias) {
+      return resolveTupleType(environment, symbol.typeAlias.valueType);
+    }
   }
 
   return null;

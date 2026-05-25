@@ -49,15 +49,17 @@ function describeName(name: string): void {
 
 export function main(): void {
   let profile: Profile = Profile { id: 7, name: "mint", level: 3 };
-  let pair: [int, string] = identityPair();
+  const [pair_id, pair_name] = identityPair();
   let inc: function(int): int = fn (value: int): int => value + 1;
+  const local_label: string = "string_view local";
   profile.level = profile.level + 1;
 
   print("doublemint language tour");
   print(profile.name);
   print(profile.level);
-  print(pair[0]);
-  print(pair[1]);
+  print(pair_id);
+  print(pair_name);
+  print(local_label);
   print(inc(6));
   print(firstValue());
   print(loopTotal());

@@ -7,3 +7,4 @@ coverage/
 *.log
 build/
 out/
+ext/doublemint-vscode/server/

@@ -12,6 +12,7 @@
   "scripts": {
     "build": "tsup",
     "check": "tsc --noEmit",
+    "pack:vsix": "node scripts/pack-vsix.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "dev": "tsx src/cli.ts"

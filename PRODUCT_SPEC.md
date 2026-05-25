@@ -19,7 +19,7 @@ This is not a disposable MVP. The first release is a production foundation: smal
 
 - Full TypeScript-style inference.
 - C++ pointer/reference syntax exposed directly in `.dlm`.
-- Aggressive `std::string_view` optimization in the first implementation.
+- Aggressive interprocedural `std::string_view` optimization in the first implementation.
 - Always-generated CMake projects.
 - Full language surface such as classes, async, generics, macros, templates, or package registry support.
 
@@ -36,6 +36,7 @@ The first production foundation must support:
 - Relative `import`, `import type`, and `export`.
 - `extern` declarations for native C++ library bindings.
 - Prefix `copy` expressions.
+- Tuple destructuring declarations for tuple-return values.
 - Basic expressions, function calls, field access, assignment, and returns.
 - Strict module graph resolution.
 - `.hpp` and `.cpp` emission per module.
@@ -66,9 +67,10 @@ Explicit copying uses the `copy` keyword.
 
 ### Strings
 
-For the production foundation, `string` emits as `std::string`.
+For the production foundation, mutable or escaping `string` values emit as `std::string`.
+Safe local string literals may emit as `std::string_view`.
 
-Smarter `std::string_view` mapping is deferred until the semantic analyzer can prove read-only lifetime safety.
+Broader interprocedural `std::string_view` mapping is deferred until the semantic analyzer can prove read-only lifetime safety across module boundaries.
 
 ## Compiler Architecture
 
@@ -167,4 +169,3 @@ The production foundation is acceptable when:
 - Circular imports, missing imports, and duplicate exports are rejected.
 - `copy`, mutation, and const rules behave predictably.
 - CLI works through the npm package binary.
-

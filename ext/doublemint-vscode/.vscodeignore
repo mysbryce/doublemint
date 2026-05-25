@@ -1,0 +1,6 @@
+.vscode/**
+.gitignore
+scripts/**
+server/**/*.map
+*.vsix
+

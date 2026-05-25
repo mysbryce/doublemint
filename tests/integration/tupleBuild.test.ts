@@ -34,9 +34,11 @@ describe.skipIf(!hasGpp)("tuple values", () => {
       }
 
       export function main(): void {
-        let value: [int, string] = pair();
-        print(value[0]);
-        print(value[1]);
+        const [count, label] = pair();
+        const local: string = "local";
+        print(count);
+        print(label);
+        print(local);
       }
       `.trimStart(),
       "utf8"
@@ -58,6 +60,6 @@ describe.skipIf(!hasGpp)("tuple values", () => {
     const run = spawnSync(outputPath, [], { encoding: "utf8" });
 
     expect(run.status).toBe(0);
-    expect(run.stdout.trim().replace(/\r\n/gu, "\n")).toBe("7\nmint");
+    expect(run.stdout.trim().replace(/\r\n/gu, "\n")).toBe("7\nmint\nlocal");
   }, 15000);
 });

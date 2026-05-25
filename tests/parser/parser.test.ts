@@ -257,6 +257,30 @@ describe("parseProgram", () => {
     });
   });
 
+  it("parses tuple destructuring declarations", () => {
+    const program = parse(`
+      function pair(): [int, string] {
+        return (1, "mint");
+      }
+
+      function main(): void {
+        const [count, label] = pair();
+      }
+    `);
+
+    expect(program.body[1]).toMatchObject({
+      type: "FunctionDeclaration",
+      body: [
+        {
+          type: "DestructuringDeclaration",
+          kind: "const",
+          ids: ["count", "label"],
+          init: { type: "CallExpression" }
+        }
+      ]
+    });
+  });
+
   it("parses switch statements", () => {
     const program = parse(`
       function main(): void {

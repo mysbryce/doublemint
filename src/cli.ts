@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { stdin } from "node:process";
 import { resolve } from "node:path";
 import { buildNativeExecutable } from "./core/nativeCompiler.js";
 import { loadConfig } from "./core/config.js";
@@ -24,7 +25,15 @@ async function main(): Promise<void> {
     });
   }
 
-  if (!args.entry) {
+  if (args.stdinFilepath && args.command !== "check") {
+    throw new DoublemintDiagnostic({
+      code: "DLM0006",
+      severity: "error",
+      message: "Option \"--stdin-filepath\" is only supported by check."
+    });
+  }
+
+  if (!args.entry && !args.stdinFilepath) {
     throw new DoublemintDiagnostic({
       code: "DLM0002",
       severity: "error",
@@ -33,8 +42,16 @@ async function main(): Promise<void> {
   }
 
   const config = await loadConfig(process.cwd());
-  const entryPath = resolve(process.cwd(), args.entry);
-  const graph = await resolveModuleGraph(entryPath);
+  const entryPath = resolve(process.cwd(), args.stdinFilepath ?? args.entry!);
+  const stdinSource = args.stdinFilepath ? await readStdin() : null;
+  const graph = await resolveModuleGraph(
+    entryPath,
+    stdinSource === null
+      ? {}
+      : {
+          sourceOverrides: new Map([[entryPath, stdinSource]])
+        }
+  );
   const semanticResult = checkModuleGraph(graph);
 
   if (args.command === "check") {
@@ -51,12 +68,17 @@ async function main(): Promise<void> {
   }
 
   if (args.command === "build") {
-    const result = await emitCppToDisk(graph, config);
-    const nativeResult = await buildNativeExecutable(result, config, {
-      outputPath: args.out ?? defaultOutputPath(args.entry),
+    const buildConfig = args.cppOut
+      ? { ...config, outDir: resolve(process.cwd(), args.cppOut) }
+      : config;
+    const result = await emitCppToDisk(graph, buildConfig);
+    const nativeResult = await buildNativeExecutable(result, buildConfig, {
+      outputPath: args.out ?? defaultOutputPath(args.entry!),
       compiler: args.compiler
     });
-    console.log(`OK built ${nativeResult.outputPath} with ${nativeResult.compiler}.`);
+    console.log(
+      `OK built ${nativeResult.outputPath} with ${nativeResult.compiler}. C++ files kept in ${buildConfig.outDir}.`
+    );
     return;
   }
 
@@ -73,8 +95,9 @@ function printHelp(): void {
 
 Usage:
   doublemint check <entry.dlm>
+  doublemint check --stdin-filepath <entry.dlm>
   doublemint emit <entry.dlm>
-  doublemint build <entry.dlm> --out <binary> [--compiler <clang++|g++>]
+  doublemint build <entry.dlm> --out <binary> [--compiler <clang++|g++>] [--cpp-out <dir>]
 `);
 }
 
@@ -83,14 +106,15 @@ interface CliArgs {
   entry?: string;
   out?: string;
   compiler?: string;
+  cppOut?: string;
+  stdinFilepath?: string;
   help: boolean;
 }
 
 function parseCliArgs(argv: string[]): CliArgs {
-  const [command, entry, ...rest] = argv;
+  const [command, ...rest] = argv;
   const parsed: CliArgs = {
     command,
-    entry,
     help: command === "--help" || command === "-h"
   };
 
@@ -111,6 +135,23 @@ function parseCliArgs(argv: string[]): CliArgs {
     if (arg === "--compiler") {
       parsed.compiler = requireFlagValue(rest, index, "--compiler");
       index += 1;
+      continue;
+    }
+
+    if (arg === "--cpp-out") {
+      parsed.cppOut = requireFlagValue(rest, index, "--cpp-out");
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--stdin-filepath") {
+      parsed.stdinFilepath = requireFlagValue(rest, index, "--stdin-filepath");
+      index += 1;
+      continue;
+    }
+
+    if (!arg.startsWith("--") && !parsed.entry) {
+      parsed.entry = arg;
       continue;
     }
 
@@ -140,6 +181,19 @@ function requireFlagValue(args: string[], index: number, flag: string): string {
 
 function defaultOutputPath(entry: string): string {
   return resolve("build", entry.replace(/\.dlm$/u, ""));
+}
+
+function readStdin(): Promise<string> {
+  return new Promise((resolveRead, reject) => {
+    let input = "";
+
+    stdin.setEncoding("utf8");
+    stdin.on("data", (chunk) => {
+      input += chunk;
+    });
+    stdin.on("end", () => resolveRead(input));
+    stdin.on("error", reject);
+  });
 }
 
 main().catch((error: unknown) => {

@@ -301,6 +301,103 @@ describe("emitCpp", () => {
     );
   });
 
+  it("emits tuple destructuring as structured bindings", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      function pair(): [int, string] {
+        return (1, "mint");
+      }
+
+      export function main(): void {
+        const [count, label] = pair();
+        print(label);
+      }
+      `
+    );
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+
+    const result = emitCpp(graph, config);
+    const byPath = new Map(
+      result.artifacts.map((artifact) => [artifact.filepath, artifact.content])
+    );
+
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      "const auto [count, label] = pair();"
+    );
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      "std::cout << label << std::endl;"
+    );
+  });
+
+  it("emits safe string literals as string_view and mutated strings as string", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      export function main(): void {
+        const label: string = "mint";
+        let name: string = "seed";
+        name = "sprout";
+        print(label);
+        print(name);
+      }
+      `
+    );
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+
+    const result = emitCpp(graph, config);
+    const byPath = new Map(
+      result.artifacts.map((artifact) => [artifact.filepath, artifact.content])
+    );
+
+    expect(byPath.get("build/doublemint/main.hpp")).toContain("#include <string_view>");
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      'const std::string_view label = "mint";'
+    );
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      'std::string name = "seed";'
+    );
+  });
+
+  it("emits string parameters and function-typed string parameters as string_view", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      function echo(value: string): string {
+        return value;
+      }
+
+      export function main(): void {
+        let call_echo: function(string): string = fn (value: string): string => value;
+        print(echo("mint"));
+        print(call_echo("gum"));
+      }
+      `
+    );
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+
+    const result = emitCpp(graph, config);
+    const byPath = new Map(
+      result.artifacts.map((artifact) => [artifact.filepath, artifact.content])
+    );
+
+    expect(byPath.get("build/doublemint/main.hpp")).toContain(
+      "std::string echo(std::string_view value);"
+    );
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      "return std::string(value);"
+    );
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      "std::function<std::string(std::string_view)> call_echo"
+    );
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      "[=](std::string_view value) -> std::string"
+    );
+  });
+
   it("emits switch statements as if else chains", async () => {
     const entry = await writeModule(
       "main.dlm",

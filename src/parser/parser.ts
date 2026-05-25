@@ -251,11 +251,11 @@ class Parser {
 
   private statement(): Statement {
     if (this.match("LET")) {
-      return this.variableDeclaration("let");
+      return this.variableOrDestructuringDeclaration("let");
     }
 
     if (this.match("CONST")) {
-      return this.variableDeclaration("const");
+      return this.variableOrDestructuringDeclaration("const");
     }
 
     if (this.match("RETURN")) {
@@ -281,6 +281,14 @@ class Parser {
     return this.expressionStatement();
   }
 
+  private variableOrDestructuringDeclaration(kind: "let" | "const"): Statement {
+    if (this.check("LEFT_BRACKET")) {
+      return this.destructuringDeclaration(kind);
+    }
+
+    return this.variableDeclaration(kind);
+  }
+
   private variableDeclaration(kind: "let" | "const"): VariableDeclaration {
     const declarationToken = this.previous();
     const id = this.consume("IDENTIFIER", "DLM2031", `Expected ${kind} variable name.`);
@@ -294,6 +302,24 @@ class Parser {
       kind,
       id: id.lexeme,
       valueType,
+      init,
+      location: declarationToken.location
+    };
+  }
+
+  private destructuringDeclaration(kind: "let" | "const"): Statement {
+    const declarationToken = this.previous();
+    this.consume("LEFT_BRACKET", "DLM2073", `Expected '[' after ${kind}.`);
+    const ids = this.identifierList("destructuring binding");
+    this.consume("RIGHT_BRACKET", "DLM2074", "Expected ']' after destructuring bindings.");
+    this.consume("EQUAL", "DLM2075", "Expected '=' after destructuring bindings.");
+    const init = this.expression();
+    this.consume("SEMICOLON", "DLM2076", `Expected ';' after ${kind} destructuring declaration.`);
+
+    return {
+      type: "DestructuringDeclaration",
+      kind,
+      ids,
       init,
       location: declarationToken.location
     };

@@ -248,39 +248,39 @@ void processPlayer(const PlayerProfile& profile) {
 
 ### 🟩 Phase 1: Lexical Analysis Pipeline (The Lexer)
 
-* [ ] **1.1 Global Token Definitions:** Enumerate strict token states (`LET`, `CONST`, `CONSTEXPR`, `EXTERN`, `IMPORT`, `TYPE`, `EXPORT`, `COPY`, `STRUCT`, `ARROW_OP`, delimiters, operators, and literals).
-* [ ] **1.2 High-Speed Lexer Scanner:** Write a non-backtracking scanner running in linear $O(n)$ time to stream tokens from raw input buffers.
-* [ ] **1.3 Source Mapping:** Embed tracking properties (`line_number`, `column_offset`, `absolute_filepath`) natively into each scanned Token.
-* [ ] **🧪 REQUIRED TEST CHECK:** Provide 100% test coverage over corrupted input (e.g., unterminated strings, unrecognizable glyphs). Lexer must gracefully halt, raising accurate coordinate error diagnostic windows without crashing.
+* [x] **1.1 Global Token Definitions:** Enumerate strict token states (`LET`, `CONST`, `CONSTEXPR`, `EXTERN`, `IMPORT`, `TYPE`, `EXPORT`, `COPY`, `STRUCT`, `ARROW_OP`, delimiters, operators, and literals).
+* [x] **1.2 High-Speed Lexer Scanner:** Write a non-backtracking scanner running in linear $O(n)$ time to stream tokens from raw input buffers.
+* [x] **1.3 Source Mapping:** Embed tracking properties (`line_number`, `column_offset`, `absolute_filepath`) natively into each scanned Token.
+* [x] **🧪 REQUIRED TEST CHECK:** Provide 100% test coverage over corrupted input (e.g., unterminated strings, unrecognizable glyphs). Lexer must gracefully halt, raising accurate coordinate error diagnostic windows without crashing.
 
 ### 🟩 Phase 2: Syntactic Specification (The Parser)
 
-* [ ] **2.1 Explicit Type Annotations Parser:** Write defensive recursive descent parser loops enforcing type validation on all assignment statements (e.g., throwing a syntax error immediately if `: type` syntax is missing).
-* [ ] **2.2 Module Import/Export Grammar:** Implement explicit parsing tracks for standard symbols: `import { x } from "mod"` versus specific type definitions: `import type { y } from "mod"`.
-* [ ] **2.3 Structure Syntax Extraction:** Implement rules targeting the clean `struct` layout and multi-return tuples (`[int, string]`).
-* [ ] **2.4 Ergonomic Copy Expressions:** Catch the prefix keyword `copy` preceding identifier nodes, packing them neatly into safe `CopyExpression` structures.
-* [ ] **🧪 REQUIRED TEST CHECK:** Verify that running invalid module loops or structural variations results in syntax rejection. The output AST must parse correctly down to perfectly formed JSON formats against validation schemas.
+* [x] **2.1 Explicit Type Annotations Parser:** Write defensive recursive descent parser loops enforcing type validation on all assignment statements (e.g., throwing a syntax error immediately if `: type` syntax is missing).
+* [x] **2.2 Module Import/Export Grammar:** Implement explicit parsing tracks for standard symbols: `import { x } from "mod"` versus specific type definitions: `import type { y } from "mod"`.
+* [x] **2.3 Structure Syntax Extraction:** Implement rules targeting the clean `struct` layout and multi-return tuples (`[int, string]`).
+* [x] **2.4 Ergonomic Copy Expressions:** Catch the prefix keyword `copy` preceding identifier nodes, packing them neatly into safe `CopyExpression` structures.
+* [x] **🧪 REQUIRED TEST CHECK:** Verify that running invalid module loops or structural variations results in syntax rejection. The output AST must parse correctly down to perfectly formed JSON formats against validation schemas.
 
 ### 🟩 Phase 3: Semantic Enforcement & Smart Reference Matrix
 
-* [ ] **3.1 Scalable Block-Scoped Symbol Table:** Implement nested lexical environment tracking managing localized scopes, protecting variable accessibility limits across multi-directory projects.
-* [ ] **3.2 Type Inference Safety Guard:** Lock type operations. Disallow raw mismatch operations (`int` vs `string`) during validation.
-* [ ] **3.3 Automated Reference Optimizer:** Build an AST analyzer that detects parameters receiving heavy custom structs. If no modification occurs and the `copy` marker is absent, flag the parameter to emit as a performance-optimal `const T&` automatically.
-* [ ] **🧪 REQUIRED TEST CHECK:** Run semantic test fixtures tracking illegal memory operations. Assert that trying to implicitly mutate arguments inside safe references fails type check operations before C++ emission.
+* [x] **3.1 Scalable Block-Scoped Symbol Table:** Implement nested lexical environment tracking managing localized scopes, protecting variable accessibility limits across multi-directory projects.
+* [x] **3.2 Type Inference Safety Guard:** Lock type operations. Disallow raw mismatch operations (`int` vs `string`) during validation.
+* [x] **3.3 Automated Reference Optimizer:** Build an AST analyzer that detects parameters receiving heavy custom structs. If no modification occurs and the `copy` marker is absent, flag the parameter to emit as a performance-optimal `const T&` automatically.
+* [x] **🧪 REQUIRED TEST CHECK:** Run semantic test fixtures tracking illegal memory operations. Assert that trying to implicitly mutate arguments inside safe references fails type check operations before C++ emission.
 
 ### 🟩 Phase 4: Zero-Overhead Output Emission (The Emitter)
 
-* [ ] **4.1 Memory Guarded String Mapping:** Build an output strategy mapping `string` usage:
+* [x] **4.1 Memory Guarded String Mapping:** Build an output strategy mapping `string` usage:
 * Literal expressions compile safely down to efficient stack-allocated `std::string_view`.
 * Mutated string objects output directly into heap-allocated `std::string`.
 
 
-* [ ] **4.2 Code Module Aggregation:** Direct `import` mappings into explicit `#include` chains, while cleanly unwrapping native `extern` modules without adding runtime overhead.
-* [ ] **4.3 Structural Tuple Binding Conversion:** Convert TypeScript array-destructuring returns (`const [val, err] = action()`) into modern C++ structured bindings (`auto [val, err] = action()`) utilizing native `std::tuple` optimizations.
-* [ ] **🧪 REQUIRED TEST CHECK:** Run the emitter against advanced complex algorithms. The generated `.cpp` and `.hpp` outputs must achieve perfect compilation under GCC/Clang with flag conditions `-Wall -Wextra -Werror -std=c++20 -O3` without generating warnings or errors.
+* [x] **4.2 Code Module Aggregation:** Direct `import` mappings into explicit `#include` chains, while cleanly unwrapping native `extern` modules without adding runtime overhead.
+* [x] **4.3 Structural Tuple Binding Conversion:** Convert TypeScript array-destructuring returns (`const [val, err] = action()`) into modern C++ structured bindings (`auto [val, err] = action()`) utilizing native `std::tuple` optimizations.
+* [x] **🧪 REQUIRED TEST CHECK:** Run the emitter against advanced complex algorithms. The generated `.cpp` and `.hpp` outputs must achieve perfect compilation under GCC/Clang with flag conditions `-Wall -Wextra -Werror -std=c++20 -O3` without generating warnings or errors.
 
 ### 🟩 Phase 5: CLI Automation, End-to-End Build Tools, and Profiling
 
-* [ ] **5.1 Direct Production Compiler CLI:** Implement the final unified command architecture interface (`doublemint build <file.dlm> --out <exec>`).
-* [ ] **5.2 Native Compiler Integration:** Build automatic internal child execution pipes that securely trigger local native configurations (GCC/Clang) seamlessly, passing generation parameters cleanly down to binary files.
-* [ ] **🧪 REQUIRED TEST CHECK:** Compile complex multi-module math and state test files. Run the resulting binaries and verify their execution, ensuring zero memory overhead, high performance, and correct output logic.
+* [x] **5.1 Direct Production Compiler CLI:** Implement the final unified command architecture interface (`doublemint build <file.dlm> --out <exec>`).
+* [x] **5.2 Native Compiler Integration:** Build automatic internal child execution pipes that securely trigger local native configurations (GCC/Clang) seamlessly, passing generation parameters cleanly down to binary files.
+* [x] **🧪 REQUIRED TEST CHECK:** Compile complex multi-module math and state test files. Run the resulting binaries and verify their execution, ensuring zero memory overhead, high performance, and correct output logic.

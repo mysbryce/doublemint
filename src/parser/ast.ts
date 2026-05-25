@@ -98,6 +98,7 @@ export interface FunctionTypeNode {
 
 export type Statement =
   | VariableDeclaration
+  | DestructuringDeclaration
   | ReturnStatement
   | IfStatement
   | WhileStatement
@@ -111,6 +112,14 @@ export interface VariableDeclaration {
   id: string;
   valueType: TypeNode;
   init: Expression | null;
+  location: SourceLocation;
+}
+
+export interface DestructuringDeclaration {
+  type: "DestructuringDeclaration";
+  kind: "let" | "const";
+  ids: string[];
+  init: Expression;
   location: SourceLocation;
 }
 

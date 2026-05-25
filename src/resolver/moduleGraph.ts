@@ -41,10 +41,17 @@ export interface ModuleGraph {
   modules: Map<string, ResolvedModule>;
 }
 
+export interface ResolveModuleGraphOptions {
+  sourceOverrides?: Map<string, string>;
+}
+
 type VisitState = "visiting" | "visited";
 
-export async function resolveModuleGraph(entryFilepath: string): Promise<ModuleGraph> {
-  const resolver = new ModuleGraphResolver();
+export async function resolveModuleGraph(
+  entryFilepath: string,
+  options: ResolveModuleGraphOptions = {}
+): Promise<ModuleGraph> {
+  const resolver = new ModuleGraphResolver(options);
   return resolver.resolve(entryFilepath);
 }
 
@@ -52,6 +59,8 @@ class ModuleGraphResolver {
   private readonly modules = new Map<string, ResolvedModule>();
   private readonly states = new Map<string, VisitState>();
   private readonly stack: string[] = [];
+
+  constructor(private readonly options: ResolveModuleGraphOptions) {}
 
   async resolve(entryFilepath: string): Promise<ModuleGraph> {
     const normalizedEntry = resolve(entryFilepath);
@@ -147,6 +156,11 @@ class ModuleGraphResolver {
   }
 
   private async readModuleSource(filepath: string): Promise<string> {
+    const override = this.options.sourceOverrides?.get(resolve(filepath));
+    if (override !== undefined) {
+      return override;
+    }
+
     try {
       return await readFile(filepath, "utf8");
     } catch (error) {

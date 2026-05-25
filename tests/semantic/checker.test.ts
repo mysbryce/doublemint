@@ -504,6 +504,46 @@ describe("checkModuleGraph", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("accepts tuple destructuring declarations", async () => {
+    await expect(
+      checkEntry(`
+        function pair(): [int, string] {
+          return (1, "mint");
+        }
+
+        function main(): void {
+          let [count, label] = pair();
+          count = count + 1;
+          print(label);
+        }
+      `)
+    ).resolves.toBeUndefined();
+  });
+
+  it("rejects destructuring non-tuple values", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          const [value] = 1;
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4029"
+    });
+  });
+
+  it("rejects tuple destructuring arity mismatches", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          const [one] = (1, "mint");
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4030"
+    });
+  });
+
   it("rejects tuple literals with mismatched element types", async () => {
     await expect(
       checkEntry(`

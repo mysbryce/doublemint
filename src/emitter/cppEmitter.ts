@@ -3,6 +3,7 @@ import { dirname, relative } from "node:path";
 import type { DoublemintConfig } from "../core/config.js";
 import { DoublemintDiagnostic } from "../diagnostics/diagnostic.js";
 import type {
+  DestructuringDeclaration,
   Expression,
   FunctionDeclaration,
   ImportDeclaration,
@@ -26,6 +27,7 @@ export interface EmitResult {
 
 interface EmitContext {
   switchCounter: number;
+  stringViewVariables: Set<string>;
 }
 
 export async function emitCppToDisk(
@@ -64,6 +66,7 @@ function emitHeader(
     "",
     "#include <functional>",
     "#include <string>",
+    "#include <string_view>",
     "#include <tuple>",
     "#include <vector>",
     ""
@@ -161,7 +164,10 @@ function emitStruct(declaration: StructDeclaration): string {
 
 function emitFunctionDefinition(declaration: FunctionDeclaration): string {
   const lines = [`${emitFunctionSignature(declaration)} {`];
-  const context: EmitContext = { switchCounter: 0 };
+  const context: EmitContext = {
+    switchCounter: 0,
+    stringViewVariables: stringViewVariableNames(declaration)
+  };
 
   for (const statement of declaration.body) {
     lines.push(`  ${emitStatement(statement, declaration, context)}`);
@@ -183,6 +189,10 @@ function emitFunctionSignature(declaration: FunctionDeclaration): string {
 }
 
 function emitParameterType(type: TypeNode): string {
+  if (type.type === "NamedType" && type.name === "string") {
+    return "std::string_view";
+  }
+
   if (type.type === "NamedType" && shouldPassByConstReference(type.name)) {
     return `const ${emitType(type)}&`;
   }
@@ -197,7 +207,9 @@ function emitStatement(
 ): string {
   switch (statement.type) {
     case "VariableDeclaration":
-      return emitVariableDeclaration(statement);
+      return emitVariableDeclaration(statement, true, context);
+    case "DestructuringDeclaration":
+      return emitDestructuringDeclaration(statement);
     case "ReturnStatement":
       if (isVoidMain(declaration) && !statement.argument) {
         return "return 0;";
@@ -267,7 +279,7 @@ function emitForStatement(
 ): string {
   const init =
     statement.init?.type === "VariableDeclaration"
-      ? emitVariableDeclaration(statement.init, false)
+      ? emitVariableDeclaration(statement.init, false, context)
       : statement.init
         ? emitExpression(statement.init)
         : "";
@@ -337,16 +349,233 @@ function hasReturnStatement(declaration: FunctionDeclaration): boolean {
   return declaration.body.some((statement) => statement.type === "ReturnStatement");
 }
 
+function stringViewVariableNames(declaration: FunctionDeclaration): Set<string> {
+  const mutatedNames = new Set<string>();
+  const stringViewNames = new Set<string>();
+
+  for (const statement of declaration.body) {
+    collectAssignedRoots(statement, mutatedNames);
+  }
+
+  for (const statement of declaration.body) {
+    collectStringViewDeclarations(statement, mutatedNames, stringViewNames);
+  }
+
+  return stringViewNames;
+}
+
+function collectStringViewDeclarations(
+  statement: Statement,
+  mutatedNames: Set<string>,
+  stringViewNames: Set<string>
+): void {
+  switch (statement.type) {
+    case "VariableDeclaration":
+      if (
+        statement.valueType.type === "NamedType" &&
+        statement.valueType.name === "string" &&
+        statement.init?.type === "Literal" &&
+        statement.init.literalKind === "string" &&
+        !mutatedNames.has(statement.id)
+      ) {
+        stringViewNames.add(statement.id);
+      }
+      break;
+    case "DestructuringDeclaration":
+    case "ReturnStatement":
+    case "ExpressionStatement":
+      break;
+    case "IfStatement":
+      statement.thenBranch.forEach((nested) =>
+        collectStringViewDeclarations(nested, mutatedNames, stringViewNames)
+      );
+      statement.elseBranch.forEach((nested) =>
+        collectStringViewDeclarations(nested, mutatedNames, stringViewNames)
+      );
+      break;
+    case "WhileStatement":
+      statement.body.forEach((nested) =>
+        collectStringViewDeclarations(nested, mutatedNames, stringViewNames)
+      );
+      break;
+    case "ForStatement":
+      if (statement.init?.type === "VariableDeclaration") {
+        collectStringViewDeclarations(statement.init, mutatedNames, stringViewNames);
+      }
+      statement.body.forEach((nested) =>
+        collectStringViewDeclarations(nested, mutatedNames, stringViewNames)
+      );
+      break;
+    case "SwitchStatement":
+      statement.cases.forEach((switchCase) =>
+        switchCase.body.forEach((nested) =>
+          collectStringViewDeclarations(nested, mutatedNames, stringViewNames)
+        )
+      );
+      statement.defaultBranch.forEach((nested) =>
+        collectStringViewDeclarations(nested, mutatedNames, stringViewNames)
+      );
+      break;
+    default:
+      assertNever(statement);
+  }
+}
+
+function collectAssignedRoots(statement: Statement, roots: Set<string>): void {
+  switch (statement.type) {
+    case "VariableDeclaration":
+      if (statement.init) {
+        collectAssignedRootsFromExpression(statement.init, roots);
+      }
+      break;
+    case "DestructuringDeclaration":
+      collectAssignedRootsFromExpression(statement.init, roots);
+      break;
+    case "ReturnStatement":
+      if (statement.argument) {
+        collectAssignedRootsFromExpression(statement.argument, roots);
+      }
+      break;
+    case "IfStatement":
+      collectAssignedRootsFromExpression(statement.condition, roots);
+      statement.thenBranch.forEach((nested) => collectAssignedRoots(nested, roots));
+      statement.elseBranch.forEach((nested) => collectAssignedRoots(nested, roots));
+      break;
+    case "WhileStatement":
+      collectAssignedRootsFromExpression(statement.condition, roots);
+      statement.body.forEach((nested) => collectAssignedRoots(nested, roots));
+      break;
+    case "ForStatement":
+      if (statement.init) {
+        if (statement.init.type === "VariableDeclaration") {
+          collectAssignedRoots(statement.init, roots);
+        } else {
+          collectAssignedRootsFromExpression(statement.init, roots);
+        }
+      }
+      if (statement.condition) {
+        collectAssignedRootsFromExpression(statement.condition, roots);
+      }
+      if (statement.increment) {
+        collectAssignedRootsFromExpression(statement.increment, roots);
+      }
+      statement.body.forEach((nested) => collectAssignedRoots(nested, roots));
+      break;
+    case "SwitchStatement":
+      collectAssignedRootsFromExpression(statement.discriminant, roots);
+      statement.cases.forEach((switchCase) => {
+        collectAssignedRootsFromExpression(switchCase.test, roots);
+        switchCase.body.forEach((nested) => collectAssignedRoots(nested, roots));
+      });
+      statement.defaultBranch.forEach((nested) => collectAssignedRoots(nested, roots));
+      break;
+    case "ExpressionStatement":
+      collectAssignedRootsFromExpression(statement.expression, roots);
+      break;
+    default:
+      assertNever(statement);
+  }
+}
+
+function collectAssignedRootsFromExpression(expression: Expression, roots: Set<string>): void {
+  switch (expression.type) {
+    case "Identifier":
+    case "Literal":
+      break;
+    case "AssignmentExpression": {
+      const root = assignmentRootName(expression.left);
+      if (root) {
+        roots.add(root);
+      }
+      collectAssignedRootsFromExpression(expression.right, roots);
+      break;
+    }
+    case "BinaryExpression":
+      collectAssignedRootsFromExpression(expression.left, roots);
+      collectAssignedRootsFromExpression(expression.right, roots);
+      break;
+    case "CallExpression":
+      collectAssignedRootsFromExpression(expression.callee, roots);
+      expression.arguments.forEach((argument) =>
+        collectAssignedRootsFromExpression(argument, roots)
+      );
+      break;
+    case "MemberExpression":
+      collectAssignedRootsFromExpression(expression.object, roots);
+      break;
+    case "IndexExpression":
+      collectAssignedRootsFromExpression(expression.object, roots);
+      collectAssignedRootsFromExpression(expression.index, roots);
+      break;
+    case "ArrayLiteral":
+    case "TupleLiteral":
+      expression.elements.forEach((element) =>
+        collectAssignedRootsFromExpression(element, roots)
+      );
+      break;
+    case "StructLiteral":
+      expression.fields.forEach((field) =>
+        collectAssignedRootsFromExpression(field.value, roots)
+      );
+      break;
+    case "LambdaExpression":
+      collectAssignedRootsFromExpression(expression.body, roots);
+      break;
+    case "CopyExpression":
+      collectAssignedRootsFromExpression(expression.argument, roots);
+      break;
+    case "CastExpression":
+      collectAssignedRootsFromExpression(expression.expression, roots);
+      break;
+    default:
+      assertNever(expression);
+  }
+}
+
+function assignmentRootName(expression: Expression): string | null {
+  if (expression.type === "Identifier") {
+    return expression.name;
+  }
+
+  if (expression.type === "MemberExpression") {
+    return assignmentRootName(expression.object);
+  }
+
+  if (expression.type === "IndexExpression") {
+    return assignmentRootName(expression.object);
+  }
+
+  return null;
+}
+
 function emitVariableDeclaration(
   statement: VariableDeclaration,
-  withSemicolon = true
+  withSemicolon = true,
+  context?: EmitContext
 ): string {
   const prefix = statement.kind === "const" ? "const " : "";
   const init = statement.init
     ? ` = ${emitExpressionForExpectedType(statement.init, statement.valueType)}`
     : "";
   const suffix = withSemicolon ? ";" : "";
-  return `${prefix}${emitType(statement.valueType)} ${statement.id}${init}${suffix}`;
+  return `${prefix}${emitVariableType(statement, context)} ${statement.id}${init}${suffix}`;
+}
+
+function emitDestructuringDeclaration(statement: DestructuringDeclaration): string {
+  const prefix = statement.kind === "const" ? "const " : "";
+  return `${prefix}auto [${statement.ids.join(", ")}] = ${emitExpression(statement.init)};`;
+}
+
+function emitVariableType(statement: VariableDeclaration, context?: EmitContext): string {
+  if (
+    context?.stringViewVariables.has(statement.id) &&
+    statement.valueType.type === "NamedType" &&
+    statement.valueType.name === "string"
+  ) {
+    return "std::string_view";
+  }
+
+  return emitType(statement.valueType);
 }
 
 function emitExpression(expression: Expression, expectedType?: TypeNode): string {
@@ -392,7 +621,7 @@ function emitExpression(expression: Expression, expectedType?: TypeNode): string
 
 function emitLambdaExpression(expression: Expression & { type: "LambdaExpression" }): string {
   const params = expression.params
-    .map((param) => `${emitType(param.valueType)} ${param.id}`)
+    .map((param) => `${emitParameterType(param.valueType)} ${param.id}`)
     .join(", ");
   return `[=](${params}) -> ${emitType(expression.returnType)} { return ${emitExpressionForExpectedType(
     expression.body,
@@ -444,6 +673,14 @@ function emitArrayLiteral(
 }
 
 function emitExpressionForExpectedType(expression: Expression, expectedType: TypeNode): string {
+  if (
+    expectedType.type === "NamedType" &&
+    expectedType.name === "string" &&
+    !(expression.type === "Literal" && expression.literalKind === "string")
+  ) {
+    return `std::string(${emitExpression(expression, expectedType)})`;
+  }
+
   return emitExpression(expression, expectedType);
 }
 
@@ -474,7 +711,7 @@ function emitType(type: TypeNode): string {
   }
 
   if (type.type === "FunctionType") {
-    return `std::function<${emitType(type.returnType)}(${type.params.map(emitType).join(", ")})>`;
+    return `std::function<${emitType(type.returnType)}(${type.params.map(emitParameterType).join(", ")})>`;
   }
 
   switch (type.name) {
@@ -517,6 +754,8 @@ function statementUsesPrint(statement: Statement): boolean {
   switch (statement.type) {
     case "VariableDeclaration":
       return statement.init ? expressionUsesPrint(statement.init) : false;
+    case "DestructuringDeclaration":
+      return expressionUsesPrint(statement.init);
     case "ReturnStatement":
       return statement.argument ? expressionUsesPrint(statement.argument) : false;
     case "IfStatement":

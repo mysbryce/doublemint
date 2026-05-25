@@ -49,6 +49,15 @@ function runCli(args: string[]) {
   });
 }
 
+function runCliWithInput(args: string[], input: string) {
+  return spawnSync(tsxBin, [cliPath, ...args], {
+    cwd: tempDir,
+    encoding: "utf8",
+    input,
+    shell: process.platform === "win32"
+  });
+}
+
 describe("doublemint CLI", () => {
   it("checks a valid entrypoint", async () => {
     await writeFile(join(tempDir, "main.dlm"), "export function main(): void {}\n", "utf8");
@@ -86,10 +95,31 @@ describe("doublemint CLI", () => {
     expect(result.stderr).toContain("  |         ^");
   }, 15000);
 
+  it("checks unsaved source from stdin using the original filepath", async () => {
+    await writeFile(join(tempDir, "main.dlm"), "export function main(): void {}\n", "utf8");
+
+    const result = runCliWithInput(
+      ["check", "--stdin-filepath", "main.dlm"],
+      "function main(): void {\n  let x = 1;\n}\n"
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("ERROR DLM2032");
+    expect(result.stderr).toContain("main.dlm:2:9");
+    expect(result.stderr).toContain("  |   let x = 1;");
+  }, 15000);
+
   it.skipIf(!hasGpp)("builds and runs a native executable", async () => {
     await writeFile(join(tempDir, "main.dlm"), "export function main(): void {}\n", "utf8");
 
-    const result = runCli(["build", "main.dlm", "--out", "build/app.exe"]);
+    const result = runCli([
+      "build",
+      "main.dlm",
+      "--out",
+      "build/app.exe",
+      "--cpp-out",
+      "build/raw"
+    ]);
     const run = spawnSync(join(tempDir, "build", "app.exe"), [], {
       encoding: "utf8"
     });
@@ -97,6 +127,9 @@ describe("doublemint CLI", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("OK built");
     expect(result.stdout).toContain("with g++");
+    expect(result.stdout).toContain(resolve(tempDir, "build", "raw"));
+    await expect(access(join(tempDir, "build", "raw", "main.hpp"))).resolves.toBeUndefined();
+    await expect(access(join(tempDir, "build", "raw", "main.cpp"))).resolves.toBeUndefined();
     expect(run.status).toBe(0);
   }, 15000);
 });
