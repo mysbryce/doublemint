@@ -35,6 +35,13 @@ export interface BuiltinNamespaceMember {
   location: SourceLocation;
 }
 
+export interface BuiltinClassMethod {
+  name: string;
+  params: TypeNode[];
+  returnType: TypeNode;
+  location: SourceLocation;
+}
+
 export interface AstModuleExport {
   name: string;
   kind: ExportKind;
@@ -47,6 +54,7 @@ export interface BuiltinModuleExport {
   kind: ExportKind;
   builtin: true;
   namespaceMembers?: Map<string, BuiltinNamespaceMember>;
+  classMethods?: Map<string, BuiltinClassMethod>;
   functionType?: FunctionType;
   nativeName?: string;
   location: SourceLocation;

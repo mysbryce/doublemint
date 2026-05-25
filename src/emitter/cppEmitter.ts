@@ -81,6 +81,16 @@ function emitHeader(
     ""
   ];
 
+  for (const include of builtinIncludes(module, graph)) {
+    if (!lines.includes(`#include ${include}`)) {
+      lines.push(`#include ${include}`);
+    }
+  }
+
+  if (builtinIncludes(module, graph).length > 0) {
+    lines.push("");
+  }
+
   for (const importDeclaration of importsOf(module.program).filter(
     (importDeclaration) => !isBuiltinImport(module, importDeclaration)
   )) {
@@ -88,6 +98,12 @@ function emitHeader(
   }
 
   if (importsOf(module.program).some((importDeclaration) => !isBuiltinImport(module, importDeclaration))) {
+    lines.push("");
+  }
+
+  const headerDeclarations = builtinHeaderDeclarations(module);
+  if (headerDeclarations.length > 0) {
+    lines.push(...headerDeclarations);
     lines.push("");
   }
 
@@ -165,6 +181,12 @@ function emitSource(
     )
   ) {
     lines.push(ioHelper());
+    lines.push("");
+  }
+
+  const sourceHelpers = builtinSourceHelpers(module);
+  if (sourceHelpers.length > 0) {
+    lines.push(...sourceHelpers);
     lines.push("");
   }
 
@@ -979,18 +1001,197 @@ function nativeMemberMap(module: ResolvedModule): Map<string, string> {
 }
 
 function emitPrintCall(name: string, args: Expression[], context?: EmitContext): string {
-  const parts = args.map((argument) => emitExpression(argument, undefined, context));
+  const parts = args.map((argument) => {
+    const emitted = emitExpression(argument, undefined, context);
+    return argument.type === "BinaryExpression" ? `(${emitted})` : emitted;
+  });
   const output = parts.length > 0 ? `std::cout << ${parts.join(" << ")}` : "std::cout";
   return name === "println" || name === "print" ? `${output} << std::endl` : output;
 }
 
 function ioHelper(): string {
   return [
-    "static std::string __doublemint_read_line(std::string_view prompt) {",
+    "[[maybe_unused]] static std::string __doublemint_read_line(std::string_view prompt) {",
     "  std::cout << prompt;",
     "  std::string line;",
     "  std::getline(std::cin, line);",
     "  return line;",
+    "}"
+  ].join("\n");
+}
+
+function builtinHeaderDeclarations(module: ResolvedModule): string[] {
+  const declarations: string[] = [];
+
+  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:collections")) {
+    declarations.push(collectionsHeader());
+  }
+
+  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:regex")) {
+    declarations.push(regexHeader());
+  }
+
+  return declarations;
+}
+
+function builtinSourceHelpers(module: ResolvedModule): string[] {
+  const helpers: string[] = [];
+
+  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:fs")) {
+    helpers.push(fsHelper());
+  }
+
+  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:time")) {
+    helpers.push(timeHelper());
+  }
+
+  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:os")) {
+    helpers.push(osHelper());
+  }
+
+  return helpers;
+}
+
+function collectionsHeader(): string {
+  return [
+    "template <typename T>",
+    "class Queue {",
+    "  std::queue<T> data_;",
+    "public:",
+    "  void push(T value) { data_.push(value); }",
+    "  T pop() { if (data_.empty()) { throw std::runtime_error(\"Queue is empty\"); } T value = data_.front(); data_.pop(); return value; }",
+    "  bool empty() const { return data_.empty(); }",
+    "  int size() const { return static_cast<int>(data_.size()); }",
+    "};",
+    "",
+    "template <typename T>",
+    "class Set {",
+    "  std::unordered_set<T> data_;",
+    "public:",
+    "  void add(T value) { data_.insert(value); }",
+    "  bool has(T value) const { return data_.find(value) != data_.end(); }",
+    "  int size() const { return static_cast<int>(data_.size()); }",
+    "};",
+    "",
+    "template <typename T>",
+    "class Stack {",
+    "  std::stack<T> data_;",
+    "public:",
+    "  void push(T value) { data_.push(value); }",
+    "  T pop() { if (data_.empty()) { throw std::runtime_error(\"Stack is empty\"); } T value = data_.top(); data_.pop(); return value; }",
+    "  bool empty() const { return data_.empty(); }",
+    "  int size() const { return static_cast<int>(data_.size()); }",
+    "};"
+  ].join("\n");
+}
+
+function regexHeader(): string {
+  return [
+    "class Regex {",
+    "  std::regex pattern_;",
+    "public:",
+    "  explicit Regex(std::string_view pattern) : pattern_(std::string(pattern)) {}",
+    "  bool test(std::string_view value) const { return std::regex_match(std::string(value), pattern_); }",
+    "  std::string replace(std::string_view value, std::string_view replacement) const { return std::regex_replace(std::string(value), pattern_, std::string(replacement)); }",
+    "};"
+  ].join("\n");
+}
+
+function fsHelper(): string {
+  return [
+    "[[maybe_unused]] static std::string __doublemint_file_read_to_string(const std::string& path) {",
+    "  std::ifstream input(path, std::ios::binary);",
+    "  return std::string(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());",
+    "}",
+    "",
+    "[[maybe_unused]] static std::vector<int> __doublemint_file_read_to_bytes(const std::string& path) {",
+    "  std::ifstream input(path, std::ios::binary);",
+    "  std::vector<int> bytes;",
+    "  char byte;",
+    "  while (input.get(byte)) { bytes.push_back(static_cast<unsigned char>(byte)); }",
+    "  return bytes;",
+    "}",
+    "",
+    "[[maybe_unused]] static void __doublemint_file_write_string(const std::string& path, const std::string& content) {",
+    "  std::ofstream output(path, std::ios::binary | std::ios::trunc);",
+    "  output << content;",
+    "}",
+    "",
+    "[[maybe_unused]] static void __doublemint_file_append_string(const std::string& path, const std::string& content) {",
+    "  std::ofstream output(path, std::ios::binary | std::ios::app);",
+    "  output << content;",
+    "}",
+    "",
+    "[[maybe_unused]] static std::string __doublemint_path_join(const std::string& left, const std::string& right) {",
+    "  return (std::filesystem::path(left) / std::filesystem::path(right)).string();",
+    "}",
+    "",
+    "[[maybe_unused]] static std::string __doublemint_path_basename(const std::string& path) {",
+    "  return std::filesystem::path(path).filename().string();",
+    "}"
+  ].join("\n");
+}
+
+function timeHelper(): string {
+  return [
+    "[[maybe_unused]] static std::unordered_map<std::string, std::chrono::high_resolution_clock::time_point> __doublemint_profiler_marks;",
+    "",
+    "[[maybe_unused]] static int __doublemint_now_ms() {",
+    "  auto now = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());",
+    "  return static_cast<int>(now.time_since_epoch().count());",
+    "}",
+    "",
+    "[[maybe_unused]] static void __doublemint_profiler_start(const std::string& name) {",
+    "  __doublemint_profiler_marks[name] = std::chrono::high_resolution_clock::now();",
+    "}",
+    "",
+    "[[maybe_unused]] static int __doublemint_profiler_stop(const std::string& name) {",
+    "  auto end = std::chrono::high_resolution_clock::now();",
+    "  auto start = __doublemint_profiler_marks[name];",
+    "  return static_cast<int>(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());",
+    "}"
+  ].join("\n");
+}
+
+function osHelper(): string {
+  return [
+    "[[maybe_unused]] static bool __doublemint_os_is_linux() {",
+    "#ifdef __linux__",
+    "  return true;",
+    "#else",
+    "  return false;",
+    "#endif",
+    "}",
+    "",
+    "[[maybe_unused]] static bool __doublemint_os_is_windows() {",
+    "#ifdef _WIN32",
+    "  return true;",
+    "#else",
+    "  return false;",
+    "#endif",
+    "}",
+    "",
+    "[[maybe_unused]] static std::string __doublemint_env_get(const std::string& key, const std::string& fallback) {",
+    "  const char* value = std::getenv(key.c_str());",
+    "  return value == nullptr ? fallback : std::string(value);",
+    "}",
+    "",
+    "[[maybe_unused]] static std::string __doublemint_os_execute(const std::string& command) {",
+    "#ifdef _WIN32",
+    "  FILE* pipe = _popen(command.c_str(), \"r\");",
+    "#else",
+    "  FILE* pipe = popen(command.c_str(), \"r\");",
+    "#endif",
+    "  if (pipe == nullptr) { return \"\"; }",
+    "  std::array<char, 256> buffer{};",
+    "  std::string result;",
+    "  while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe) != nullptr) { result += buffer.data(); }",
+    "#ifdef _WIN32",
+    "  _pclose(pipe);",
+    "#else",
+    "  pclose(pipe);",
+    "#endif",
+    "  return result;",
     "}"
   ].join("\n");
 }

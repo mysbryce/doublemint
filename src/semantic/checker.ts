@@ -30,6 +30,7 @@ interface SemanticSymbol {
   valueType?: TypeNode;
   functionType?: FunctionType;
   namespaceMembers?: Map<string, SemanticSymbol>;
+  classMethods?: Map<string, SemanticSymbol>;
   nativeName?: string;
   structDeclaration?: StructDeclaration;
   typeAlias?: TypeAliasDeclaration;
@@ -99,6 +100,9 @@ function registerImports(environment: ModuleEnvironment, imports: ResolvedImport
     if (resolvedImport.typeOnly) {
       declareSymbol(environment.types, importedSymbol);
     } else {
+      if (resolvedImport.export.builtin && resolvedImport.export.classMethods) {
+        declareSymbol(environment.types, importedSymbol);
+      }
       declareSymbol(environment.values, importedSymbol);
     }
   }
@@ -207,6 +211,30 @@ function symbolFromExport(name: string, moduleExport: ModuleExport): SemanticSym
         kind: "function",
         functionType: moduleExport.functionType,
         nativeName: moduleExport.nativeName,
+        mutability: "immutable",
+        location: moduleExport.location
+      };
+    }
+
+    if (moduleExport.classMethods) {
+      return {
+        name,
+        kind: "type",
+        classMethods: new Map(
+          [...moduleExport.classMethods.entries()].map(([methodName, builtinMethod]) => [
+            methodName,
+            {
+              name: methodName,
+              kind: "function",
+              functionType: {
+                params: builtinMethod.params,
+                returnType: builtinMethod.returnType
+              },
+              mutability: "immutable",
+              location: builtinMethod.location
+            }
+          ])
+        ),
         mutability: "immutable",
         location: moduleExport.location
       };
@@ -752,6 +780,11 @@ function inferMemberType(
   }
 
   const objectType = inferExpressionType(environment, scope, expression.object);
+  const classMethod = resolveClassMethod(environment, objectType, expression.property);
+  if (classMethod) {
+    return classMethod;
+  }
+
   const struct = resolveStruct(environment, objectType);
 
   if (!struct) {
@@ -1371,6 +1404,51 @@ function resolveStruct(
   }
 
   return null;
+}
+
+function resolveClassMethod(
+  environment: ModuleEnvironment,
+  type: TypeNode,
+  methodName: string
+): TypeNode | null {
+  const baseName =
+    type.type === "GenericType" ? type.name : type.type === "NamedType" ? type.name : null;
+  if (!baseName) {
+    return null;
+  }
+
+  const symbol = environment.types.get(baseName);
+  const method = symbol?.classMethods?.get(methodName);
+  if (!method?.functionType) {
+    return null;
+  }
+
+  return {
+    type: "FunctionType",
+    params: method.functionType.params.map((param) => substituteTypeParameter(param, type)),
+    returnType: substituteTypeParameter(method.functionType.returnType, type),
+    location: method.location
+  };
+}
+
+function substituteTypeParameter(type: TypeNode, ownerType: TypeNode): TypeNode {
+  if (
+    type.type === "NamedType" &&
+    type.name === "T" &&
+    ownerType.type === "GenericType" &&
+    ownerType.typeArgs[0]
+  ) {
+    return ownerType.typeArgs[0]!;
+  }
+
+  if (type.type === "ArrayType") {
+    return {
+      ...type,
+      elementType: substituteTypeParameter(type.elementType, ownerType)
+    };
+  }
+
+  return type;
 }
 
 function resolveTupleType(
