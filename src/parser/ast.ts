@@ -293,6 +293,8 @@ export interface MemberExpression {
   type: "MemberExpression";
   object: Expression;
   property: string;
+  /** When true (set by the checker), the emitter should call the underlying 0-arg method automatically. */
+  autoInvoke?: boolean;
   location: SourceLocation;
 }
 

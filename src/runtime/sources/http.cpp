@@ -37,6 +37,30 @@ std::string Context::body() const {
   return doublemint_http_detail::asRequest(req_)->body;
 }
 
+HeaderMap Context::headers() const {
+  HeaderMap result;
+  for (const auto& entry : doublemint_http_detail::asRequest(req_)->headers) {
+    result.set(entry.first, entry.second);
+  }
+  return result;
+}
+
+HeaderMap Context::params() const {
+  HeaderMap result;
+  for (const auto& entry : doublemint_http_detail::asRequest(req_)->path_params) {
+    result.set(entry.first, entry.second);
+  }
+  return result;
+}
+
+HeaderMap Context::query() const {
+  HeaderMap result;
+  for (const auto& entry : doublemint_http_detail::asRequest(req_)->params) {
+    result.set(entry.first, entry.second);
+  }
+  return result;
+}
+
 std::string Context::header(std::string_view name) const {
   return doublemint_http_detail::asRequest(req_)->get_header_value(std::string(name));
 }
@@ -47,7 +71,7 @@ std::string Context::param(std::string_view name) const {
   return entry == params.end() ? std::string() : entry->second;
 }
 
-std::string Context::query(std::string_view name) const {
+std::string Context::queryParam(std::string_view name) const {
   return doublemint_http_detail::asRequest(req_)->get_param_value(std::string(name));
 }
 

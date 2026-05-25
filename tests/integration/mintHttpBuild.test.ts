@@ -39,15 +39,15 @@ describe.skipIf(!hasGpp)("mint:http server", () => {
     await writeFile(
       entry,
       `
-import { Http, Context } from "mint:http";
+import { Http, Context, HeaderMap } from "mint:http";
 
 export function main(): void {
   let app: Http = new Http();
   app.get("/", fn(ctx: Context): void => ctx.text("ok"));
-  app.get("/user/:id", fn(ctx: Context): void => ctx.json(ctx.param("id")));
-  app.post("/echo", fn(ctx: Context): void => ctx.text(ctx.body()));
-  app.get("/agent", fn(ctx: Context): void => ctx.text(ctx.header("X-Mint")));
-  app.get("/search", fn(ctx: Context): void => ctx.text(ctx.query("q")));
+  app.get("/user/:id", fn(ctx: Context): void => ctx.json(ctx.params["id"]));
+  app.post("/echo", fn(ctx: Context): void => ctx.text(ctx.body));
+  app.get("/agent", fn(ctx: Context): void => ctx.text(ctx.headers["X-Mint"]));
+  app.get("/search", fn(ctx: Context): void => ctx.text(ctx.query["q"]));
   app.listen("127.0.0.1", 0);
 }
 `,

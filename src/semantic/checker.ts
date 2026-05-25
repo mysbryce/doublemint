@@ -34,6 +34,7 @@ interface SemanticSymbol {
   nativeName?: string;
   structDeclaration?: StructDeclaration;
   typeAlias?: TypeAliasDeclaration;
+  property?: boolean;
   mutability: Mutability;
   location: SourceLocation;
 }
@@ -230,6 +231,7 @@ function symbolFromExport(name: string, moduleExport: ModuleExport): SemanticSym
                 params: builtinMethod.params,
                 returnType: builtinMethod.returnType
               },
+              property: builtinMethod.property === true,
               mutability: "immutable",
               location: builtinMethod.location
             }
@@ -700,6 +702,29 @@ function inferCallType(
     }
   }
 
+  if (expression.callee.type === "MemberExpression") {
+    const memberExpr = expression.callee;
+    const isNamespaceCall =
+      memberExpr.object.type === "Identifier" &&
+      scope.lookup(memberExpr.object.name)?.kind === "namespace";
+    if (!isNamespaceCall) {
+      const objectType = inferExpressionType(environment, scope, memberExpr.object);
+      const classMethod = resolveClassMethod(environment, objectType, memberExpr.property);
+      if (classMethod && classMethod.type === "FunctionType") {
+        memberExpr.autoInvoke = false;
+        validateCallArguments(
+          environment,
+          scope,
+          memberExpr.property,
+          classMethod.params,
+          expression.arguments,
+          expression.location
+        );
+        return classMethod.returnType;
+      }
+    }
+  }
+
   const calleeType = inferExpressionType(environment, scope, expression.callee);
   for (const typeArg of expression.typeArgs ?? []) {
     assertKnownType(environment, typeArg);
@@ -787,6 +812,11 @@ function inferMemberType(
   }
 
   const objectType = inferExpressionType(environment, scope, expression.object);
+  const classProperty = resolveClassProperty(environment, objectType, expression.property);
+  if (classProperty) {
+    expression.autoInvoke = true;
+    return substituteTypeParameter(classProperty, objectType);
+  }
   const classMethod = resolveClassMethod(environment, objectType, expression.property);
   if (classMethod) {
     return classMethod;
@@ -850,6 +880,19 @@ function inferIndexType(
     expression.accessKind = "tuple";
     expression.tupleIndex = tupleIndex;
     return elementType;
+  }
+
+  if (objectType.type === "NamedType" && objectType.name === "HeaderMap") {
+    if (canonicalTypeName(environment, indexType) !== "string") {
+      throw new DoublemintDiagnostic({
+        code: "DLM4031",
+        severity: "error",
+        message: "HeaderMap index must be a string.",
+        location: expression.index.location
+      });
+    }
+    expression.accessKind = "array";
+    return namedType("string", expression.location);
   }
 
   if (objectType.type !== "ArrayType") {
@@ -1444,6 +1487,26 @@ function resolveClassMethod(
     returnType: substituteTypeParameter(method.functionType.returnType, type),
     location: method.location
   };
+}
+
+function resolveClassProperty(
+  environment: ModuleEnvironment,
+  type: TypeNode,
+  methodName: string
+): TypeNode | null {
+  const baseName =
+    type.type === "GenericType" ? type.name : type.type === "NamedType" ? type.name : null;
+  if (!baseName) {
+    return null;
+  }
+
+  const symbol = environment.types.get(baseName);
+  const method = symbol?.classMethods?.get(methodName);
+  if (!method?.functionType || method.property !== true) {
+    return null;
+  }
+
+  return method.functionType.returnType;
 }
 
 function substituteTypeParameter(type: TypeNode, ownerType: TypeNode): TypeNode {

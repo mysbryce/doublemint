@@ -1137,6 +1137,11 @@
     "mint:http": {
       "exports": [
         {
+          "name": "HeaderMap",
+          "kind": "class",
+          "members": []
+        },
+        {
           "name": "Context",
           "kind": "class",
           "members": [
@@ -1159,6 +1164,24 @@
               "returnType": "string"
             },
             {
+              "name": "headers",
+              "kind": "function",
+              "params": [],
+              "returnType": "HeaderMap"
+            },
+            {
+              "name": "params",
+              "kind": "function",
+              "params": [],
+              "returnType": "HeaderMap"
+            },
+            {
+              "name": "query",
+              "kind": "function",
+              "params": [],
+              "returnType": "HeaderMap"
+            },
+            {
               "name": "header",
               "kind": "function",
               "params": [
@@ -1175,7 +1198,7 @@
               "returnType": "string"
             },
             {
-              "name": "query",
+              "name": "queryParam",
               "kind": "function",
               "params": [
                 "string"

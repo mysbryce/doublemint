@@ -110,6 +110,14 @@ const method = (
   location: builtinLocation
 });
 
+const property = (name: string, returnType: TypeNode): BuiltinClassMethod => ({
+  name,
+  params: [],
+  returnType,
+  property: true,
+  location: builtinLocation
+});
+
 const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
   [
     "mint:fs",
@@ -548,14 +556,21 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
       imports: [],
       exports: new Map([
         [
+          "HeaderMap",
+          classExport("HeaderMap", [])
+        ],
+        [
           "Context",
           classExport("Context", [
-            method("method", [], namedType("string")),
-            method("path", [], namedType("string")),
-            method("body", [], namedType("string")),
+            property("method", namedType("string")),
+            property("path", namedType("string")),
+            property("body", namedType("string")),
+            property("headers", namedType("HeaderMap")),
+            property("params", namedType("HeaderMap")),
+            property("query", namedType("HeaderMap")),
             method("header", [namedType("string")], namedType("string")),
             method("param", [namedType("string")], namedType("string")),
-            method("query", [namedType("string")], namedType("string")),
+            method("queryParam", [namedType("string")], namedType("string")),
             method("setStatus", [namedType("int")], namedType("void")),
             method("setHeader", [namedType("string"), namedType("string")], namedType("void")),
             method("text", [namedType("string")], namedType("void")),

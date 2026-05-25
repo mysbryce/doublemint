@@ -1,4 +1,4 @@
-import { Http, Context } from "mint:http";
+import { Http, Context, HeaderMap } from "mint:http";
 import { println } from "mint:io";
 
 export function main(): void {
@@ -6,13 +6,17 @@ export function main(): void {
 
   app.get("/", fn(ctx: Context): void => ctx.text("Hello from Doublemint"));
 
-  app.get("/user/:id", fn(ctx: Context): void => ctx.json(ctx.param("id")));
+  app.get("/user/:id", fn(ctx: Context): void => ctx.json(ctx.params["id"]));
 
-  app.post("/echo", fn(ctx: Context): void => ctx.text(ctx.body()));
+  app.post("/echo", fn(ctx: Context): void => ctx.text(ctx.body));
 
-  app.get("/headers/agent", fn(ctx: Context): void => ctx.text(ctx.header("User-Agent")));
+  app.get("/headers/agent", fn(ctx: Context): void => ctx.text(ctx.headers["User-Agent"]));
 
-  app.get("/search", fn(ctx: Context): void => ctx.text(ctx.query("q")));
+  app.get("/auth", fn(ctx: Context): void => ctx.text(ctx.headers["Authorization"]));
+
+  app.get("/search", fn(ctx: Context): void => ctx.text(ctx.query["q"]));
+
+  app.get("/whoami", fn(ctx: Context): void => ctx.text(ctx.method));
 
   println("listening on http://127.0.0.1:3001");
   app.listen("127.0.0.1", 3001);

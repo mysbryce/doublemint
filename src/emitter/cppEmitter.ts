@@ -715,7 +715,7 @@ function emitExpression(
         }
       }
 
-      return `${emitExpression(expression.object, undefined, context)}.${expression.property}`;
+      return `${emitExpression(expression.object, undefined, context)}.${expression.property}${expression.autoInvoke ? "()" : ""}`;
     case "IndexExpression":
       if (expression.accessKind === "tuple") {
         return `std::get<${expression.tupleIndex}>(${emitExpression(expression.object, undefined, context)})`;

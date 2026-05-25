@@ -39,6 +39,8 @@ export interface BuiltinClassMethod {
   name: string;
   params: TypeNode[];
   returnType: TypeNode;
+  /** When true the method takes no args and reads like a field: `obj.foo` instead of `obj.foo()`. */
+  property?: boolean;
   location: SourceLocation;
 }
 
