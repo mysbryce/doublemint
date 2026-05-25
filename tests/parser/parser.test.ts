@@ -98,6 +98,24 @@ describe("parseProgram", () => {
     });
   });
 
+  it("parses null literals", () => {
+    const program = parse(`
+      function main(): void {
+        let handle: NativeHandle* = null;
+      }
+    `);
+
+    expect(program.body[0]).toMatchObject({
+      type: "FunctionDeclaration",
+      body: [
+        {
+          type: "VariableDeclaration",
+          init: { type: "Literal", literalKind: "null", value: null }
+        }
+      ]
+    });
+  });
+
   it("rejects missing explicit variable type annotations", () => {
     expect(() =>
       parse(`

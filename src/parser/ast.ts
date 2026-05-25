@@ -230,9 +230,9 @@ export interface IdentifierExpression {
 
 export interface LiteralExpression {
   type: "Literal";
-  value: string | number | boolean;
+  value: string | number | boolean | null;
   raw: string;
-  literalKind: "string" | "number" | "bool";
+  literalKind: "string" | "number" | "bool" | "null";
   location: SourceLocation;
 }
 

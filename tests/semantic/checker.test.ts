@@ -270,6 +270,23 @@ describe("checkModuleGraph", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("accepts null for native pointer handles and pointer equality checks", async () => {
+    await expect(
+      checkEntry(`
+        extern "cstdio" {
+          type FILE;
+        }
+
+        function main(): void {
+          let file: FILE* = null;
+          if (file == null) {
+            print("missing");
+          }
+        }
+      `)
+    ).resolves.toBeUndefined();
+  });
+
   it("rejects builtin print arity mismatches", async () => {
     await expect(
       checkEntry(`

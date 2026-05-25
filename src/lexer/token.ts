@@ -22,6 +22,7 @@ export type TokenKind =
   | "DEFAULT"
   | "TRUE"
   | "FALSE"
+  | "NULL"
   | "IDENTIFIER"
   | "STRING_LITERAL"
   | "NUMBER_LITERAL"

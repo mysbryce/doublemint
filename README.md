@@ -151,6 +151,15 @@ extern "./native.hpp" {
 }
 ```
 
+Native pointer handles can use `null`, which emits to `nullptr`:
+
+```typescript
+let file: FILE* = null;
+if (file == null) {
+  print("missing");
+}
+```
+
 Local native `.c` / `.cpp` files can be compiled into the final binary with
 `nativeSources`:
 

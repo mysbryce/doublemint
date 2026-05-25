@@ -719,6 +719,10 @@ function emitLiteral(
   expression: Expression & { type: "Literal" },
   expectedType?: TypeNode
 ): string {
+  if (expression.literalKind === "null") {
+    return "nullptr";
+  }
+
   if (
     expression.literalKind === "number" &&
     expectedType?.type === "NamedType" &&

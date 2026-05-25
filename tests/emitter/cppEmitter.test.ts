@@ -141,6 +141,34 @@ describe("emitCpp", () => {
     expect(byPath.get("build/doublemint/main.hpp")).toContain("int main();");
   });
 
+  it("emits null literals as nullptr", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      extern "cstdio" {
+        type FILE;
+      }
+
+      export function main(): void {
+        let file: FILE* = null;
+        if (file != null) {
+          print("open");
+        }
+      }
+      `
+    );
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+
+    const result = emitCpp(graph, config);
+    const byPath = new Map(
+      result.artifacts.map((artifact) => [artifact.filepath, artifact.content])
+    );
+
+    expect(byPath.get("build/doublemint/main.cpp")).toContain("FILE* file = nullptr;");
+    expect(byPath.get("build/doublemint/main.cpp")).toContain("if (file != nullptr) {");
+  });
+
   it("emits valid C++ entrypoint for void main", async () => {
     const entry = await writeModule(
       "main.dlm",

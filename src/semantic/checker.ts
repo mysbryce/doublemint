@@ -486,7 +486,13 @@ function inferExpressionType(
     }
     case "Literal":
       return namedType(
-        expression.literalKind === "number" ? "number" : expression.literalKind === "bool" ? "bool" : "string",
+        expression.literalKind === "number"
+          ? "number"
+          : expression.literalKind === "bool"
+            ? "bool"
+            : expression.literalKind === "null"
+              ? "null"
+              : "string",
         expression.location
       );
     case "BinaryExpression": {
@@ -496,7 +502,8 @@ function inferExpressionType(
       if (isEqualityOperator(expression.operator)) {
         if (
           !typesEqual(environment, left, right) &&
-          !(isNumericType(environment, left) && isNumericType(environment, right))
+          !(isNumericType(environment, left) && isNumericType(environment, right)) &&
+          !isNullComparable(environment, left, right)
         ) {
           throw new DoublemintDiagnostic({
             code: "DLM4021",
@@ -967,7 +974,7 @@ function assertKnownType(environment: ModuleEnvironment, type: TypeNode): void {
     return;
   }
 
-  if (builtInTypes.has(type.name) || type.name === "number") {
+  if (builtInTypes.has(type.name) || type.name === "number" || type.name === "null") {
     return;
   }
 
@@ -1033,6 +1040,10 @@ function assertAssignable(
   }
 
   if (isConstCharPointer(environment, expected) && canonicalTypeName(environment, actual) === "string") {
+    return;
+  }
+
+  if (expected.type === "PointerType" && canonicalTypeName(environment, actual) === "null") {
     return;
   }
 
@@ -1113,6 +1124,17 @@ function canonicalTypeName(environment: ModuleEnvironment, type: TypeNode): stri
 
 function isNumericType(environment: ModuleEnvironment, type: TypeNode): boolean {
   return numericTypes.has(canonicalTypeName(environment, type));
+}
+
+function isNullComparable(
+  environment: ModuleEnvironment,
+  left: TypeNode,
+  right: TypeNode
+): boolean {
+  return (
+    (left.type === "PointerType" && canonicalTypeName(environment, right) === "null") ||
+    (right.type === "PointerType" && canonicalTypeName(environment, left) === "null")
+  );
 }
 
 function isConstCharPointer(environment: ModuleEnvironment, type: TypeNode): boolean {

@@ -24,7 +24,8 @@ const keywords = new Map<string, TokenKind>([
   ["case", "CASE"],
   ["default", "DEFAULT"],
   ["true", "TRUE"],
-  ["false", "FALSE"]
+  ["false", "FALSE"],
+  ["null", "NULL"]
 ]);
 
 export function scanTokens(source: string, filepath: string): Token[] {

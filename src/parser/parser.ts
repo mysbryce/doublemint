@@ -701,6 +701,17 @@ class Parser {
       };
     }
 
+    if (this.match("NULL")) {
+      const literal = this.previous();
+      return {
+        type: "Literal",
+        value: null,
+        raw: "null",
+        literalKind: "null",
+        location: literal.location
+      };
+    }
+
     if (this.match("LEFT_PAREN")) {
       const tupleToken = this.previous();
       const expression = this.expression();
