@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { loadConfig } from "./core/config.js";
 import { DoublemintDiagnostic } from "./diagnostics/diagnostic.js";
 import { resolveModuleGraph } from "./resolver/moduleGraph.js";
+import { checkModuleGraph } from "./semantic/checker.js";
 
 const command = process.argv[2];
 const entry = process.argv[3];
@@ -33,10 +34,11 @@ async function main(): Promise<void> {
   const config = await loadConfig(process.cwd());
   const entryPath = resolve(process.cwd(), entry);
   const graph = await resolveModuleGraph(entryPath);
+  const semanticResult = checkModuleGraph(graph);
 
   if (command === "check") {
     console.log(
-      `OK ${graph.modules.size} modules resolved using ${config.cppStandard}.`
+      `OK ${semanticResult.modulesChecked} modules checked using ${config.cppStandard}.`
     );
     return;
   }
