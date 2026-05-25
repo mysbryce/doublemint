@@ -102,13 +102,21 @@ function emitSource(
 ): CppArtifact {
   const lines: string[] = [];
 
+  if (moduleUsesPrint(module.program)) {
+    lines.push("#include <iostream>");
+  }
+
   for (const declaration of module.program.body) {
     if (declaration.type === "ExternBlockDeclaration") {
       lines.push(`#include <${declaration.source}>`);
     }
   }
 
-  if (module.program.body.some((declaration) => declaration.type === "ExternBlockDeclaration")) {
+  if (
+    lines.length > 0 &&
+    (moduleUsesPrint(module.program) ||
+      module.program.body.some((declaration) => declaration.type === "ExternBlockDeclaration"))
+  ) {
     lines.push("");
   }
 
@@ -232,6 +240,10 @@ function emitExpression(expression: Expression, expectedType?: TypeNode): string
     case "AssignmentExpression":
       return `${emitExpression(expression.left)} = ${emitExpression(expression.right)}`;
     case "CallExpression":
+      if (expression.callee.type === "Identifier" && expression.callee.name === "print") {
+        return `std::cout << ${emitExpression(expression.arguments[0]!)} << std::endl`;
+      }
+
       return `${emitExpression(expression.callee)}(${expression.arguments.map((argument) => emitExpression(argument)).join(", ")})`;
     case "MemberExpression":
       return `${emitExpression(expression.object)}.${expression.property}`;
@@ -298,6 +310,51 @@ function functionDeclarations(program: Program): FunctionDeclaration[] {
   }
 
   return declarations;
+}
+
+function moduleUsesPrint(program: Program): boolean {
+  return functionDeclarations(program).some((declaration) =>
+    declaration.body.some(statementUsesPrint)
+  );
+}
+
+function statementUsesPrint(statement: Statement): boolean {
+  switch (statement.type) {
+    case "VariableDeclaration":
+      return statement.init ? expressionUsesPrint(statement.init) : false;
+    case "ReturnStatement":
+      return statement.argument ? expressionUsesPrint(statement.argument) : false;
+    case "ExpressionStatement":
+      return expressionUsesPrint(statement.expression);
+    default:
+      assertNever(statement);
+  }
+}
+
+function expressionUsesPrint(expression: Expression): boolean {
+  switch (expression.type) {
+    case "Identifier":
+    case "Literal":
+      return false;
+    case "BinaryExpression":
+      return expressionUsesPrint(expression.left) || expressionUsesPrint(expression.right);
+    case "AssignmentExpression":
+      return expressionUsesPrint(expression.left) || expressionUsesPrint(expression.right);
+    case "CallExpression":
+      return (
+        (expression.callee.type === "Identifier" && expression.callee.name === "print") ||
+        expressionUsesPrint(expression.callee) ||
+        expression.arguments.some(expressionUsesPrint)
+      );
+    case "MemberExpression":
+      return expressionUsesPrint(expression.object);
+    case "CopyExpression":
+      return expressionUsesPrint(expression.argument);
+    case "CastExpression":
+      return expressionUsesPrint(expression.expression);
+    default:
+      assertNever(expression);
+  }
 }
 
 function headerIncludePath(

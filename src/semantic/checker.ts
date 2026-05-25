@@ -415,6 +415,20 @@ function inferCallType(
     });
   }
 
+  if (expression.callee.name === "print") {
+    if (expression.arguments.length !== 1) {
+      throw new DoublemintDiagnostic({
+        code: "DLM4017",
+        severity: "error",
+        message: `Function "print" expects 1 argument but got ${expression.arguments.length}.`,
+        location: expression.location
+      });
+    }
+
+    inferExpressionType(environment, scope, expression.arguments[0]!);
+    return namedType("void", expression.location);
+  }
+
   const callee = scope.lookup(expression.callee.name);
 
   if (!callee?.functionType) {

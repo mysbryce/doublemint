@@ -242,4 +242,27 @@ describe("checkModuleGraph", () => {
       code: "DLM4016"
     });
   });
+
+  it("accepts builtin print calls", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          print("mint");
+          print(1);
+        }
+      `)
+    ).resolves.toBeUndefined();
+  });
+
+  it("rejects builtin print arity mismatches", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          print();
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4017"
+    });
+  });
 });

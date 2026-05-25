@@ -132,4 +132,27 @@ describe("emitCpp", () => {
     expect(byPath.get("build/doublemint/main.cpp")).toContain("int main() {");
     expect(byPath.get("build/doublemint/main.cpp")).toContain("return 0;");
   });
+
+  it("emits builtin print calls through iostream", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      export function main(): void {
+        print("mint");
+      }
+      `
+    );
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+
+    const result = emitCpp(graph, config);
+    const byPath = new Map(
+      result.artifacts.map((artifact) => [artifact.filepath, artifact.content])
+    );
+
+    expect(byPath.get("build/doublemint/main.cpp")).toContain("#include <iostream>");
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      'std::cout << "mint" << std::endl;'
+    );
+  });
 });
