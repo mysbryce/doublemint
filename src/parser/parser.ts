@@ -2,6 +2,7 @@ import { DoublemintDiagnostic } from "../diagnostics/diagnostic.js";
 import type { Token, TokenKind } from "../lexer/token.js";
 import type {
   Declaration,
+  ExternTypeDeclaration,
   ExternBlockDeclaration,
   Expression,
   FunctionDeclaration,
@@ -160,9 +161,14 @@ class Parser {
     const externToken = this.previous();
     const source = this.consume("STRING_LITERAL", "DLM2018", "Expected extern source.");
     this.consume("LEFT_BRACE", "DLM2019", "Expected '{' before extern declarations.");
-    const declarations: FunctionDeclaration[] = [];
+    const declarations: (ExternTypeDeclaration | FunctionDeclaration)[] = [];
 
     while (!this.check("RIGHT_BRACE") && !this.isAtEnd()) {
+      if (this.match("TYPE")) {
+        declarations.push(this.externTypeDeclaration());
+        continue;
+      }
+
       this.consume("FUNCTION", "DLM2020", "Expected function declaration in extern block.");
       declarations.push(this.functionDeclaration(false, true));
     }
@@ -174,6 +180,18 @@ class Parser {
       source: unquote(source.lexeme),
       declarations,
       location: externToken.location
+    };
+  }
+
+  private externTypeDeclaration(): ExternTypeDeclaration {
+    const typeToken = this.previous();
+    const id = this.consume("IDENTIFIER", "DLM2077", "Expected extern type name.");
+    this.consume("SEMICOLON", "DLM2078", "Expected ';' after extern type.");
+
+    return {
+      type: "ExternTypeDeclaration",
+      id: id.lexeme,
+      location: typeToken.location
     };
   }
 
@@ -190,6 +208,9 @@ class Parser {
     const returnType = this.typeNode();
 
     if (extern) {
+      const nativeName = this.match("AS")
+        ? unquote(this.consume("STRING_LITERAL", "DLM2079", "Expected native function name after as.").lexeme)
+        : undefined;
       this.consume("SEMICOLON", "DLM2026", "Expected ';' after extern function.");
       return {
         type: "FunctionDeclaration",
@@ -199,6 +220,7 @@ class Parser {
         returnType,
         body: [],
         extern,
+        nativeName,
         location: functionToken.location
       };
     }
@@ -765,18 +787,27 @@ class Parser {
   }
 
   private typeNode(): TypeNode {
+    if (this.match("CONST")) {
+      const constToken = this.previous();
+      return {
+        type: "ConstType",
+        valueType: this.typeNode(),
+        location: constToken.location
+      };
+    }
+
     if (this.match("FUNCTION")) {
       const functionToken = this.previous();
       this.consume("LEFT_PAREN", "DLM2070", "Expected '(' after function type.");
       const params = this.typeList("RIGHT_PAREN");
       this.consume("RIGHT_PAREN", "DLM2071", "Expected ')' after function type parameters.");
       this.consume("COLON", "DLM2072", "Expected ':' before function return type.");
-      return {
+      return this.finishPostfixType({
         type: "FunctionType",
         params,
         returnType: this.typeNode(),
         location: functionToken.location
-      };
+      });
     }
 
     if (this.match("LEFT_BRACKET")) {
@@ -790,11 +821,11 @@ class Parser {
       }
 
       this.consume("RIGHT_BRACKET", "DLM2040", "Expected ']' after tuple type.");
-      return {
+      return this.finishPostfixType({
         type: "TupleType",
         elements,
         location: tupleToken.location
-      };
+      });
     }
 
     const id = this.consume("IDENTIFIER", "DLM2041", "Expected type name.");
@@ -813,7 +844,29 @@ class Parser {
       };
     }
 
-    return typeNode;
+    return this.finishPostfixType(typeNode);
+  }
+
+  private finishPostfixType(typeNode: TypeNode): TypeNode {
+    let current = typeNode;
+
+    while (this.match("STAR", "AMPERSAND")) {
+      const token = this.previous();
+      current =
+        token.kind === "STAR"
+          ? {
+              type: "PointerType",
+              pointee: current,
+              location: token.location
+            }
+          : {
+              type: "ReferenceType",
+              referent: current,
+              location: token.location
+            };
+    }
+
+    return current;
   }
 
   private typeList(endKind: TokenKind): TypeNode[] {

@@ -4,7 +4,7 @@ import { DoublemintDiagnostic, scanTokens } from "../../src/index.js";
 describe("scanTokens", () => {
   it("scans production foundation keywords and punctuation", () => {
     const tokens = scanTokens(
-      'export function main(): void { let name: string = "mint"; let inc: function(int): int = fn (x: int): int => x + 1; while (1 <= 2) {} for (; name != ""; ) {} switch (name) { case "mint": {} default: {} } }',
+      'export function main(): void { let name: string = "mint"; let inc: function(int): int = fn (x: int): int => x + 1; extern "cstdio" { type FILE; function close(file: FILE&): int; } while (1 <= 2) {} for (; name != ""; ) {} switch (name) { case "mint": {} default: {} } }',
       "main.dlm"
     );
 
@@ -47,6 +47,24 @@ describe("scanTokens", () => {
       "PLUS",
       "NUMBER_LITERAL",
       "SEMICOLON",
+      "EXTERN",
+      "STRING_LITERAL",
+      "LEFT_BRACE",
+      "TYPE",
+      "IDENTIFIER",
+      "SEMICOLON",
+      "FUNCTION",
+      "IDENTIFIER",
+      "LEFT_PAREN",
+      "IDENTIFIER",
+      "COLON",
+      "IDENTIFIER",
+      "AMPERSAND",
+      "RIGHT_PAREN",
+      "COLON",
+      "IDENTIFIER",
+      "SEMICOLON",
+      "RIGHT_BRACE",
       "WHILE",
       "LEFT_PAREN",
       "NUMBER_LITERAL",

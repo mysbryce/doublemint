@@ -40,6 +40,7 @@ export type TokenKind =
   | "MINUS"
   | "STAR"
   | "SLASH"
+  | "AMPERSAND"
   | "EQUAL"
   | "EQUAL_EQUAL"
   | "BANG_EQUAL"

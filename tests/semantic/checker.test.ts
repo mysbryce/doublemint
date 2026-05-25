@@ -254,6 +254,22 @@ describe("checkModuleGraph", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("accepts extern opaque types, pointers, references, and native string literals", async () => {
+    await expect(
+      checkEntry(`
+        extern "cstdio" {
+          type FILE;
+          function puts(text: const char*): int;
+          function close(file: FILE&): int as "native_close";
+        }
+
+        function main(): void {
+          puts("mint");
+        }
+      `)
+    ).resolves.toBeUndefined();
+  });
+
   it("rejects builtin print arity mismatches", async () => {
     await expect(
       checkEntry(`

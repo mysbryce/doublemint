@@ -35,6 +35,7 @@ The first production foundation must support:
 - Struct declarations and exported structs.
 - Relative `import`, `import type`, and `export`.
 - `extern` declarations for native C++ library bindings.
+- Opaque extern types and native pointer/reference signatures for C/C++ interop.
 - Prefix `copy` expressions.
 - Tuple destructuring declarations for tuple-return values.
 - Basic expressions, function calls, field access, assignment, and returns.

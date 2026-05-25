@@ -9,6 +9,7 @@ export interface Program {
 export type Declaration =
   | ImportDeclaration
   | TypeAliasDeclaration
+  | ExternTypeDeclaration
   | StructDeclaration
   | ExternBlockDeclaration
   | FunctionDeclaration;
@@ -47,7 +48,13 @@ export interface StructField {
 export interface ExternBlockDeclaration {
   type: "ExternBlockDeclaration";
   source: string;
-  declarations: FunctionDeclaration[];
+  declarations: (ExternTypeDeclaration | FunctionDeclaration)[];
+  location: SourceLocation;
+}
+
+export interface ExternTypeDeclaration {
+  type: "ExternTypeDeclaration";
+  id: string;
   location: SourceLocation;
 }
 
@@ -59,6 +66,7 @@ export interface FunctionDeclaration {
   returnType: TypeNode;
   body: Statement[];
   extern: boolean;
+  nativeName?: string;
   location: SourceLocation;
 }
 
@@ -69,7 +77,14 @@ export interface Parameter {
   location: SourceLocation;
 }
 
-export type TypeNode = NamedTypeNode | TupleTypeNode | ArrayTypeNode | FunctionTypeNode;
+export type TypeNode =
+  | NamedTypeNode
+  | TupleTypeNode
+  | ArrayTypeNode
+  | FunctionTypeNode
+  | PointerTypeNode
+  | ReferenceTypeNode
+  | ConstTypeNode;
 
 export interface NamedTypeNode {
   type: "NamedType";
@@ -93,6 +108,24 @@ export interface FunctionTypeNode {
   type: "FunctionType";
   params: TypeNode[];
   returnType: TypeNode;
+  location: SourceLocation;
+}
+
+export interface PointerTypeNode {
+  type: "PointerType";
+  pointee: TypeNode;
+  location: SourceLocation;
+}
+
+export interface ReferenceTypeNode {
+  type: "ReferenceType";
+  referent: TypeNode;
+  location: SourceLocation;
+}
+
+export interface ConstTypeNode {
+  type: "ConstType";
+  valueType: TypeNode;
   location: SourceLocation;
 }
 

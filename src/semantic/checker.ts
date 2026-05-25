@@ -46,7 +46,7 @@ interface ModuleEnvironment {
   values: Map<string, SemanticSymbol>;
 }
 
-const builtInTypes = new Set(["void", "int", "float", "double", "string", "bool"]);
+const builtInTypes = new Set(["void", "int", "float", "double", "string", "bool", "char"]);
 const numericTypes = new Set(["int", "float", "double", "number"]);
 
 export interface SemanticCheckResult {
@@ -109,6 +109,7 @@ function registerModuleDeclarations(
   for (const declaration of program.body) {
     switch (declaration.type) {
       case "ImportDeclaration":
+      case "ExternTypeDeclaration":
         break;
       case "TypeAliasDeclaration":
         declareSymbol(environment.types, {
@@ -130,7 +131,16 @@ function registerModuleDeclarations(
         break;
       case "ExternBlockDeclaration":
         for (const externDeclaration of declaration.declarations) {
-          registerFunction(environment, externDeclaration);
+          if (externDeclaration.type === "ExternTypeDeclaration") {
+            declareSymbol(environment.types, {
+              name: externDeclaration.id,
+              kind: "type",
+              mutability: "immutable",
+              location: externDeclaration.location
+            });
+          } else {
+            registerFunction(environment, externDeclaration);
+          }
         }
         break;
       case "FunctionDeclaration":
@@ -942,6 +952,21 @@ function assertKnownType(environment: ModuleEnvironment, type: TypeNode): void {
     return;
   }
 
+  if (type.type === "PointerType") {
+    assertKnownType(environment, type.pointee);
+    return;
+  }
+
+  if (type.type === "ReferenceType") {
+    assertKnownType(environment, type.referent);
+    return;
+  }
+
+  if (type.type === "ConstType") {
+    assertKnownType(environment, type.valueType);
+    return;
+  }
+
   if (builtInTypes.has(type.name) || type.name === "number") {
     return;
   }
@@ -1007,6 +1032,30 @@ function assertAssignable(
     }
   }
 
+  if (isConstCharPointer(environment, expected) && canonicalTypeName(environment, actual) === "string") {
+    return;
+  }
+
+  if (expected.type === "PointerType" && actual.type === "PointerType") {
+    assertAssignable(environment, expected.pointee, actual.pointee, location);
+    return;
+  }
+
+  if (expected.type === "ReferenceType" && actual.type === "ReferenceType") {
+    assertAssignable(environment, expected.referent, actual.referent, location);
+    return;
+  }
+
+  if (expected.type === "ConstType") {
+    assertAssignable(environment, expected.valueType, actual, location);
+    return;
+  }
+
+  if (actual.type === "ConstType") {
+    assertAssignable(environment, expected, actual.valueType, location);
+    return;
+  }
+
   if (isNumericType(environment, expected) && isNumericType(environment, actual)) {
     return;
   }
@@ -1038,6 +1087,18 @@ function canonicalTypeName(environment: ModuleEnvironment, type: TypeNode): stri
       .join(",")}):${canonicalTypeName(environment, type.returnType)}`;
   }
 
+  if (type.type === "PointerType") {
+    return `${canonicalTypeName(environment, type.pointee)}*`;
+  }
+
+  if (type.type === "ReferenceType") {
+    return `${canonicalTypeName(environment, type.referent)}&`;
+  }
+
+  if (type.type === "ConstType") {
+    return `const ${canonicalTypeName(environment, type.valueType)}`;
+  }
+
   if (type.name === "number") {
     return "number";
   }
@@ -1052,6 +1113,10 @@ function canonicalTypeName(environment: ModuleEnvironment, type: TypeNode): stri
 
 function isNumericType(environment: ModuleEnvironment, type: TypeNode): boolean {
   return numericTypes.has(canonicalTypeName(environment, type));
+}
+
+function isConstCharPointer(environment: ModuleEnvironment, type: TypeNode): boolean {
+  return canonicalTypeName(environment, type) === "const char*";
 }
 
 function isEqualityOperator(operator: string): boolean {
@@ -1159,6 +1224,18 @@ function typeToString(type: TypeNode): string {
 
   if (type.type === "FunctionType") {
     return `function(${type.params.map(typeToString).join(", ")}): ${typeToString(type.returnType)}`;
+  }
+
+  if (type.type === "PointerType") {
+    return `${typeToString(type.pointee)}*`;
+  }
+
+  if (type.type === "ReferenceType") {
+    return `${typeToString(type.referent)}&`;
+  }
+
+  if (type.type === "ConstType") {
+    return `const ${typeToString(type.valueType)}`;
   }
 
   return type.name;

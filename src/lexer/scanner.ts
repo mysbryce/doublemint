@@ -106,6 +106,9 @@ class Scanner {
       case "*":
         this.addToken("STAR");
         break;
+      case "&":
+        this.addToken("AMPERSAND");
+        break;
       case "=":
         this.addToken(
           this.match(">") ? "ARROW" : this.match("=") ? "EQUAL_EQUAL" : "EQUAL"

@@ -28,6 +28,7 @@ export interface EmitResult {
 interface EmitContext {
   switchCounter: number;
   stringViewVariables: Set<string>;
+  nativeFunctions: Map<string, string>;
 }
 
 export async function emitCppToDisk(
@@ -117,7 +118,7 @@ function emitSource(
 
   for (const declaration of module.program.body) {
     if (declaration.type === "ExternBlockDeclaration") {
-      lines.push(`#include <${declaration.source}>`);
+      lines.push(`#include ${formatExternInclude(declaration.source)}`);
     }
   }
 
@@ -137,7 +138,7 @@ function emitSource(
       continue;
     }
 
-    lines.push(emitFunctionDefinition(declaration));
+    lines.push(emitFunctionDefinition(declaration, module.program));
     lines.push("");
   }
 
@@ -162,11 +163,15 @@ function emitStruct(declaration: StructDeclaration): string {
   return lines.join("\n");
 }
 
-function emitFunctionDefinition(declaration: FunctionDeclaration): string {
+function emitFunctionDefinition(
+  declaration: FunctionDeclaration,
+  program: Program
+): string {
   const lines = [`${emitFunctionSignature(declaration)} {`];
   const context: EmitContext = {
     switchCounter: 0,
-    stringViewVariables: stringViewVariableNames(declaration)
+    stringViewVariables: stringViewVariableNames(declaration),
+    nativeFunctions: nativeFunctionMap(program)
   };
 
   for (const statement of declaration.body) {
@@ -209,14 +214,14 @@ function emitStatement(
     case "VariableDeclaration":
       return emitVariableDeclaration(statement, true, context);
     case "DestructuringDeclaration":
-      return emitDestructuringDeclaration(statement);
+      return emitDestructuringDeclaration(statement, context);
     case "ReturnStatement":
       if (isVoidMain(declaration) && !statement.argument) {
         return "return 0;";
       }
 
       return statement.argument
-        ? `return ${emitExpressionForExpectedType(statement.argument, declaration.returnType)};`
+        ? `return ${emitExpressionForExpectedType(statement.argument, declaration.returnType, context)};`
         : "return;";
     case "IfStatement":
       return emitIfStatement(statement, declaration, context);
@@ -227,7 +232,7 @@ function emitStatement(
     case "SwitchStatement":
       return emitSwitchStatement(statement, declaration, context);
     case "ExpressionStatement":
-      return `${emitExpression(statement.expression)};`;
+      return `${emitExpression(statement.expression, undefined, context)};`;
     default:
       assertNever(statement);
   }
@@ -238,7 +243,7 @@ function emitIfStatement(
   declaration: FunctionDeclaration,
   context: EmitContext
 ): string {
-  const lines = [`if (${emitExpression(statement.condition)}) {`];
+  const lines = [`if (${emitExpression(statement.condition, undefined, context)}) {`];
 
   for (const nestedStatement of statement.thenBranch) {
     lines.push(`  ${emitStatement(nestedStatement, declaration, context)}`);
@@ -262,7 +267,7 @@ function emitWhileStatement(
   declaration: FunctionDeclaration,
   context: EmitContext
 ): string {
-  const lines = [`while (${emitExpression(statement.condition)}) {`];
+  const lines = [`while (${emitExpression(statement.condition, undefined, context)}) {`];
 
   for (const nestedStatement of statement.body) {
     lines.push(`  ${emitStatement(nestedStatement, declaration, context)}`);
@@ -281,10 +286,10 @@ function emitForStatement(
     statement.init?.type === "VariableDeclaration"
       ? emitVariableDeclaration(statement.init, false, context)
       : statement.init
-        ? emitExpression(statement.init)
+        ? emitExpression(statement.init, undefined, context)
         : "";
-  const condition = statement.condition ? emitExpression(statement.condition) : "";
-  const increment = statement.increment ? emitExpression(statement.increment) : "";
+  const condition = statement.condition ? emitExpression(statement.condition, undefined, context) : "";
+  const increment = statement.increment ? emitExpression(statement.increment, undefined, context) : "";
   const lines = [`for (${init}; ${condition}; ${increment}) {`];
 
   for (const nestedStatement of statement.body) {
@@ -302,12 +307,12 @@ function emitSwitchStatement(
 ): string {
   const tempName = `__dlm_switch_${context.switchCounter}`;
   context.switchCounter += 1;
-  const lines = ["{", `  const auto ${tempName} = ${emitExpression(statement.discriminant)};`];
+  const lines = ["{", `  const auto ${tempName} = ${emitExpression(statement.discriminant, undefined, context)};`];
 
   for (let index = 0; index < statement.cases.length; index += 1) {
     const switchCase = statement.cases[index]!;
     const prefix = index === 0 ? "if" : "else if";
-    lines.push(`  ${prefix} (${tempName} == ${emitExpression(switchCase.test)}) {`);
+    lines.push(`  ${prefix} (${tempName} == ${emitExpression(switchCase.test, undefined, context)}) {`);
 
     for (const nestedStatement of switchCase.body) {
       lines.push(`    ${emitStatement(nestedStatement, declaration, context)}`);
@@ -555,15 +560,18 @@ function emitVariableDeclaration(
 ): string {
   const prefix = statement.kind === "const" ? "const " : "";
   const init = statement.init
-    ? ` = ${emitExpressionForExpectedType(statement.init, statement.valueType)}`
+    ? ` = ${emitExpressionForExpectedType(statement.init, statement.valueType, context)}`
     : "";
   const suffix = withSemicolon ? ";" : "";
   return `${prefix}${emitVariableType(statement, context)} ${statement.id}${init}${suffix}`;
 }
 
-function emitDestructuringDeclaration(statement: DestructuringDeclaration): string {
+function emitDestructuringDeclaration(
+  statement: DestructuringDeclaration,
+  context?: EmitContext
+): string {
   const prefix = statement.kind === "const" ? "const " : "";
-  return `${prefix}auto [${statement.ids.join(", ")}] = ${emitExpression(statement.init)};`;
+  return `${prefix}auto [${statement.ids.join(", ")}] = ${emitExpression(statement.init, undefined, context)};`;
 }
 
 function emitVariableType(statement: VariableDeclaration, context?: EmitContext): string {
@@ -578,66 +586,81 @@ function emitVariableType(statement: VariableDeclaration, context?: EmitContext)
   return emitType(statement.valueType);
 }
 
-function emitExpression(expression: Expression, expectedType?: TypeNode): string {
+function emitExpression(
+  expression: Expression,
+  expectedType?: TypeNode,
+  context?: EmitContext
+): string {
   switch (expression.type) {
     case "Identifier":
       return expression.name;
     case "Literal":
       return emitLiteral(expression, expectedType);
     case "BinaryExpression":
-      return `${emitExpression(expression.left)} ${expression.operator} ${emitExpression(expression.right)}`;
+      return `${emitExpression(expression.left, undefined, context)} ${expression.operator} ${emitExpression(expression.right, undefined, context)}`;
     case "AssignmentExpression":
-      return `${emitExpression(expression.left)} = ${emitExpression(expression.right)}`;
+      return `${emitExpression(expression.left, undefined, context)} = ${emitExpression(expression.right, undefined, context)}`;
     case "CallExpression":
       if (expression.callee.type === "Identifier" && expression.callee.name === "print") {
-        return `std::cout << ${emitExpression(expression.arguments[0]!)} << std::endl`;
+        return `std::cout << ${emitExpression(expression.arguments[0]!, undefined, context)} << std::endl`;
       }
 
-      return `${emitExpression(expression.callee)}(${expression.arguments.map((argument) => emitExpression(argument)).join(", ")})`;
+      if (expression.callee.type === "Identifier") {
+        const callee = context?.nativeFunctions.get(expression.callee.name) ?? expression.callee.name;
+        return `${callee}(${expression.arguments.map((argument) => emitExpression(argument, undefined, context)).join(", ")})`;
+      }
+
+      return `${emitExpression(expression.callee, undefined, context)}(${expression.arguments.map((argument) => emitExpression(argument, undefined, context)).join(", ")})`;
     case "MemberExpression":
-      return `${emitExpression(expression.object)}.${expression.property}`;
+      return `${emitExpression(expression.object, undefined, context)}.${expression.property}`;
     case "IndexExpression":
       if (expression.accessKind === "tuple") {
-        return `std::get<${expression.tupleIndex}>(${emitExpression(expression.object)})`;
+        return `std::get<${expression.tupleIndex}>(${emitExpression(expression.object, undefined, context)})`;
       }
 
-      return `${emitExpression(expression.object)}[${emitExpression(expression.index)}]`;
+      return `${emitExpression(expression.object, undefined, context)}[${emitExpression(expression.index, undefined, context)}]`;
     case "ArrayLiteral":
-      return emitArrayLiteral(expression, expectedType);
+      return emitArrayLiteral(expression, expectedType, context);
     case "TupleLiteral":
-      return emitTupleLiteral(expression, expectedType);
+      return emitTupleLiteral(expression, expectedType, context);
     case "StructLiteral":
-      return emitStructLiteral(expression);
+      return emitStructLiteral(expression, context);
     case "LambdaExpression":
-      return emitLambdaExpression(expression);
+      return emitLambdaExpression(expression, context);
     case "CopyExpression":
-      return emitExpression(expression.argument);
+      return emitExpression(expression.argument, undefined, context);
     case "CastExpression":
-      return `static_cast<${emitType(expression.targetType)}>(${emitExpression(expression.expression)})`;
+      return `static_cast<${emitType(expression.targetType)}>(${emitExpression(expression.expression, undefined, context)})`;
     default:
       assertNever(expression);
   }
 }
 
-function emitLambdaExpression(expression: Expression & { type: "LambdaExpression" }): string {
+function emitLambdaExpression(
+  expression: Expression & { type: "LambdaExpression" },
+  context?: EmitContext
+): string {
   const params = expression.params
     .map((param) => `${emitParameterType(param.valueType)} ${param.id}`)
     .join(", ");
   return `[=](${params}) -> ${emitType(expression.returnType)} { return ${emitExpressionForExpectedType(
     expression.body,
-    expression.returnType
+    expression.returnType,
+    context
   )}; }`;
 }
 
 function emitTupleLiteral(
   expression: Expression & { type: "TupleLiteral" },
-  expectedType?: TypeNode
+  expectedType?: TypeNode,
+  context?: EmitContext
 ): string {
   const elements = expression.elements
     .map((element, index) =>
       emitExpression(
         element,
-        expectedType?.type === "TupleType" ? expectedType.elements[index] : undefined
+        expectedType?.type === "TupleType" ? expectedType.elements[index] : undefined,
+        context
       )
     )
     .join(", ");
@@ -649,20 +672,24 @@ function emitTupleLiteral(
   return `std::make_tuple(${elements})`;
 }
 
-function emitStructLiteral(expression: Expression & { type: "StructLiteral" }): string {
+function emitStructLiteral(
+  expression: Expression & { type: "StructLiteral" },
+  context?: EmitContext
+): string {
   const fields = expression.fields
-    .map((field) => `.${field.id} = ${emitExpression(field.value)}`)
+    .map((field) => `.${field.id} = ${emitExpression(field.value, undefined, context)}`)
     .join(", ");
   return `${expression.typeName}{${fields}}`;
 }
 
 function emitArrayLiteral(
   expression: Expression & { type: "ArrayLiteral" },
-  expectedType?: TypeNode
+  expectedType?: TypeNode,
+  context?: EmitContext
 ): string {
   const elementType = expectedType?.type === "ArrayType" ? expectedType.elementType : undefined;
   const elements = expression.elements
-    .map((element) => emitExpression(element, elementType))
+    .map((element) => emitExpression(element, elementType, context))
     .join(", ");
 
   if (expectedType?.type === "ArrayType") {
@@ -672,16 +699,20 @@ function emitArrayLiteral(
   return `std::vector{${elements}}`;
 }
 
-function emitExpressionForExpectedType(expression: Expression, expectedType: TypeNode): string {
+function emitExpressionForExpectedType(
+  expression: Expression,
+  expectedType: TypeNode,
+  context?: EmitContext
+): string {
   if (
     expectedType.type === "NamedType" &&
     expectedType.name === "string" &&
     !(expression.type === "Literal" && expression.literalKind === "string")
   ) {
-    return `std::string(${emitExpression(expression, expectedType)})`;
+    return `std::string(${emitExpression(expression, expectedType, context)})`;
   }
 
-  return emitExpression(expression, expectedType);
+  return emitExpression(expression, expectedType, context);
 }
 
 function emitLiteral(
@@ -714,6 +745,18 @@ function emitType(type: TypeNode): string {
     return `std::function<${emitType(type.returnType)}(${type.params.map(emitParameterType).join(", ")})>`;
   }
 
+  if (type.type === "PointerType") {
+    return `${emitType(type.pointee)}*`;
+  }
+
+  if (type.type === "ReferenceType") {
+    return `${emitType(type.referent)}&`;
+  }
+
+  if (type.type === "ConstType") {
+    return `const ${emitType(type.valueType)}`;
+  }
+
   switch (type.name) {
     case "string":
       return "std::string";
@@ -737,11 +780,49 @@ function functionDeclarations(program: Program): FunctionDeclaration[] {
     }
 
     if (declaration.type === "ExternBlockDeclaration") {
-      declarations.push(...declaration.declarations);
+      declarations.push(
+        ...declaration.declarations.filter(
+          (externDeclaration): externDeclaration is FunctionDeclaration =>
+            externDeclaration.type === "FunctionDeclaration"
+        )
+      );
     }
   }
 
   return declarations;
+}
+
+function nativeFunctionMap(program: Program): Map<string, string> {
+  const names = new Map<string, string>();
+
+  for (const declaration of program.body) {
+    if (declaration.type !== "ExternBlockDeclaration") {
+      continue;
+    }
+
+    for (const externDeclaration of declaration.declarations) {
+      if (
+        externDeclaration.type === "FunctionDeclaration" &&
+        externDeclaration.nativeName
+      ) {
+        names.set(externDeclaration.id, externDeclaration.nativeName);
+      }
+    }
+  }
+
+  return names;
+}
+
+function formatExternInclude(source: string): string {
+  if (source.startsWith("<") && source.endsWith(">")) {
+    return source;
+  }
+
+  if (source.startsWith(".") || source.includes("/") || source.includes("\\")) {
+    return `"${source}"`;
+  }
+
+  return `<${source}>`;
 }
 
 function moduleUsesPrint(program: Program): boolean {

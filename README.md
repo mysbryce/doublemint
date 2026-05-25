@@ -136,13 +136,23 @@ extern "cmath" {
 
 This emits `#include <cmath>` and calls `sqrt(...)` from generated C++.
 
+Native interop also supports opaque extern types, pointer/reference type
+signatures, local includes, and explicit native symbol aliases:
+
+```typescript
+extern "./native.hpp" {
+  type FILE;
+  function puts_alias(text: const char*): int as "std::puts";
+  function close_ref(file: FILE&): int as "native_close";
+}
+```
+
 Current interop limits:
 
-- no namespace-qualified names such as `std::chrono::...`
 - no C++ classes, methods, templates, or overload sets
-- no pointer/reference types in `.dlm`
-- no opaque native types yet
 - no linker flag config for libraries that need `-l...`
+- no calling convention annotations such as `__stdcall`
+- no native resource lifetime helpers yet
 
 ## Current Language Subset
 

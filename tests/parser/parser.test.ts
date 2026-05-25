@@ -20,7 +20,9 @@ describe("parseProgram", () => {
       }
 
       extern "cmath" {
+        type NativeHandle;
         function sqrt(num: double): double;
+        function native_len(text: const char*): int as "std::strlen";
       }
 
       function processPlayer(profile: PlayerProfile): void {
@@ -52,7 +54,11 @@ describe("parseProgram", () => {
     expect(program.body[4]).toMatchObject({
       type: "ExternBlockDeclaration",
       source: "cmath",
-      declarations: [{ id: "sqrt", extern: true }]
+      declarations: [
+        { type: "ExternTypeDeclaration", id: "NativeHandle" },
+        { id: "sqrt", extern: true },
+        { id: "native_len", extern: true, nativeName: "std::strlen" }
+      ]
     });
     expect(program.body[5]).toMatchObject({
       type: "FunctionDeclaration",

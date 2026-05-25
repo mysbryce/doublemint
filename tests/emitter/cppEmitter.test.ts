@@ -113,6 +113,34 @@ describe("emitCpp", () => {
     expect(byPath.get("build/doublemint/main.cpp")).toContain("float x = 10.0f;");
   });
 
+  it("emits extern opaque types, native aliases, pointers, references, and local includes", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      extern "./native.hpp" {
+        type FILE;
+        function puts_alias(text: const char*): int as "std::puts";
+        function close_ref(file: FILE&): int as "native_close";
+      }
+
+      export function main(): void {
+        puts_alias("mint");
+      }
+      `
+    );
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+
+    const result = emitCpp(graph, config);
+    const byPath = new Map(
+      result.artifacts.map((artifact) => [artifact.filepath, artifact.content])
+    );
+
+    expect(byPath.get("build/doublemint/main.cpp")).toContain('#include "./native.hpp"');
+    expect(byPath.get("build/doublemint/main.cpp")).toContain('std::puts("mint");');
+    expect(byPath.get("build/doublemint/main.hpp")).toContain("int main();");
+  });
+
   it("emits valid C++ entrypoint for void main", async () => {
     const entry = await writeModule(
       "main.dlm",
