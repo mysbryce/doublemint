@@ -30,6 +30,7 @@ interface EmitContext {
   deferCounter: number;
   stringViewVariables: Set<string>;
   nativeFunctions: Map<string, string>;
+  nativeMembers: Map<string, string>;
 }
 
 export async function emitCppToDisk(
@@ -50,6 +51,10 @@ export function emitCpp(graph: ModuleGraph, config: DoublemintConfig): EmitResul
   const artifacts: CppArtifact[] = [];
 
   for (const module of graph.modules.values()) {
+    if (module.builtin) {
+      continue;
+    }
+
     artifacts.push(emitHeader(graph, module, config));
     artifacts.push(emitSource(graph, module, config));
   }
@@ -76,11 +81,13 @@ function emitHeader(
     ""
   ];
 
-  for (const importDeclaration of importsOf(module.program)) {
+  for (const importDeclaration of importsOf(module.program).filter(
+    (importDeclaration) => !isBuiltinImport(module, importDeclaration)
+  )) {
     lines.push(`#include "${headerIncludePath(module, importDeclaration, graph)}"`);
   }
 
-  if (importsOf(module.program).length > 0) {
+  if (importsOf(module.program).some((importDeclaration) => !isBuiltinImport(module, importDeclaration))) {
     lines.push("");
   }
 
@@ -119,6 +126,12 @@ function emitSource(
     lines.push("#include <iostream>");
   }
 
+  for (const include of builtinIncludes(module, graph)) {
+    if (!lines.includes(`#include ${include}`)) {
+      lines.push(`#include ${include}`);
+    }
+  }
+
   if (moduleUsesDefer(module.program)) {
     lines.push("#include <utility>");
   }
@@ -132,6 +145,7 @@ function emitSource(
   if (
     lines.length > 0 &&
     (moduleUsesPrint(module.program) ||
+      builtinIncludes(module, graph).length > 0 ||
       module.program.body.some((declaration) => declaration.type === "ExternBlockDeclaration"))
   ) {
     lines.push("");
@@ -145,12 +159,21 @@ function emitSource(
     lines.push("");
   }
 
+  if (
+    module.imports.some(
+      (resolvedImport) => resolvedImport.source === "mint:io" && resolvedImport.specifier === "IO"
+    )
+  ) {
+    lines.push(ioHelper());
+    lines.push("");
+  }
+
   for (const declaration of functionDeclarations(module.program)) {
     if (declaration.extern) {
       continue;
     }
 
-    lines.push(emitFunctionDefinition(declaration, module.program));
+    lines.push(emitFunctionDefinition(declaration, module));
     lines.push("");
   }
 
@@ -177,14 +200,15 @@ function emitStruct(declaration: StructDeclaration): string {
 
 function emitFunctionDefinition(
   declaration: FunctionDeclaration,
-  program: Program
+  module: ResolvedModule
 ): string {
   const lines = [`${emitFunctionSignature(declaration)} {`];
   const context: EmitContext = {
     switchCounter: 0,
     deferCounter: 0,
     stringViewVariables: stringViewVariableNames(declaration),
-    nativeFunctions: nativeFunctionMap(program)
+    nativeFunctions: nativeFunctionMap(module),
+    nativeMembers: nativeMemberMap(module)
   };
 
   for (const statement of declaration.body) {
@@ -629,8 +653,11 @@ function emitExpression(
     case "AssignmentExpression":
       return `${emitExpression(expression.left, undefined, context)} = ${emitExpression(expression.right, undefined, context)}`;
     case "CallExpression":
-      if (expression.callee.type === "Identifier" && expression.callee.name === "print") {
-        return `std::cout << ${emitExpression(expression.arguments[0]!, undefined, context)} << std::endl`;
+      if (
+        expression.callee.type === "Identifier" &&
+        (expression.callee.name === "print" || expression.callee.name === "println")
+      ) {
+        return emitPrintCall(expression.callee.name, expression.arguments, context);
       }
 
       if (expression.callee.type === "Identifier") {
@@ -640,6 +667,15 @@ function emitExpression(
 
       return `${emitExpression(expression.callee, undefined, context)}(${expression.arguments.map((argument) => emitExpression(argument, undefined, context)).join(", ")})`;
     case "MemberExpression":
+      if (expression.object.type === "Identifier") {
+        const nativeMember = context?.nativeMembers.get(
+          `${expression.object.name}.${expression.property}`
+        );
+        if (nativeMember) {
+          return nativeMember;
+        }
+      }
+
       return `${emitExpression(expression.object, undefined, context)}.${expression.property}`;
     case "IndexExpression":
       if (expression.accessKind === "tuple") {
@@ -885,10 +921,10 @@ function deferHelper(): string {
   ].join("\n");
 }
 
-function nativeFunctionMap(program: Program): Map<string, string> {
+function nativeFunctionMap(module: ResolvedModule): Map<string, string> {
   const names = new Map<string, string>();
 
-  for (const declaration of program.body) {
+  for (const declaration of module.program.body) {
     if (declaration.type !== "ExternBlockDeclaration") {
       continue;
     }
@@ -903,7 +939,47 @@ function nativeFunctionMap(program: Program): Map<string, string> {
     }
   }
 
+  for (const resolvedImport of module.imports) {
+    if (resolvedImport.export.builtin && resolvedImport.export.nativeName) {
+      names.set(resolvedImport.specifier, resolvedImport.export.nativeName);
+    }
+  }
+
   return names;
+}
+
+function nativeMemberMap(module: ResolvedModule): Map<string, string> {
+  const names = new Map<string, string>();
+
+  for (const resolvedImport of module.imports) {
+    const moduleExport = resolvedImport.export;
+    if (!moduleExport.builtin || !moduleExport.namespaceMembers) {
+      continue;
+    }
+
+    for (const member of moduleExport.namespaceMembers.values()) {
+      names.set(`${resolvedImport.specifier}.${member.name}`, member.nativeName);
+    }
+  }
+
+  return names;
+}
+
+function emitPrintCall(name: string, args: Expression[], context?: EmitContext): string {
+  const parts = args.map((argument) => emitExpression(argument, undefined, context));
+  const output = parts.length > 0 ? `std::cout << ${parts.join(" << ")}` : "std::cout";
+  return name === "println" || name === "print" ? `${output} << std::endl` : output;
+}
+
+function ioHelper(): string {
+  return [
+    "static std::string __doublemint_read_line(std::string_view prompt) {",
+    "  std::cout << prompt;",
+    "  std::string line;",
+    "  std::getline(std::cin, line);",
+    "  return line;",
+    "}"
+  ].join("\n");
 }
 
 function formatExternInclude(source: string): string {
@@ -986,7 +1062,8 @@ function expressionUsesPrint(expression: Expression): boolean {
       return expressionUsesPrint(expression.left) || expressionUsesPrint(expression.right);
     case "CallExpression":
       return (
-        (expression.callee.type === "Identifier" && expression.callee.name === "print") ||
+        (expression.callee.type === "Identifier" &&
+          (expression.callee.name === "print" || expression.callee.name === "println")) ||
         expressionUsesPrint(expression.callee) ||
         expression.arguments.some(expressionUsesPrint)
       );
@@ -1035,6 +1112,28 @@ function headerIncludePath(
     outputRelativeConfig(graph)
   )}.hpp`;
   return normalizeSlashes(relative(dirname(fromHeader), toHeader));
+}
+
+function isBuiltinImport(
+  module: ResolvedModule,
+  importDeclaration: ImportDeclaration
+): boolean {
+  return module.imports.some(
+    (candidate) => candidate.source === importDeclaration.source && candidate.export.builtin
+  );
+}
+
+function builtinIncludes(module: ResolvedModule, graph: ModuleGraph): string[] {
+  const includes = new Set<string>();
+
+  for (const resolvedImport of module.imports) {
+    const importedModule = graph.modules.get(resolvedImport.resolvedFilepath);
+    for (const include of importedModule?.builtinIncludes ?? []) {
+      includes.add(include);
+    }
+  }
+
+  return [...includes];
 }
 
 function moduleOutputPath(module: ResolvedModule, config: Pick<DoublemintConfig, "outDir">): string {

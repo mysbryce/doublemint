@@ -100,6 +100,21 @@ describe("checkModuleGraph", () => {
     `);
   });
 
+  it("accepts built-in math and io namespaces", async () => {
+    await checkEntry(`
+      import { Math } from "mint:math";
+      import { println, IO } from "mint:io";
+
+      function main(): void {
+        let radians: double = 45.0 * (Math.PI / 180.0);
+        let sine: double = Math.sin(radians);
+        let rounded: int = Math.roundToInt(Math.sqrt(Math.pow(10.0, 2.0)));
+        println("value", rounded);
+        let answer: string = IO.readLine("ready: ");
+      }
+    `);
+  });
+
   it("rejects const mutation", async () => {
     await expect(
       checkEntry(`

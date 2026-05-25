@@ -21,7 +21,7 @@ import type {
   ResolvedModule
 } from "../resolver/moduleGraph.js";
 
-type SymbolKind = "variable" | "function" | "type" | "struct";
+type SymbolKind = "variable" | "function" | "type" | "struct" | "namespace";
 type Mutability = "mutable" | "immutable";
 
 interface SemanticSymbol {
@@ -29,6 +29,8 @@ interface SemanticSymbol {
   kind: SymbolKind;
   valueType?: TypeNode;
   functionType?: FunctionType;
+  namespaceMembers?: Map<string, SemanticSymbol>;
+  nativeName?: string;
   structDeclaration?: StructDeclaration;
   typeAlias?: TypeAliasDeclaration;
   mutability: Mutability;
@@ -169,6 +171,48 @@ function registerFunction(
 }
 
 function symbolFromExport(name: string, moduleExport: ModuleExport): SemanticSymbol {
+  if (moduleExport.builtin) {
+    if (moduleExport.namespaceMembers) {
+      return {
+        name,
+        kind: "namespace",
+        namespaceMembers: new Map(
+          [...moduleExport.namespaceMembers.entries()].map(([memberName, member]) => [
+            memberName,
+            {
+              name: memberName,
+              kind: member.kind === "function" ? "function" : "variable",
+              functionType:
+                member.kind === "function"
+                  ? {
+                      params: member.params ?? [],
+                      returnType: member.returnType!
+                    }
+                  : undefined,
+              valueType: member.kind === "value" ? member.valueType : undefined,
+              nativeName: member.nativeName,
+              mutability: "immutable",
+              location: member.location
+            }
+          ])
+        ),
+        mutability: "immutable",
+        location: moduleExport.location
+      };
+    }
+
+    if (moduleExport.functionType) {
+      return {
+        name,
+        kind: "function",
+        functionType: moduleExport.functionType,
+        nativeName: moduleExport.nativeName,
+        mutability: "immutable",
+        location: moduleExport.location
+      };
+    }
+  }
+
   const declaration = moduleExport.declaration;
 
   if (moduleExport.kind === "value" && declaration.type === "FunctionDeclaration") {
@@ -579,17 +623,22 @@ function inferCallType(
   scope: Scope,
   expression: Expression & { type: "CallExpression" }
 ): TypeNode {
-  if (expression.callee.type === "Identifier" && expression.callee.name === "print") {
-    if (expression.arguments.length !== 1) {
+  if (
+    expression.callee.type === "Identifier" &&
+    (expression.callee.name === "print" || expression.callee.name === "println")
+  ) {
+    if (expression.arguments.length < 1) {
       throw new DoublemintDiagnostic({
         code: "DLM4017",
         severity: "error",
-        message: `Function "print" expects 1 argument but got ${expression.arguments.length}.`,
+        message: `Function "${expression.callee.name}" expects at least 1 argument but got ${expression.arguments.length}.`,
         location: expression.location
       });
     }
 
-    inferExpressionType(environment, scope, expression.arguments[0]!);
+    for (const argument of expression.arguments) {
+      inferExpressionType(environment, scope, argument);
+    }
     return namedType("void", expression.location);
   }
 
@@ -664,6 +713,34 @@ function inferMemberType(
   scope: Scope,
   expression: MemberExpression
 ): TypeNode {
+  if (expression.object.type === "Identifier") {
+    const namespace = scope.lookup(expression.object.name);
+    if (namespace?.kind === "namespace") {
+      const member = namespace.namespaceMembers?.get(expression.property);
+      if (!member) {
+        throw new DoublemintDiagnostic({
+          code: "DLM4030",
+          severity: "error",
+          message: `Namespace "${expression.object.name}" has no member "${expression.property}".`,
+          location: expression.location
+        });
+      }
+
+      if (member.functionType) {
+        return {
+          type: "FunctionType",
+          params: member.functionType.params,
+          returnType: member.functionType.returnType,
+          location: expression.location
+        };
+      }
+
+      if (member.valueType) {
+        return member.valueType;
+      }
+    }
+  }
+
   const objectType = inferExpressionType(environment, scope, expression.object);
   const struct = resolveStruct(environment, objectType);
 

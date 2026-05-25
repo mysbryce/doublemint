@@ -4,22 +4,55 @@ import { constants } from "node:fs";
 import { DoublemintDiagnostic } from "../diagnostics/diagnostic.js";
 import { scanTokens } from "../lexer/scanner.js";
 import { parseProgram } from "../parser/parser.js";
+import { isBuiltinModuleSource, resolveBuiltinModule } from "../builtins/mintModules.js";
+import type {
+  SourceLocation
+} from "../lexer/token.js";
 import type {
   Declaration,
   FunctionDeclaration,
   ImportDeclaration,
   Program,
   StructDeclaration,
-  TypeAliasDeclaration
+  TypeAliasDeclaration,
+  TypeNode
 } from "../parser/ast.js";
 
 export type ExportKind = "type" | "value";
 
-export interface ModuleExport {
+export interface FunctionType {
+  params: TypeNode[];
+  returnType: TypeNode;
+}
+
+export interface BuiltinNamespaceMember {
+  name: string;
+  kind: "function" | "value";
+  params?: TypeNode[];
+  returnType?: TypeNode;
+  valueType?: TypeNode;
+  nativeName: string;
+  location: SourceLocation;
+}
+
+export interface AstModuleExport {
   name: string;
   kind: ExportKind;
+  builtin?: false;
   declaration: TypeAliasDeclaration | StructDeclaration | FunctionDeclaration;
 }
+
+export interface BuiltinModuleExport {
+  name: string;
+  kind: ExportKind;
+  builtin: true;
+  namespaceMembers?: Map<string, BuiltinNamespaceMember>;
+  functionType?: FunctionType;
+  nativeName?: string;
+  location: SourceLocation;
+}
+
+export type ModuleExport = AstModuleExport | BuiltinModuleExport;
 
 export interface ResolvedImport {
   specifier: string;
@@ -31,6 +64,8 @@ export interface ResolvedImport {
 
 export interface ResolvedModule {
   filepath: string;
+  builtin?: boolean;
+  builtinIncludes?: string[];
   program: Program;
   imports: ResolvedImport[];
   exports: Map<string, ModuleExport>;
@@ -63,7 +98,7 @@ class ModuleGraphResolver {
   constructor(private readonly options: ResolveModuleGraphOptions) {}
 
   async resolve(entryFilepath: string): Promise<ModuleGraph> {
-    const normalizedEntry = resolve(entryFilepath);
+    const normalizedEntry = normalizeModuleFilepath(entryFilepath);
     await this.resolveModule(normalizedEntry);
 
     return {
@@ -73,7 +108,7 @@ class ModuleGraphResolver {
   }
 
   private async resolveModule(filepath: string): Promise<ResolvedModule> {
-    const normalized = resolve(filepath);
+    const normalized = normalizeModuleFilepath(filepath);
     const state = this.states.get(normalized);
 
     if (state === "visited") {
@@ -91,19 +126,32 @@ class ModuleGraphResolver {
     this.states.set(normalized, "visiting");
     this.stack.push(normalized);
 
-    const source = await this.readModuleSource(normalized);
-    const program = parseProgram(scanTokens(source, normalized), normalized);
-    const exports = collectExports(program);
-    const resolvedModule: ResolvedModule = {
-      filepath: normalized,
-      program,
-      imports: [],
-      exports
-    };
+    const builtinModule = resolveBuiltinModule(normalized);
+    let resolvedModule: ResolvedModule;
+
+    if (builtinModule) {
+      resolvedModule = builtinModule;
+    } else {
+      const source = await this.readModuleSource(normalized);
+      const program = parseProgram(scanTokens(source, normalized), normalized);
+      const exports = collectExports(program);
+      resolvedModule = {
+        filepath: normalized,
+        program,
+        imports: [],
+        exports
+      };
+    }
 
     this.modules.set(normalized, resolvedModule);
 
-    for (const importDeclaration of program.body.filter(isImportDeclaration)) {
+    if (resolvedModule.builtin) {
+      this.stack.pop();
+      this.states.set(normalized, "visited");
+      return resolvedModule;
+    }
+
+    for (const importDeclaration of resolvedModule.program.body.filter(isImportDeclaration)) {
       const importFilepath = await resolveImportFilepath(
         normalized,
         importDeclaration.source
@@ -245,6 +293,18 @@ async function resolveImportFilepath(
   importerFilepath: string,
   importSource: string
 ): Promise<string> {
+  if (isBuiltinModuleSource(importSource)) {
+    if (resolveBuiltinModule(importSource)) {
+      return importSource;
+    }
+
+    throw new DoublemintDiagnostic({
+      code: "DLM3008",
+      severity: "error",
+      message: `Unknown built-in module: ${importSource}.`
+    });
+  }
+
   if (!importSource.startsWith(".")) {
     throw new DoublemintDiagnostic({
       code: "DLM3007",
@@ -273,6 +333,10 @@ async function resolveImportFilepath(
     severity: "error",
     message: `Module file not found for import "${importSource}" from ${importerFilepath}.`
   });
+}
+
+function normalizeModuleFilepath(filepath: string): string {
+  return isBuiltinModuleSource(filepath) ? filepath : resolve(filepath);
 }
 
 function isImportDeclaration(declaration: Declaration): declaration is ImportDeclaration {

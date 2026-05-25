@@ -204,6 +204,44 @@ describe("emitCpp", () => {
     );
   });
 
+  it("emits built-in math and io calls", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      import { Math } from "mint:math";
+      import { println } from "mint:io";
+
+      export function main(): void {
+        let radians: double = 45.0 * (Math.PI / 180.0);
+        let sine: double = Math.sin(radians);
+        let rounded: int = Math.roundToInt(Math.sqrt(Math.pow(10.0, 2.0)));
+        println("value", rounded);
+      }
+      `
+    );
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+
+    const result = emitCpp(graph, config);
+    const byPath = new Map(
+      result.artifacts.map((artifact) => [artifact.filepath, artifact.content])
+    );
+
+    expect(result.artifacts).toHaveLength(2);
+    expect(byPath.get("build/doublemint/main.hpp")).not.toContain("mint:math");
+    expect(byPath.get("build/doublemint/main.cpp")).toContain("#include <cmath>");
+    expect(byPath.get("build/doublemint/main.cpp")).toContain("#include <numbers>");
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      "45.0 * std::numbers::pi / 180.0"
+    );
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      "double sine = std::sin(radians);"
+    );
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      'std::cout << "value" << rounded << std::endl;'
+    );
+  });
+
   it("emits defer statements as scope guards", async () => {
     const entry = await writeModule(
       "main.dlm",

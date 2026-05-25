@@ -123,4 +123,29 @@ describe("resolveModuleGraph", () => {
       code: "DLM3004"
     });
   });
+
+  it("resolves built-in mint modules", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      import { Math } from "mint:math";
+
+      function main(): void {
+        let value: double = Math.sqrt(9.0);
+      }
+      `
+    );
+
+    const graph = await resolveModuleGraph(entry);
+
+    expect(graph.modules.has("mint:math")).toBe(true);
+    expect(graph.modules.get("mint:math")?.builtin).toBe(true);
+    expect(graph.modules.get(entry)?.imports).toMatchObject([
+      {
+        specifier: "Math",
+        source: "mint:math",
+        resolvedFilepath: "mint:math"
+      }
+    ]);
+  });
 });
