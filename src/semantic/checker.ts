@@ -49,8 +49,8 @@ interface ModuleEnvironment {
   values: Map<string, SemanticSymbol>;
 }
 
-const builtInTypes = new Set(["void", "int", "float", "double", "string", "bool", "char"]);
-const numericTypes = new Set(["int", "float", "double", "number"]);
+const builtInTypes = new Set(["void", "int", "int64", "float", "double", "string", "bool", "char"]);
+const numericTypes = new Set(["int", "int64", "float", "double", "number"]);
 
 export interface SemanticCheckResult {
   modulesChecked: number;
@@ -1388,6 +1388,10 @@ function widerNumericType(
 
   if (leftName === "number" || rightName === "number") {
     return namedType("number", location);
+  }
+
+  if (leftName === "int64" || rightName === "int64") {
+    return namedType("int64", location);
   }
 
   return namedType("int", location);

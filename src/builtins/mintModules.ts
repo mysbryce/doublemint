@@ -446,6 +446,36 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
         ]
       ])
     }
+  ],
+  [
+    "mint:process",
+    {
+      builtin: true,
+      builtinIncludes: ["<cstdint>", "<string>", "<vector>"],
+      program: emptyProgram("mint:process"),
+      imports: [],
+      exports: new Map([
+        [
+          "Process",
+          namespaceExport("Process", [
+            functionMember("openByName", [namedType("string")], namedType("int64"), "__doublemint_process_open_by_name"),
+            functionMember("openByPid", [namedType("int")], namedType("int64"), "__doublemint_process_open_by_pid"),
+            functionMember("close", [namedType("int64")], namedType("void"), "__doublemint_process_close"),
+            functionMember("readBytes", [namedType("int64"), namedType("int64"), namedType("int")], arrayType(namedType("int")), "__doublemint_process_read_bytes"),
+            functionMember("readInt", [namedType("int64"), namedType("int64")], namedType("int"), "__doublemint_process_read_int"),
+            functionMember("readInt64", [namedType("int64"), namedType("int64")], namedType("int64"), "__doublemint_process_read_int64"),
+            functionMember("writeBytes", [namedType("int64"), namedType("int64"), arrayType(namedType("int"))], namedType("bool"), "__doublemint_process_write_bytes"),
+            functionMember("writeInt", [namedType("int64"), namedType("int64"), namedType("int")], namedType("bool"), "__doublemint_process_write_int"),
+            functionMember("writeInt64", [namedType("int64"), namedType("int64"), namedType("int64")], namedType("bool"), "__doublemint_process_write_int64"),
+            functionMember("findModule", [namedType("int64"), namedType("string")], namedType("int64"), "__doublemint_process_find_module"),
+            functionMember("moduleSize", [namedType("int64"), namedType("string")], namedType("int"), "__doublemint_process_module_size"),
+            functionMember("aobScan", [namedType("int64"), namedType("string")], namedType("int64"), "__doublemint_process_aob_scan"),
+            functionMember("aobScanModule", [namedType("int64"), namedType("string"), namedType("string")], namedType("int64"), "__doublemint_process_aob_scan_module"),
+            functionMember("pointerChain", [namedType("int64"), namedType("int64"), arrayType(namedType("int"))], namedType("int64"), "__doublemint_process_pointer_chain")
+          ])
+        ]
+      ])
+    }
   ]
 ]);
 

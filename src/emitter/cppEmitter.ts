@@ -72,6 +72,7 @@ function emitHeader(
   const lines: string[] = [
     "#pragma once",
     "",
+    "#include <cstdint>",
     "#include <functional>",
     "#include <optional>",
     "#include <string>",
@@ -876,6 +877,8 @@ function emitType(type: TypeNode): string {
   switch (type.name) {
     case "string":
       return "std::string";
+    case "int64":
+      return "std::int64_t";
     default:
       return type.name;
   }
@@ -1027,7 +1030,8 @@ const RUNTIME_SOURCE_MODULES: Record<string, string> = {
   "mint:memory": "memory",
   "mint:simd": "simd",
   "mint:db": "db",
-  "mint:term": "term"
+  "mint:term": "term",
+  "mint:process": "process"
 };
 
 function lookupRuntime(map: Record<string, string>, key: string): string {
@@ -1241,7 +1245,7 @@ function includeGuard(module: ResolvedModule): string {
 }
 
 function shouldPassByConstReference(typeName: string): boolean {
-  return !["void", "int", "float", "double", "string", "bool"].includes(typeName);
+  return !["void", "int", "int64", "float", "double", "string", "bool"].includes(typeName);
 }
 
 function trimBlankTail(lines: string[]): string[] {

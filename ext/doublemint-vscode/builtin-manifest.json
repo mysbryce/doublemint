@@ -775,6 +775,145 @@
           ]
         }
       ]
+    },
+    "mint:process": {
+      "exports": [
+        {
+          "name": "Process",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "openByName",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "int64"
+            },
+            {
+              "name": "openByPid",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "int64"
+            },
+            {
+              "name": "close",
+              "kind": "function",
+              "params": [
+                "int64"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "readBytes",
+              "kind": "function",
+              "params": [
+                "int64",
+                "int64",
+                "int"
+              ],
+              "returnType": "int[]"
+            },
+            {
+              "name": "readInt",
+              "kind": "function",
+              "params": [
+                "int64",
+                "int64"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "readInt64",
+              "kind": "function",
+              "params": [
+                "int64",
+                "int64"
+              ],
+              "returnType": "int64"
+            },
+            {
+              "name": "writeBytes",
+              "kind": "function",
+              "params": [
+                "int64",
+                "int64",
+                "int[]"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "writeInt",
+              "kind": "function",
+              "params": [
+                "int64",
+                "int64",
+                "int"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "writeInt64",
+              "kind": "function",
+              "params": [
+                "int64",
+                "int64",
+                "int64"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "findModule",
+              "kind": "function",
+              "params": [
+                "int64",
+                "string"
+              ],
+              "returnType": "int64"
+            },
+            {
+              "name": "moduleSize",
+              "kind": "function",
+              "params": [
+                "int64",
+                "string"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "aobScan",
+              "kind": "function",
+              "params": [
+                "int64",
+                "string"
+              ],
+              "returnType": "int64"
+            },
+            {
+              "name": "aobScanModule",
+              "kind": "function",
+              "params": [
+                "int64",
+                "string",
+                "string"
+              ],
+              "returnType": "int64"
+            },
+            {
+              "name": "pointerChain",
+              "kind": "function",
+              "params": [
+                "int64",
+                "int64",
+                "int[]"
+              ],
+              "returnType": "int64"
+            }
+          ]
+        }
+      ]
     }
   }
 }
