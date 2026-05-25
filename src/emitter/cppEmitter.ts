@@ -193,11 +193,36 @@ function emitStatement(statement: Statement, declaration: FunctionDeclaration): 
       }
 
       return statement.argument ? `return ${emitExpression(statement.argument)};` : "return;";
+    case "IfStatement":
+      return emitIfStatement(statement, declaration);
     case "ExpressionStatement":
       return `${emitExpression(statement.expression)};`;
     default:
       assertNever(statement);
   }
+}
+
+function emitIfStatement(
+  statement: Statement & { type: "IfStatement" },
+  declaration: FunctionDeclaration
+): string {
+  const lines = [`if (${emitExpression(statement.condition)}) {`];
+
+  for (const nestedStatement of statement.thenBranch) {
+    lines.push(`  ${emitStatement(nestedStatement, declaration)}`);
+  }
+
+  if (statement.elseBranch.length === 0) {
+    lines.push("}");
+    return lines.join("\n  ");
+  }
+
+  lines.push("} else {");
+  for (const nestedStatement of statement.elseBranch) {
+    lines.push(`  ${emitStatement(nestedStatement, declaration)}`);
+  }
+  lines.push("}");
+  return lines.join("\n  ");
 }
 
 function emitFunctionReturnType(declaration: FunctionDeclaration): string {
@@ -324,6 +349,12 @@ function statementUsesPrint(statement: Statement): boolean {
       return statement.init ? expressionUsesPrint(statement.init) : false;
     case "ReturnStatement":
       return statement.argument ? expressionUsesPrint(statement.argument) : false;
+    case "IfStatement":
+      return (
+        expressionUsesPrint(statement.condition) ||
+        statement.thenBranch.some(statementUsesPrint) ||
+        statement.elseBranch.some(statementUsesPrint)
+      );
     case "ExpressionStatement":
       return expressionUsesPrint(statement.expression);
     default:

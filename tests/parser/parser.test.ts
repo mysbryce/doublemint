@@ -101,4 +101,28 @@ describe("parseProgram", () => {
       `)
     ).toThrow(DoublemintDiagnostic);
   });
+
+  it("parses if else statements and bool literals", () => {
+    const program = parse(`
+      function main(): void {
+        if (true) {
+          print("yes");
+        } else {
+          print("no");
+        }
+      }
+    `);
+
+    expect(program.body[0]).toMatchObject({
+      type: "FunctionDeclaration",
+      body: [
+        {
+          type: "IfStatement",
+          condition: { type: "Literal", literalKind: "bool", value: true },
+          thenBranch: [{ type: "ExpressionStatement" }],
+          elseBranch: [{ type: "ExpressionStatement" }]
+        }
+      ]
+    });
+  });
 });

@@ -265,4 +265,47 @@ describe("checkModuleGraph", () => {
       code: "DLM4017"
     });
   });
+
+  it("accepts if else statements with bool conditions", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          if (true) {
+            print("yes");
+          } else {
+            print("no");
+          }
+        }
+      `)
+    ).resolves.toBeUndefined();
+  });
+
+  it("rejects non-bool if conditions", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          if (1) {
+            print("bad");
+          }
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4014"
+    });
+  });
+
+  it("keeps if branch locals block-scoped", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          if (true) {
+            let inside: int = 1;
+          }
+          print(inside);
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4003"
+    });
+  });
 });

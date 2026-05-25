@@ -14,7 +14,11 @@ const keywords = new Map<string, TokenKind>([
   ["struct", "STRUCT"],
   ["function", "FUNCTION"],
   ["return", "RETURN"],
-  ["as", "AS"]
+  ["as", "AS"],
+  ["if", "IF"],
+  ["else", "ELSE"],
+  ["true", "TRUE"],
+  ["false", "FALSE"]
 ]);
 
 export function scanTokens(source: string, filepath: string): Token[] {

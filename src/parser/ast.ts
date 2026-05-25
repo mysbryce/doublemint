@@ -86,6 +86,7 @@ export interface TupleTypeNode {
 export type Statement =
   | VariableDeclaration
   | ReturnStatement
+  | IfStatement
   | ExpressionStatement;
 
 export interface VariableDeclaration {
@@ -100,6 +101,14 @@ export interface VariableDeclaration {
 export interface ReturnStatement {
   type: "ReturnStatement";
   argument: Expression | null;
+  location: SourceLocation;
+}
+
+export interface IfStatement {
+  type: "IfStatement";
+  condition: Expression;
+  thenBranch: Statement[];
+  elseBranch: Statement[];
   location: SourceLocation;
 }
 
@@ -127,9 +136,9 @@ export interface IdentifierExpression {
 
 export interface LiteralExpression {
   type: "Literal";
-  value: string | number;
+  value: string | number | boolean;
   raw: string;
-  literalKind: "string" | "number";
+  literalKind: "string" | "number" | "bool";
   location: SourceLocation;
 }
 

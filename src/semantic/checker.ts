@@ -284,6 +284,21 @@ function validateStatement(
       assertAssignable(environment, returnType, actualType, statement.location);
       break;
     }
+    case "IfStatement": {
+      const conditionType = inferExpressionType(environment, scope, statement.condition);
+      assertAssignable(environment, namedType("bool", statement.condition.location), conditionType, statement.condition.location);
+
+      const thenScope = scope.createChild();
+      for (const nestedStatement of statement.thenBranch) {
+        validateStatement(environment, thenScope, returnType, nestedStatement);
+      }
+
+      const elseScope = scope.createChild();
+      for (const nestedStatement of statement.elseBranch) {
+        validateStatement(environment, elseScope, returnType, nestedStatement);
+      }
+      break;
+    }
     case "ExpressionStatement":
       inferExpressionType(environment, scope, statement.expression);
       break;
@@ -353,7 +368,7 @@ function inferExpressionType(
     }
     case "Literal":
       return namedType(
-        expression.literalKind === "number" ? "number" : "string",
+        expression.literalKind === "number" ? "number" : expression.literalKind === "bool" ? "bool" : "string",
         expression.location
       );
     case "BinaryExpression": {
@@ -689,14 +704,21 @@ function declareSymbol(target: Map<string, SemanticSymbol>, symbol: SemanticSymb
 class Scope {
   private readonly locals = new Map<string, SemanticSymbol>();
 
-  constructor(private readonly globals: Map<string, SemanticSymbol>) {}
+  constructor(
+    private readonly globals: Map<string, SemanticSymbol>,
+    private readonly parent?: Scope
+  ) {}
 
   declare(symbol: SemanticSymbol): void {
     declareSymbol(this.locals, symbol);
   }
 
   lookup(name: string): SemanticSymbol | undefined {
-    return this.locals.get(name) ?? this.globals.get(name);
+    return this.locals.get(name) ?? this.parent?.lookup(name) ?? this.globals.get(name);
+  }
+
+  createChild(): Scope {
+    return new Scope(this.globals, this);
   }
 }
 

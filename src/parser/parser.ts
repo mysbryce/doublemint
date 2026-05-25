@@ -260,6 +260,10 @@ class Parser {
       return this.returnStatement();
     }
 
+    if (this.match("IF")) {
+      return this.ifStatement();
+    }
+
     return this.expressionStatement();
   }
 
@@ -290,6 +294,23 @@ class Parser {
       type: "ReturnStatement",
       argument,
       location: returnToken.location
+    };
+  }
+
+  private ifStatement(): Statement {
+    const ifToken = this.previous();
+    this.consume("LEFT_PAREN", "DLM2043", "Expected '(' after if.");
+    const condition = this.expression();
+    this.consume("RIGHT_PAREN", "DLM2044", "Expected ')' after if condition.");
+    const thenBranch = this.block();
+    const elseBranch = this.match("ELSE") ? this.block() : [];
+
+    return {
+      type: "IfStatement",
+      condition,
+      thenBranch,
+      elseBranch,
+      location: ifToken.location
     };
   }
 
@@ -453,6 +474,17 @@ class Parser {
         value: unquote(literal.lexeme),
         raw: literal.lexeme,
         literalKind: "string",
+        location: literal.location
+      };
+    }
+
+    if (this.match("TRUE", "FALSE")) {
+      const literal = this.previous();
+      return {
+        type: "Literal",
+        value: literal.kind === "TRUE",
+        raw: literal.lexeme,
+        literalKind: "bool",
         location: literal.location
       };
     }

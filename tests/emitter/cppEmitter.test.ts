@@ -155,4 +155,32 @@ describe("emitCpp", () => {
       'std::cout << "mint" << std::endl;'
     );
   });
+
+  it("emits if else statements", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      export function main(): void {
+        if (true) {
+          print("yes");
+        } else {
+          print("no");
+        }
+      }
+      `
+    );
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+
+    const result = emitCpp(graph, config);
+    const byPath = new Map(
+      result.artifacts.map((artifact) => [artifact.filepath, artifact.content])
+    );
+
+    expect(byPath.get("build/doublemint/main.cpp")).toContain("if (true) {");
+    expect(byPath.get("build/doublemint/main.cpp")).toContain("} else {");
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      'std::cout << "yes" << std::endl;'
+    );
+  });
 });
