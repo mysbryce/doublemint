@@ -52,6 +52,12 @@ Build a native executable:
 node dist/cli.js build examples/main.dlm --out build/doublemint/app.exe
 ```
 
+Build the multi-file example:
+
+```bash
+node dist/cli.js build examples/player/main.dlm --out build/player/app.exe
+```
+
 Override compiler:
 
 ```bash
@@ -144,4 +150,3 @@ Not supported yet:
 - `std::string_view` lifetime optimization
 
 See `PRODUCT_SPEC.md` and `docs/adr/ADR-0001-production-foundation.md` for product direction and architecture decisions.
-

@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
@@ -35,7 +35,7 @@ afterEach(async () => {
 describe.skipIf(!hasGpp)("buildNativeExecutable", () => {
   it("compiles emitted C++ into a native executable", async () => {
     const cppPath = join(tempDir, "main.cpp");
-    const outputPath = join(tempDir, "app.exe");
+    const outputPath = join(tempDir, "nested", "app.exe");
     await writeFile(cppPath, "int main() { return 0; }\n", "utf8");
     const emitResult: EmitResult = {
       artifacts: [
@@ -54,6 +54,7 @@ describe.skipIf(!hasGpp)("buildNativeExecutable", () => {
     expect(result.compiler).toBe("g++");
     expect(result.outputPath).toBe(outputPath);
     expect(result.args).toContain("-std=c++20");
+    await expect(access(outputPath)).resolves.toBeUndefined();
   });
 
   it("falls back to an available compiler", () => {

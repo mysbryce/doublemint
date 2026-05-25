@@ -1,5 +1,6 @@
 import { spawn, spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
+import { mkdir } from "node:fs/promises";
 import type { DoublemintConfig } from "./config.js";
 import { DoublemintDiagnostic } from "../diagnostics/diagnostic.js";
 import type { EmitResult } from "../emitter/cppEmitter.js";
@@ -38,6 +39,7 @@ export async function buildNativeExecutable(
     outputPath
   ];
 
+  await mkdir(dirname(outputPath), { recursive: true });
   await runCompiler(compiler, args);
 
   return {
