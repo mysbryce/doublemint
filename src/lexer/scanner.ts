@@ -102,6 +102,9 @@ class Scanner {
       case ".":
         this.addToken("DOT");
         break;
+      case "?":
+        this.addToken("QUESTION");
+        break;
       case "+":
         this.addToken("PLUS");
         break;
@@ -110,6 +113,9 @@ class Scanner {
         break;
       case "&":
         this.addToken("AMPERSAND");
+        break;
+      case "|":
+        this.addToken("PIPE");
         break;
       case "=":
         this.addToken(

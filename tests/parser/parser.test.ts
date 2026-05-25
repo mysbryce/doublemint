@@ -116,6 +116,53 @@ describe("parseProgram", () => {
     });
   });
 
+  it("parses optional and union types", () => {
+    const program = parse(`
+      struct Profile {
+        name: string;
+        age: int?;
+        tag: string | int;
+      }
+
+      function main(): void {
+        let maybe_count: int? = null;
+        let label: string | int = "mint";
+      }
+    `);
+
+    expect(program.body[0]).toMatchObject({
+      type: "StructDeclaration",
+      fields: [
+        { id: "name", valueType: { type: "NamedType", name: "string" } },
+        { id: "age", valueType: { type: "OptionalType", valueType: { name: "int" } } },
+        {
+          id: "tag",
+          valueType: {
+            type: "UnionType",
+            options: [{ name: "string" }, { name: "int" }]
+          }
+        }
+      ]
+    });
+    expect(program.body[1]).toMatchObject({
+      type: "FunctionDeclaration",
+      body: [
+        {
+          type: "VariableDeclaration",
+          valueType: { type: "OptionalType", valueType: { name: "int" } },
+          init: { type: "Literal", literalKind: "null" }
+        },
+        {
+          type: "VariableDeclaration",
+          valueType: {
+            type: "UnionType",
+            options: [{ name: "string" }, { name: "int" }]
+          }
+        }
+      ]
+    });
+  });
+
   it("parses defer statements", () => {
     const program = parse(`
       function main(): void {

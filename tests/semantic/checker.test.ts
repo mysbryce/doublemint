@@ -89,6 +89,17 @@ describe("checkModuleGraph", () => {
     });
   });
 
+  it("accepts optional and union assignments", async () => {
+    await checkEntry(`
+      function main(): void {
+        let maybe_count: int? = null;
+        let also_count: int? = 7;
+        let label: string | int = "mint";
+        let id: string | int = 5;
+      }
+    `);
+  });
+
   it("rejects const mutation", async () => {
     await expect(
       checkEntry(`

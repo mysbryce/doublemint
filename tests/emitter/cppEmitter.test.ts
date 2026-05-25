@@ -169,6 +169,41 @@ describe("emitCpp", () => {
     expect(byPath.get("build/doublemint/main.cpp")).toContain("if (file != nullptr) {");
   });
 
+  it("emits optional and union types", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      struct Profile {
+        name: string;
+        age: int?;
+        tag: string | int;
+      }
+
+      export function main(): void {
+        let maybe_count: int? = null;
+        let label: string | int = "mint";
+      }
+      `
+    );
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+
+    const result = emitCpp(graph, config);
+    const byPath = new Map(
+      result.artifacts.map((artifact) => [artifact.filepath, artifact.content])
+    );
+
+    expect(byPath.get("build/doublemint/main.hpp")).toContain("#include <optional>");
+    expect(byPath.get("build/doublemint/main.hpp")).toContain("#include <variant>");
+    expect(byPath.get("build/doublemint/main.hpp")).toContain("std::optional<int> age;");
+    expect(byPath.get("build/doublemint/main.hpp")).toContain(
+      "std::variant<std::string, int> tag;"
+    );
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      "std::optional<int> maybe_count = std::nullopt;"
+    );
+  });
+
   it("emits defer statements as scope guards", async () => {
     const entry = await writeModule(
       "main.dlm",

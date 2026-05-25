@@ -67,9 +67,11 @@ function emitHeader(
     "#pragma once",
     "",
     "#include <functional>",
+    "#include <optional>",
     "#include <string>",
     "#include <string_view>",
     "#include <tuple>",
+    "#include <variant>",
     "#include <vector>",
     ""
   ];
@@ -746,6 +748,10 @@ function emitLiteral(
   expectedType?: TypeNode
 ): string {
   if (expression.literalKind === "null") {
+    if (expectedType?.type === "OptionalType") {
+      return "std::nullopt";
+    }
+
     return "nullptr";
   }
 
@@ -785,6 +791,14 @@ function emitType(type: TypeNode): string {
 
   if (type.type === "ConstType") {
     return `const ${emitType(type.valueType)}`;
+  }
+
+  if (type.type === "OptionalType") {
+    return `std::optional<${emitType(type.valueType)}>`;
+  }
+
+  if (type.type === "UnionType") {
+    return `std::variant<${type.options.map(emitType).join(", ")}>`;
   }
 
   switch (type.name) {

@@ -977,6 +977,18 @@ function assertKnownType(environment: ModuleEnvironment, type: TypeNode): void {
     return;
   }
 
+  if (type.type === "OptionalType") {
+    assertKnownType(environment, type.valueType);
+    return;
+  }
+
+  if (type.type === "UnionType") {
+    for (const option of type.options) {
+      assertKnownType(environment, option);
+    }
+    return;
+  }
+
   if (builtInTypes.has(type.name) || type.name === "number" || type.name === "null") {
     return;
   }
@@ -1039,6 +1051,33 @@ function assertAssignable(
       }
       assertAssignable(environment, expected.returnType, actual.returnType, location);
       return;
+    }
+  }
+
+  if (expected.type === "OptionalType") {
+    if (canonicalTypeName(environment, actual) === "null") {
+      return;
+    }
+
+    if (actual.type === "OptionalType") {
+      assertAssignable(environment, expected.valueType, actual.valueType, location);
+      return;
+    }
+
+    assertAssignable(environment, expected.valueType, actual, location);
+    return;
+  }
+
+  if (expected.type === "UnionType") {
+    for (const option of expected.options) {
+      try {
+        assertAssignable(environment, option, actual, location);
+        return;
+      } catch (error) {
+        if (!(error instanceof DoublemintDiagnostic)) {
+          throw error;
+        }
+      }
     }
   }
 
@@ -1113,6 +1152,14 @@ function canonicalTypeName(environment: ModuleEnvironment, type: TypeNode): stri
     return `const ${canonicalTypeName(environment, type.valueType)}`;
   }
 
+  if (type.type === "OptionalType") {
+    return `${canonicalTypeName(environment, type.valueType)}?`;
+  }
+
+  if (type.type === "UnionType") {
+    return type.options.map((option) => canonicalTypeName(environment, option)).join("|");
+  }
+
   if (type.name === "number") {
     return "number";
   }
@@ -1136,7 +1183,9 @@ function isNullComparable(
 ): boolean {
   return (
     (left.type === "PointerType" && canonicalTypeName(environment, right) === "null") ||
-    (right.type === "PointerType" && canonicalTypeName(environment, left) === "null")
+    (right.type === "PointerType" && canonicalTypeName(environment, left) === "null") ||
+    (left.type === "OptionalType" && canonicalTypeName(environment, right) === "null") ||
+    (right.type === "OptionalType" && canonicalTypeName(environment, left) === "null")
   );
 }
 
@@ -1261,6 +1310,14 @@ function typeToString(type: TypeNode): string {
 
   if (type.type === "ConstType") {
     return `const ${typeToString(type.valueType)}`;
+  }
+
+  if (type.type === "OptionalType") {
+    return `${typeToString(type.valueType)}?`;
+  }
+
+  if (type.type === "UnionType") {
+    return type.options.map(typeToString).join(" | ");
   }
 
   return type.name;

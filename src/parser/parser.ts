@@ -814,11 +814,30 @@ class Parser {
   }
 
   private typeNode(): TypeNode {
+    const first = this.primaryTypeNode();
+    const options = [first];
+
+    while (this.match("PIPE")) {
+      options.push(this.primaryTypeNode());
+    }
+
+    if (options.length === 1) {
+      return first;
+    }
+
+    return {
+      type: "UnionType",
+      options,
+      location: first.location
+    };
+  }
+
+  private primaryTypeNode(): TypeNode {
     if (this.match("CONST")) {
       const constToken = this.previous();
       return {
         type: "ConstType",
-        valueType: this.typeNode(),
+        valueType: this.primaryTypeNode(),
         location: constToken.location
       };
     }
@@ -877,20 +896,27 @@ class Parser {
   private finishPostfixType(typeNode: TypeNode): TypeNode {
     let current = typeNode;
 
-    while (this.match("STAR", "AMPERSAND")) {
+    while (this.match("STAR", "AMPERSAND", "QUESTION")) {
       const token = this.previous();
-      current =
-        token.kind === "STAR"
-          ? {
-              type: "PointerType",
-              pointee: current,
-              location: token.location
-            }
-          : {
-              type: "ReferenceType",
-              referent: current,
-              location: token.location
-            };
+      if (token.kind === "STAR") {
+        current = {
+          type: "PointerType",
+          pointee: current,
+          location: token.location
+        };
+      } else if (token.kind === "AMPERSAND") {
+        current = {
+          type: "ReferenceType",
+          referent: current,
+          location: token.location
+        };
+      } else {
+        current = {
+          type: "OptionalType",
+          valueType: current,
+          location: token.location
+        };
+      }
     }
 
     return current;

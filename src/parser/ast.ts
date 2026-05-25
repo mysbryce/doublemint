@@ -84,7 +84,9 @@ export type TypeNode =
   | FunctionTypeNode
   | PointerTypeNode
   | ReferenceTypeNode
-  | ConstTypeNode;
+  | ConstTypeNode
+  | OptionalTypeNode
+  | UnionTypeNode;
 
 export interface NamedTypeNode {
   type: "NamedType";
@@ -126,6 +128,18 @@ export interface ReferenceTypeNode {
 export interface ConstTypeNode {
   type: "ConstType";
   valueType: TypeNode;
+  location: SourceLocation;
+}
+
+export interface OptionalTypeNode {
+  type: "OptionalType";
+  valueType: TypeNode;
+  location: SourceLocation;
+}
+
+export interface UnionTypeNode {
+  type: "UnionType";
+  options: TypeNode[];
   location: SourceLocation;
 }
 
