@@ -137,6 +137,7 @@ export type Statement =
   | WhileStatement
   | ForStatement
   | SwitchStatement
+  | DeferStatement
   | ExpressionStatement;
 
 export interface VariableDeclaration {
@@ -203,6 +204,12 @@ export interface SwitchCase {
 
 export interface ExpressionStatement {
   type: "ExpressionStatement";
+  expression: Expression;
+  location: SourceLocation;
+}
+
+export interface DeferStatement {
+  type: "DeferStatement";
   expression: Expression;
   location: SourceLocation;
 }

@@ -116,6 +116,24 @@ describe("parseProgram", () => {
     });
   });
 
+  it("parses defer statements", () => {
+    const program = parse(`
+      function main(): void {
+        defer cleanup();
+      }
+    `);
+
+    expect(program.body[0]).toMatchObject({
+      type: "FunctionDeclaration",
+      body: [
+        {
+          type: "DeferStatement",
+          expression: { type: "CallExpression" }
+        }
+      ]
+    });
+  });
+
   it("rejects missing explicit variable type annotations", () => {
     expect(() =>
       parse(`

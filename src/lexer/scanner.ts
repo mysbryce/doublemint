@@ -23,6 +23,7 @@ const keywords = new Map<string, TokenKind>([
   ["switch", "SWITCH"],
   ["case", "CASE"],
   ["default", "DEFAULT"],
+  ["defer", "DEFER"],
   ["true", "TRUE"],
   ["false", "FALSE"],
   ["null", "NULL"]

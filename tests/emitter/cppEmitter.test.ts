@@ -169,6 +169,35 @@ describe("emitCpp", () => {
     expect(byPath.get("build/doublemint/main.cpp")).toContain("if (file != nullptr) {");
   });
 
+  it("emits defer statements as scope guards", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      function cleanup(): void {
+        print("cleanup");
+      }
+
+      export function main(): void {
+        defer cleanup();
+        print("body");
+      }
+      `
+    );
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+
+    const result = emitCpp(graph, config);
+    const byPath = new Map(
+      result.artifacts.map((artifact) => [artifact.filepath, artifact.content])
+    );
+
+    expect(byPath.get("build/doublemint/main.cpp")).toContain("#include <utility>");
+    expect(byPath.get("build/doublemint/main.cpp")).toContain("struct __dlm_defer_guard");
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      "auto __dlm_defer_0 = __dlm_make_defer([&]() { cleanup(); });"
+    );
+  });
+
   it("emits valid C++ entrypoint for void main", async () => {
     const entry = await writeModule(
       "main.dlm",

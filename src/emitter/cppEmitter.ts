@@ -27,6 +27,7 @@ export interface EmitResult {
 
 interface EmitContext {
   switchCounter: number;
+  deferCounter: number;
   stringViewVariables: Set<string>;
   nativeFunctions: Map<string, string>;
 }
@@ -116,6 +117,10 @@ function emitSource(
     lines.push("#include <iostream>");
   }
 
+  if (moduleUsesDefer(module.program)) {
+    lines.push("#include <utility>");
+  }
+
   for (const declaration of module.program.body) {
     if (declaration.type === "ExternBlockDeclaration") {
       lines.push(`#include ${formatExternInclude(declaration.source)}`);
@@ -132,6 +137,11 @@ function emitSource(
 
   lines.push(`#include "${basename(module)}.hpp"`);
   lines.push("");
+
+  if (moduleUsesDefer(module.program)) {
+    lines.push(deferHelper());
+    lines.push("");
+  }
 
   for (const declaration of functionDeclarations(module.program)) {
     if (declaration.extern) {
@@ -170,6 +180,7 @@ function emitFunctionDefinition(
   const lines = [`${emitFunctionSignature(declaration)} {`];
   const context: EmitContext = {
     switchCounter: 0,
+    deferCounter: 0,
     stringViewVariables: stringViewVariableNames(declaration),
     nativeFunctions: nativeFunctionMap(program)
   };
@@ -233,6 +244,8 @@ function emitStatement(
       return emitSwitchStatement(statement, declaration, context);
     case "ExpressionStatement":
       return `${emitExpression(statement.expression, undefined, context)};`;
+    case "DeferStatement":
+      return emitDeferStatement(statement, context);
     default:
       assertNever(statement);
   }
@@ -333,6 +346,15 @@ function emitSwitchStatement(
   return lines.join("\n  ");
 }
 
+function emitDeferStatement(
+  statement: Statement & { type: "DeferStatement" },
+  context: EmitContext
+): string {
+  const name = `__dlm_defer_${context.deferCounter}`;
+  context.deferCounter += 1;
+  return `auto ${name} = __dlm_make_defer([&]() { ${emitExpression(statement.expression, undefined, context)}; });`;
+}
+
 function emitFunctionReturnType(declaration: FunctionDeclaration): string {
   if (isVoidMain(declaration)) {
     return "int";
@@ -389,6 +411,7 @@ function collectStringViewDeclarations(
     case "DestructuringDeclaration":
     case "ReturnStatement":
     case "ExpressionStatement":
+    case "DeferStatement":
       break;
     case "IfStatement":
       statement.thenBranch.forEach((nested) =>
@@ -475,6 +498,9 @@ function collectAssignedRoots(statement: Statement, roots: Set<string>): void {
       statement.defaultBranch.forEach((nested) => collectAssignedRoots(nested, roots));
       break;
     case "ExpressionStatement":
+      collectAssignedRootsFromExpression(statement.expression, roots);
+      break;
+    case "DeferStatement":
       collectAssignedRootsFromExpression(statement.expression, roots);
       break;
     default:
@@ -796,6 +822,55 @@ function functionDeclarations(program: Program): FunctionDeclaration[] {
   return declarations;
 }
 
+function moduleUsesDefer(program: Program): boolean {
+  return functionDeclarations(program).some((declaration) =>
+    declaration.body.some(statementUsesDefer)
+  );
+}
+
+function statementUsesDefer(statement: Statement): boolean {
+  switch (statement.type) {
+    case "DeferStatement":
+      return true;
+    case "IfStatement":
+      return (
+        statement.thenBranch.some(statementUsesDefer) ||
+        statement.elseBranch.some(statementUsesDefer)
+      );
+    case "WhileStatement":
+      return statement.body.some(statementUsesDefer);
+    case "ForStatement":
+      return statement.body.some(statementUsesDefer);
+    case "SwitchStatement":
+      return (
+        statement.cases.some((switchCase) => switchCase.body.some(statementUsesDefer)) ||
+        statement.defaultBranch.some(statementUsesDefer)
+      );
+    case "VariableDeclaration":
+    case "DestructuringDeclaration":
+    case "ReturnStatement":
+    case "ExpressionStatement":
+      return false;
+    default:
+      assertNever(statement);
+  }
+}
+
+function deferHelper(): string {
+  return [
+    "template <typename F>",
+    "struct __dlm_defer_guard {",
+    "  F fn;",
+    "  ~__dlm_defer_guard() { fn(); }",
+    "};",
+    "",
+    "template <typename F>",
+    "__dlm_defer_guard<F> __dlm_make_defer(F fn) {",
+    "  return __dlm_defer_guard<F>{std::move(fn)};",
+    "}"
+  ].join("\n");
+}
+
 function nativeFunctionMap(program: Program): Map<string, string> {
   const names = new Map<string, string>();
 
@@ -841,6 +916,8 @@ function statementUsesPrint(statement: Statement): boolean {
       return statement.init ? expressionUsesPrint(statement.init) : false;
     case "DestructuringDeclaration":
       return expressionUsesPrint(statement.init);
+    case "DeferStatement":
+      return expressionUsesPrint(statement.expression);
     case "ReturnStatement":
       return statement.argument ? expressionUsesPrint(statement.argument) : false;
     case "IfStatement":

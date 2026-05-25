@@ -45,6 +45,7 @@ The first production foundation must support:
 - Project configuration through `doublemint.config.json`.
 - Native linker configuration through `libraryDirs`, `linkLibraries`, and `linkerFlags`.
 - Native source compilation through `nativeSources`.
+- `defer` statements for deterministic native cleanup at scope exit.
 
 ## Language Decisions
 

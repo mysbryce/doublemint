@@ -160,6 +160,13 @@ if (file == null) {
 }
 ```
 
+Use `defer` for native cleanup that should run at scope exit:
+
+```typescript
+let file: FILE* = fopen("data.txt", "r");
+defer fclose(file);
+```
+
 Local native `.c` / `.cpp` files can be compiled into the final binary with
 `nativeSources`:
 
@@ -174,7 +181,6 @@ Current interop limits:
 
 - no C++ classes, methods, templates, or overload sets
 - no calling convention annotations such as `__stdcall`
-- no native resource lifetime helpers yet
 
 ## Current Language Subset
 

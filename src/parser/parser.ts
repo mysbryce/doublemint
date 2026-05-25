@@ -300,6 +300,10 @@ class Parser {
       return this.switchStatement();
     }
 
+    if (this.match("DEFER")) {
+      return this.deferStatement();
+    }
+
     return this.expressionStatement();
   }
 
@@ -483,6 +487,18 @@ class Parser {
       type: "ExpressionStatement",
       expression,
       location: expression.location
+    };
+  }
+
+  private deferStatement(): Statement {
+    const deferToken = this.previous();
+    const expression = this.expression();
+    this.consume("SEMICOLON", "DLM2080", "Expected ';' after defer statement.");
+
+    return {
+      type: "DeferStatement",
+      expression,
+      location: deferToken.location
     };
   }
 

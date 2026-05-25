@@ -287,6 +287,18 @@ describe("checkModuleGraph", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("accepts defer cleanup calls", async () => {
+    await expect(
+      checkEntry(`
+        function cleanup(): void {}
+
+        function main(): void {
+          defer cleanup();
+        }
+      `)
+    ).resolves.toBeUndefined();
+  });
+
   it("rejects builtin print arity mismatches", async () => {
     await expect(
       checkEntry(`

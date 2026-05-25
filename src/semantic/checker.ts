@@ -381,6 +381,9 @@ function validateStatement(
     case "ExpressionStatement":
       inferExpressionType(environment, scope, statement.expression);
       break;
+    case "DeferStatement":
+      inferExpressionType(environment, scope, statement.expression);
+      break;
     default:
       assertNever(statement);
   }

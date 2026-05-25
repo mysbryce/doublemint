@@ -104,4 +104,41 @@ describe.skipIf(!hasGpp)("native C/C++ interop", () => {
     expect(run.status).toBe(0);
     expect(run.stdout.trim()).toBe("5");
   }, 15000);
+
+  it("runs deferred native cleanup at scope exit", async () => {
+    const entry = join(tempDir, "main.dlm");
+    await writeFile(
+      entry,
+      `
+      extern "cstdio" {
+        function puts(text: const char*): int;
+      }
+
+      export function main(): void {
+        defer puts("cleanup");
+        puts("body");
+      }
+      `.trimStart(),
+      "utf8"
+    );
+
+    const config: DoublemintConfig = {
+      rootDir: tempDir,
+      outDir: join(tempDir, "build"),
+      cppStandard: "c++20",
+      compiler: "g++",
+      includeDirs: [tempDir],
+      warningsAsErrors: true,
+      optimization: "O3"
+    };
+    const outputPath = join(tempDir, "defer.exe");
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+    const emitResult = await emitCppToDisk(graph, config);
+    await buildNativeExecutable(emitResult, config, { outputPath });
+    const run = spawnSync(outputPath, [], { encoding: "utf8" });
+
+    expect(run.status).toBe(0);
+    expect(run.stdout.trim().replace(/\r\n/gu, "\n")).toBe("body\ncleanup");
+  }, 15000);
 });

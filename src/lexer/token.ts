@@ -20,6 +20,7 @@ export type TokenKind =
   | "SWITCH"
   | "CASE"
   | "DEFAULT"
+  | "DEFER"
   | "TRUE"
   | "FALSE"
   | "NULL"
