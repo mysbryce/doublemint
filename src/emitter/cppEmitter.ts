@@ -15,6 +15,7 @@ import type {
   VariableDeclaration
 } from "../parser/ast.js";
 import type { ModuleGraph, ResolvedModule } from "../resolver/moduleGraph.js";
+import { RUNTIME_HEADERS, RUNTIME_SOURCES } from "../runtime/embedded.js";
 
 export interface CppArtifact {
   filepath: string;
@@ -1009,538 +1010,62 @@ function emitPrintCall(name: string, args: Expression[], context?: EmitContext):
   return name === "println" || name === "print" ? `${output} << std::endl` : output;
 }
 
+const RUNTIME_HEADER_MODULES: Record<string, string> = {
+  "mint:collections": "collections",
+  "mint:regex": "regex"
+};
+
+const RUNTIME_SOURCE_MODULES: Record<string, string> = {
+  "mint:fs": "fs",
+  "mint:time": "time",
+  "mint:os": "os",
+  "mint:json": "json",
+  "mint:log": "log",
+  "mint:crypto": "crypto",
+  "mint:net": "net",
+  "mint:async": "async",
+  "mint:memory": "memory",
+  "mint:simd": "simd",
+  "mint:db": "db",
+  "mint:ui": "ui"
+};
+
+function lookupRuntime(map: Record<string, string>, key: string): string {
+  const snippet = map[key];
+  if (snippet === undefined) {
+    throw new Error(`Missing runtime snippet for "${key}". Run "pnpm runtime:embed".`);
+  }
+  return snippet;
+}
+
 function ioHelper(): string {
-  return [
-    "[[maybe_unused]] static std::string __doublemint_read_line(std::string_view prompt) {",
-    "  std::cout << prompt;",
-    "  std::string line;",
-    "  std::getline(std::cin, line);",
-    "  return line;",
-    "}"
-  ].join("\n");
+  return lookupRuntime(RUNTIME_SOURCES, "io");
 }
 
 function builtinHeaderDeclarations(module: ResolvedModule): string[] {
   const declarations: string[] = [];
-
-  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:collections")) {
-    declarations.push(collectionsHeader());
+  const visited = new Set<string>();
+  for (const resolvedImport of module.imports) {
+    const key = RUNTIME_HEADER_MODULES[resolvedImport.source];
+    if (key && !visited.has(key)) {
+      visited.add(key);
+      declarations.push(lookupRuntime(RUNTIME_HEADERS, key));
+    }
   }
-
-  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:regex")) {
-    declarations.push(regexHeader());
-  }
-
   return declarations;
 }
 
 function builtinSourceHelpers(module: ResolvedModule): string[] {
   const helpers: string[] = [];
-
-  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:fs")) {
-    helpers.push(fsHelper());
+  const visited = new Set<string>();
+  for (const resolvedImport of module.imports) {
+    const key = RUNTIME_SOURCE_MODULES[resolvedImport.source];
+    if (key && !visited.has(key)) {
+      visited.add(key);
+      helpers.push(lookupRuntime(RUNTIME_SOURCES, key));
+    }
   }
-
-  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:time")) {
-    helpers.push(timeHelper());
-  }
-
-  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:os")) {
-    helpers.push(osHelper());
-  }
-
-  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:json")) {
-    helpers.push(jsonHelper());
-  }
-
-  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:log")) {
-    helpers.push(logHelper());
-  }
-
-  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:crypto")) {
-    helpers.push(cryptoHelper());
-  }
-
-  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:net")) {
-    helpers.push(netHelper());
-  }
-
-  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:async")) {
-    helpers.push(asyncHelper());
-  }
-
-  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:memory")) {
-    helpers.push(memoryHelper());
-  }
-
-  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:simd")) {
-    helpers.push(simdHelper());
-  }
-
-  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:db")) {
-    helpers.push(dbHelper());
-  }
-
-  if (module.imports.some((resolvedImport) => resolvedImport.source === "mint:ui")) {
-    helpers.push(uiHelper());
-  }
-
   return helpers;
-}
-
-function collectionsHeader(): string {
-  return [
-    "template <typename T>",
-    "class Queue {",
-    "  std::queue<T> data_;",
-    "public:",
-    "  void push(T value) { data_.push(value); }",
-    "  T pop() { if (data_.empty()) { throw std::runtime_error(\"Queue is empty\"); } T value = data_.front(); data_.pop(); return value; }",
-    "  bool empty() const { return data_.empty(); }",
-    "  int size() const { return static_cast<int>(data_.size()); }",
-    "};",
-    "",
-    "template <typename T>",
-    "class Set {",
-    "  std::unordered_set<T> data_;",
-    "public:",
-    "  void add(T value) { data_.insert(value); }",
-    "  bool has(T value) const { return data_.find(value) != data_.end(); }",
-    "  int size() const { return static_cast<int>(data_.size()); }",
-    "};",
-    "",
-    "template <typename T>",
-    "class Stack {",
-    "  std::stack<T> data_;",
-    "public:",
-    "  void push(T value) { data_.push(value); }",
-    "  T pop() { if (data_.empty()) { throw std::runtime_error(\"Stack is empty\"); } T value = data_.top(); data_.pop(); return value; }",
-    "  bool empty() const { return data_.empty(); }",
-    "  int size() const { return static_cast<int>(data_.size()); }",
-    "};"
-  ].join("\n");
-}
-
-function regexHeader(): string {
-  return [
-    "class Regex {",
-    "  std::regex pattern_;",
-    "public:",
-    "  explicit Regex(std::string_view pattern) : pattern_(std::string(pattern)) {}",
-    "  bool test(std::string_view value) const { return std::regex_match(std::string(value), pattern_); }",
-    "  std::string replace(std::string_view value, std::string_view replacement) const { return std::regex_replace(std::string(value), pattern_, std::string(replacement)); }",
-    "};"
-  ].join("\n");
-}
-
-function fsHelper(): string {
-  return [
-    "[[maybe_unused]] static std::string __doublemint_file_read_to_string(const std::string& path) {",
-    "  std::ifstream input(path, std::ios::binary);",
-    "  return std::string(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());",
-    "}",
-    "",
-    "[[maybe_unused]] static std::vector<int> __doublemint_file_read_to_bytes(const std::string& path) {",
-    "  std::ifstream input(path, std::ios::binary);",
-    "  std::vector<int> bytes;",
-    "  char byte;",
-    "  while (input.get(byte)) { bytes.push_back(static_cast<unsigned char>(byte)); }",
-    "  return bytes;",
-    "}",
-    "",
-    "[[maybe_unused]] static void __doublemint_file_write_string(const std::string& path, const std::string& content) {",
-    "  std::ofstream output(path, std::ios::binary | std::ios::trunc);",
-    "  output << content;",
-    "}",
-    "",
-    "[[maybe_unused]] static void __doublemint_file_append_string(const std::string& path, const std::string& content) {",
-    "  std::ofstream output(path, std::ios::binary | std::ios::app);",
-    "  output << content;",
-    "}",
-    "",
-    "[[maybe_unused]] static std::string __doublemint_path_join(const std::string& left, const std::string& right) {",
-    "  return (std::filesystem::path(left) / std::filesystem::path(right)).string();",
-    "}",
-    "",
-    "[[maybe_unused]] static std::string __doublemint_path_basename(const std::string& path) {",
-    "  return std::filesystem::path(path).filename().string();",
-    "}"
-  ].join("\n");
-}
-
-function timeHelper(): string {
-  return [
-    "[[maybe_unused]] static std::unordered_map<std::string, std::chrono::high_resolution_clock::time_point> __doublemint_profiler_marks;",
-    "",
-    "[[maybe_unused]] static int __doublemint_now_ms() {",
-    "  auto now = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());",
-    "  return static_cast<int>(now.time_since_epoch().count());",
-    "}",
-    "",
-    "[[maybe_unused]] static void __doublemint_profiler_start(const std::string& name) {",
-    "  __doublemint_profiler_marks[name] = std::chrono::high_resolution_clock::now();",
-    "}",
-    "",
-    "[[maybe_unused]] static int __doublemint_profiler_stop(const std::string& name) {",
-    "  auto end = std::chrono::high_resolution_clock::now();",
-    "  auto start = __doublemint_profiler_marks[name];",
-    "  return static_cast<int>(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());",
-    "}"
-  ].join("\n");
-}
-
-function osHelper(): string {
-  return [
-    "[[maybe_unused]] static bool __doublemint_os_is_linux() {",
-    "#ifdef __linux__",
-    "  return true;",
-    "#else",
-    "  return false;",
-    "#endif",
-    "}",
-    "",
-    "[[maybe_unused]] static bool __doublemint_os_is_windows() {",
-    "#ifdef _WIN32",
-    "  return true;",
-    "#else",
-    "  return false;",
-    "#endif",
-    "}",
-    "",
-    "[[maybe_unused]] static std::string __doublemint_env_get(const std::string& key, const std::string& fallback) {",
-    "  const char* value = std::getenv(key.c_str());",
-    "  return value == nullptr ? fallback : std::string(value);",
-    "}",
-    "",
-    "[[maybe_unused]] static std::string __doublemint_os_execute(const std::string& command) {",
-    "#ifdef _WIN32",
-    "  FILE* pipe = _popen(command.c_str(), \"r\");",
-    "#else",
-    "  FILE* pipe = popen(command.c_str(), \"r\");",
-    "#endif",
-    "  if (pipe == nullptr) { return \"\"; }",
-    "  std::array<char, 256> buffer{};",
-    "  std::string result;",
-    "  while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe) != nullptr) { result += buffer.data(); }",
-    "#ifdef _WIN32",
-    "  _pclose(pipe);",
-    "#else",
-    "  pclose(pipe);",
-    "#endif",
-    "  return result;",
-    "}"
-  ].join("\n");
-}
-
-function jsonHelper(): string {
-  return [
-    "[[maybe_unused]] static std::string __doublemint_json_stringify(std::string_view value) {",
-    "  std::ostringstream out;",
-    "  out << '\"';",
-    "  for (char ch : value) {",
-    "    switch (ch) {",
-    "      case '\"': out << \"\\\\\\\"\"; break;",
-    "      case '\\\\': out << \"\\\\\\\\\"; break;",
-    "      case '\\n': out << \"\\\\n\"; break;",
-    "      case '\\r': out << \"\\\\r\"; break;",
-    "      case '\\t': out << \"\\\\t\"; break;",
-    "      default: out << ch; break;",
-    "    }",
-    "  }",
-    "  out << '\"';",
-    "  return out.str();",
-    "}",
-    "",
-    "[[maybe_unused]] static std::string __doublemint_json_stringify_int(int value) {",
-    "  return std::to_string(value);",
-    "}",
-    "",
-    "[[maybe_unused]] static std::string __doublemint_json_stringify_bool(bool value) {",
-    "  return value ? std::string(\"true\") : std::string(\"false\");",
-    "}",
-    "",
-    "[[maybe_unused]] static int __doublemint_json_parse_int(std::string_view value) {",
-    "  try { return std::stoi(std::string(value)); } catch (...) { return 0; }",
-    "}",
-    "",
-    "[[maybe_unused]] static std::string __doublemint_json_parse_string(std::string_view value) {",
-    "  if (value.size() < 2 || value.front() != '\"' || value.back() != '\"') { return std::string(value); }",
-    "  std::string out;",
-    "  out.reserve(value.size());",
-    "  for (std::size_t index = 1; index + 1 < value.size(); ++index) {",
-    "    char ch = value[index];",
-    "    if (ch == '\\\\' && index + 2 < value.size()) {",
-    "      char next = value[index + 1];",
-    "      switch (next) {",
-    "        case 'n': out += '\\n'; ++index; continue;",
-    "        case 'r': out += '\\r'; ++index; continue;",
-    "        case 't': out += '\\t'; ++index; continue;",
-    "        case '\"': out += '\"'; ++index; continue;",
-    "        case '\\\\': out += '\\\\'; ++index; continue;",
-    "        default: break;",
-    "      }",
-    "    }",
-    "    out += ch;",
-    "  }",
-    "  return out;",
-    "}"
-  ].join("\n");
-}
-
-function logHelper(): string {
-  return [
-    "[[maybe_unused]] static void __doublemint_log_emit(const char* level, std::string_view message) {",
-    "  std::cout << '[' << level << \"] \" << message << std::endl;",
-    "}",
-    "",
-    "[[maybe_unused]] static void __doublemint_log_info(std::string_view message) { __doublemint_log_emit(\"INFO\", message); }",
-    "[[maybe_unused]] static void __doublemint_log_warn(std::string_view message) { __doublemint_log_emit(\"WARN\", message); }",
-    "[[maybe_unused]] static void __doublemint_log_error(std::string_view message) { __doublemint_log_emit(\"ERROR\", message); }",
-    "[[maybe_unused]] static void __doublemint_log_debug(std::string_view message) { __doublemint_log_emit(\"DEBUG\", message); }"
-  ].join("\n");
-}
-
-function cryptoHelper(): string {
-  return [
-    "[[maybe_unused]] static int __doublemint_crypto_fnv1a(std::string_view value) {",
-    "  std::uint32_t hash = 2166136261u;",
-    "  for (unsigned char byte : value) {",
-    "    hash ^= byte;",
-    "    hash *= 16777619u;",
-    "  }",
-    "  return static_cast<int>(hash & 0x7fffffffu);",
-    "}",
-    "",
-    "[[maybe_unused]] static std::string __doublemint_crypto_xor(std::string_view value, std::string_view key) {",
-    "  if (key.empty()) { return std::string(value); }",
-    "  std::string out(value.size(), '\\0');",
-    "  for (std::size_t index = 0; index < value.size(); ++index) {",
-    "    out[index] = static_cast<char>(value[index] ^ key[index % key.size()]);",
-    "  }",
-    "  return out;",
-    "}",
-    "",
-    "[[maybe_unused]] static std::string __doublemint_crypto_to_hex(int value) {",
-    "  std::ostringstream out;",
-    "  out << std::hex << std::nouppercase << static_cast<std::uint32_t>(value);",
-    "  return out.str();",
-    "}"
-  ].join("\n");
-}
-
-function netHelper(): string {
-  return [
-    "[[maybe_unused]] static std::string __doublemint_url_scheme(std::string_view url) {",
-    "  auto position = url.find(\"://\");",
-    "  return position == std::string_view::npos ? std::string() : std::string(url.substr(0, position));",
-    "}",
-    "",
-    "[[maybe_unused]] static std::string __doublemint_url_host(std::string_view url) {",
-    "  auto schemeEnd = url.find(\"://\");",
-    "  std::size_t start = schemeEnd == std::string_view::npos ? 0 : schemeEnd + 3;",
-    "  auto pathStart = url.find('/', start);",
-    "  return std::string(url.substr(start, pathStart == std::string_view::npos ? std::string_view::npos : pathStart - start));",
-    "}",
-    "",
-    "[[maybe_unused]] static std::string __doublemint_url_path(std::string_view url) {",
-    "  auto schemeEnd = url.find(\"://\");",
-    "  std::size_t start = schemeEnd == std::string_view::npos ? 0 : schemeEnd + 3;",
-    "  auto pathStart = url.find('/', start);",
-    "  return pathStart == std::string_view::npos ? std::string(\"/\") : std::string(url.substr(pathStart));",
-    "}",
-    "",
-    "[[maybe_unused]] static std::string __doublemint_url_encode(std::string_view value) {",
-    "  std::ostringstream out;",
-    "  out << std::hex << std::uppercase;",
-    "  for (unsigned char ch : value) {",
-    "    bool safe = (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '-' || ch == '_' || ch == '.' || ch == '~';",
-    "    if (safe) {",
-    "      out << static_cast<char>(ch);",
-    "    } else {",
-    "      out << '%';",
-    "      if (ch < 16) { out << '0'; }",
-    "      out << static_cast<int>(ch);",
-    "    }",
-    "  }",
-    "  return out.str();",
-    "}",
-    "",
-    "[[maybe_unused]] static std::string __doublemint_http_build_get(std::string_view path, std::string_view host) {",
-    "  std::ostringstream out;",
-    "  out << \"GET \" << (path.empty() ? std::string_view(\"/\") : path) << \" HTTP/1.1\\r\\n\";",
-    "  out << \"Host: \" << host << \"\\r\\n\";",
-    "  out << \"Connection: close\\r\\n\\r\\n\";",
-    "  return out.str();",
-    "}"
-  ].join("\n");
-}
-
-function asyncHelper(): string {
-  return [
-    "[[maybe_unused]] static void __doublemint_async_sleep_ms(int milliseconds) {",
-    "  if (milliseconds <= 0) { return; }",
-    "  std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));",
-    "}",
-    "",
-    "[[maybe_unused]] static int __doublemint_async_parallel_sum(const std::vector<int>& values) {",
-    "  if (values.empty()) { return 0; }",
-    "  unsigned int threads = std::thread::hardware_concurrency();",
-    "  if (threads < 2 || values.size() < threads * 4) {",
-    "    return std::accumulate(values.begin(), values.end(), 0);",
-    "  }",
-    "  std::vector<std::thread> workers;",
-    "  std::vector<int> partials(threads, 0);",
-    "  std::size_t chunk = values.size() / threads;",
-    "  for (unsigned int index = 0; index < threads; ++index) {",
-    "    std::size_t begin = index * chunk;",
-    "    std::size_t end = (index + 1 == threads) ? values.size() : begin + chunk;",
-    "    workers.emplace_back([&, begin, end, index]() {",
-    "      partials[index] = std::accumulate(values.begin() + static_cast<std::ptrdiff_t>(begin), values.begin() + static_cast<std::ptrdiff_t>(end), 0);",
-    "    });",
-    "  }",
-    "  for (auto& worker : workers) { worker.join(); }",
-    "  return std::accumulate(partials.begin(), partials.end(), 0);",
-    "}",
-    "",
-    "[[maybe_unused]] static int __doublemint_async_hardware_threads() {",
-    "  unsigned int threads = std::thread::hardware_concurrency();",
-    "  return static_cast<int>(threads == 0 ? 1u : threads);",
-    "}"
-  ].join("\n");
-}
-
-function memoryHelper(): string {
-  return [
-    "[[maybe_unused]] static std::atomic<std::int64_t> __doublemint_memory_bytes{0};",
-    "[[maybe_unused]] static std::atomic<std::int64_t> __doublemint_memory_peak{0};",
-    "",
-    "[[maybe_unused]] static void __doublemint_memory_record_alloc(int bytes) {",
-    "  if (bytes <= 0) { return; }",
-    "  std::int64_t current = __doublemint_memory_bytes.fetch_add(bytes) + bytes;",
-    "  std::int64_t peak = __doublemint_memory_peak.load();",
-    "  while (current > peak && !__doublemint_memory_peak.compare_exchange_weak(peak, current)) {}",
-    "}",
-    "",
-    "[[maybe_unused]] static void __doublemint_memory_record_free(int bytes) {",
-    "  if (bytes <= 0) { return; }",
-    "  __doublemint_memory_bytes.fetch_sub(bytes);",
-    "}",
-    "",
-    "[[maybe_unused]] static int __doublemint_memory_bytes_used() {",
-    "  return static_cast<int>(__doublemint_memory_bytes.load());",
-    "}",
-    "",
-    "[[maybe_unused]] static int __doublemint_memory_peak_bytes() {",
-    "  return static_cast<int>(__doublemint_memory_peak.load());",
-    "}",
-    "",
-    "[[maybe_unused]] static void __doublemint_memory_reset() {",
-    "  __doublemint_memory_bytes.store(0);",
-    "  __doublemint_memory_peak.store(0);",
-    "}"
-  ].join("\n");
-}
-
-function simdHelper(): string {
-  return [
-    "[[maybe_unused]] static std::vector<int> __doublemint_simd_add(const std::vector<int>& left, const std::vector<int>& right) {",
-    "  std::size_t length = std::min(left.size(), right.size());",
-    "  std::vector<int> out(length, 0);",
-    "  for (std::size_t index = 0; index < length; ++index) {",
-    "    out[index] = left[index] + right[index];",
-    "  }",
-    "  return out;",
-    "}",
-    "",
-    "[[maybe_unused]] static std::vector<int> __doublemint_simd_scale(const std::vector<int>& values, int factor) {",
-    "  std::vector<int> out(values.size(), 0);",
-    "  for (std::size_t index = 0; index < values.size(); ++index) {",
-    "    out[index] = values[index] * factor;",
-    "  }",
-    "  return out;",
-    "}",
-    "",
-    "[[maybe_unused]] static int __doublemint_simd_dot(const std::vector<int>& left, const std::vector<int>& right) {",
-    "  std::size_t length = std::min(left.size(), right.size());",
-    "  int total = 0;",
-    "  for (std::size_t index = 0; index < length; ++index) {",
-    "    total += left[index] * right[index];",
-    "  }",
-    "  return total;",
-    "}",
-    "",
-    "[[maybe_unused]] static int __doublemint_simd_sum(const std::vector<int>& values) {",
-    "  return std::accumulate(values.begin(), values.end(), 0);",
-    "}"
-  ].join("\n");
-}
-
-function dbHelper(): string {
-  return [
-    "[[maybe_unused]] static std::unordered_map<std::string, std::string>& __doublemint_kv_store() {",
-    "  static std::unordered_map<std::string, std::string> store;",
-    "  return store;",
-    "}",
-    "",
-    "[[maybe_unused]] static void __doublemint_kv_set(std::string_view key, std::string_view value) {",
-    "  __doublemint_kv_store()[std::string(key)] = std::string(value);",
-    "}",
-    "",
-    "[[maybe_unused]] static std::string __doublemint_kv_get(std::string_view key, std::string_view fallback) {",
-    "  const auto& store = __doublemint_kv_store();",
-    "  auto entry = store.find(std::string(key));",
-    "  return entry == store.end() ? std::string(fallback) : entry->second;",
-    "}",
-    "",
-    "[[maybe_unused]] static bool __doublemint_kv_has(std::string_view key) {",
-    "  const auto& store = __doublemint_kv_store();",
-    "  return store.find(std::string(key)) != store.end();",
-    "}",
-    "",
-    "[[maybe_unused]] static void __doublemint_kv_remove(std::string_view key) {",
-    "  __doublemint_kv_store().erase(std::string(key));",
-    "}",
-    "",
-    "[[maybe_unused]] static int __doublemint_kv_size() {",
-    "  return static_cast<int>(__doublemint_kv_store().size());",
-    "}",
-    "",
-    "[[maybe_unused]] static void __doublemint_kv_clear() {",
-    "  __doublemint_kv_store().clear();",
-    "}"
-  ].join("\n");
-}
-
-function uiHelper(): string {
-  return [
-    "[[maybe_unused]] static void __doublemint_term_clear() {",
-    "  std::cout << \"\\x1b[2J\\x1b[H\";",
-    "}",
-    "",
-    "[[maybe_unused]] static void __doublemint_term_move_cursor(int row, int column) {",
-    "  std::cout << \"\\x1b[\" << row << ';' << column << 'H';",
-    "}",
-    "",
-    "[[maybe_unused]] static void __doublemint_term_set_color(int code) {",
-    "  std::cout << \"\\x1b[\" << code << 'm';",
-    "}",
-    "",
-    "[[maybe_unused]] static void __doublemint_term_reset_color() {",
-    "  std::cout << \"\\x1b[0m\";",
-    "}",
-    "",
-    "[[maybe_unused]] static std::string __doublemint_term_bold(std::string_view value) {",
-    "  std::ostringstream out;",
-    "  out << \"\\x1b[1m\" << value << \"\\x1b[0m\";",
-    "  return out.str();",
-    "}",
-    "",
-    "[[maybe_unused]] static std::string __doublemint_term_colorize(std::string_view value, int code) {",
-    "  std::ostringstream out;",
-    "  out << \"\\x1b[\" << code << 'm' << value << \"\\x1b[0m\";",
-    "  return out.str();",
-    "}"
-  ].join("\n");
 }
 
 function formatExternInclude(source: string): string {

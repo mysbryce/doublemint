@@ -10,6 +10,9 @@
     "dist"
   ],
   "scripts": {
+    "runtime:embed": "node scripts/embed-runtime.mjs",
+    "prebuild": "pnpm runtime:embed",
+    "pretest": "pnpm runtime:embed",
     "build": "tsup",
     "check": "tsc --noEmit",
     "pack:vsix": "node scripts/pack-vsix.mjs",
