@@ -1006,7 +1006,11 @@ function inferLambdaType(
   }
 
   const bodyType = inferExpressionType(environment, lambdaScope, expression.body);
-  assertAssignable(environment, expression.returnType, bodyType, expression.body.location);
+  const returnsVoid =
+    expression.returnType.type === "NamedType" && expression.returnType.name === "void";
+  if (!returnsVoid) {
+    assertAssignable(environment, expression.returnType, bodyType, expression.body.location);
+  }
 
   return {
     type: "FunctionType",

@@ -738,13 +738,17 @@ function emitLambdaExpression(
   context?: EmitContext
 ): string {
   const params = expression.params
-    .map((param) => `${emitParameterType(param.valueType)} ${param.id}`)
+    .map((param) => `[[maybe_unused]] ${emitParameterType(param.valueType)} ${param.id}`)
     .join(", ");
-  return `[=](${params}) -> ${emitType(expression.returnType)} { return ${emitExpressionForExpectedType(
+  const bodyExpression = emitExpressionForExpectedType(
     expression.body,
     expression.returnType,
     context
-  )}; }`;
+  );
+  const isVoidReturn =
+    expression.returnType.type === "NamedType" && expression.returnType.name === "void";
+  const bodyStatement = isVoidReturn ? `${bodyExpression};` : `return ${bodyExpression};`;
+  return `[=](${params}) -> ${emitType(expression.returnType)} { ${bodyStatement} }`;
 }
 
 function emitTupleLiteral(

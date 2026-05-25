@@ -566,10 +566,196 @@
               "returnType": "int"
             },
             {
+              "name": "parallelMax",
+              "kind": "function",
+              "params": [
+                "int[]"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "parallelMin",
+              "kind": "function",
+              "params": [
+                "int[]"
+              ],
+              "returnType": "int"
+            },
+            {
               "name": "hardwareThreads",
               "kind": "function",
               "params": [],
               "returnType": "int"
+            },
+            {
+              "name": "spawn",
+              "kind": "function",
+              "params": [
+                "fn(): void"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "join",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "detach",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "parallelFor",
+              "kind": "function",
+              "params": [
+                "int",
+                "fn(int): void"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "createMutex",
+              "kind": "function",
+              "params": [],
+              "returnType": "int"
+            },
+            {
+              "name": "lock",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "unlock",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "tryLock",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "destroyMutex",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "createAtomic",
+              "kind": "function",
+              "params": [
+                "int64"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "atomicLoad",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "int64"
+            },
+            {
+              "name": "atomicStore",
+              "kind": "function",
+              "params": [
+                "int",
+                "int64"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "atomicAdd",
+              "kind": "function",
+              "params": [
+                "int",
+                "int64"
+              ],
+              "returnType": "int64"
+            },
+            {
+              "name": "atomicCas",
+              "kind": "function",
+              "params": [
+                "int",
+                "int64",
+                "int64"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "destroyAtomic",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "createChannel",
+              "kind": "function",
+              "params": [],
+              "returnType": "int"
+            },
+            {
+              "name": "channelSend",
+              "kind": "function",
+              "params": [
+                "int",
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "channelReceive",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "channelTryReceive",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "channelClose",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "destroyChannel",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "void"
             }
           ]
         }

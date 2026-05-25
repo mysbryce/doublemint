@@ -138,13 +138,95 @@ describe.skipIf(!hasGpp)("mint extended libraries", () => {
         let workload: int[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
         Async.sleepMs(5);
         println(Async.parallelSum(workload));
+        println(Async.parallelMax(workload));
+        println(Async.parallelMin(workload));
         println(Async.hardwareThreads() >= 1);
       }
     `);
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("55");
+    expect(result.stdout).toContain("10");
     expect(result.stdout).toContain("1");
+  }, 15000);
+
+  it("spawns threads, joins, and aggregates via atomics", async () => {
+    const result = await buildAndRun(`
+      import { Async } from "mint:async";
+      import { println } from "mint:io";
+
+      export function main(): void {
+        let counter: int = Async.createAtomic(0);
+        let id1: int = Async.spawn(fn(): void => Async.atomicAdd(counter, 7));
+        let id2: int = Async.spawn(fn(): void => Async.atomicAdd(counter, 35));
+        Async.join(id1);
+        Async.join(id2);
+        println(Async.atomicLoad(counter));
+        Async.destroyAtomic(counter);
+      }
+    `);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe("42");
+  }, 20000);
+
+  it("runs parallelFor closures concurrently against atomics", async () => {
+    const result = await buildAndRun(`
+      import { Async } from "mint:async";
+      import { println } from "mint:io";
+
+      export function main(): void {
+        let counter: int = Async.createAtomic(0);
+        Async.parallelFor(1000, fn(i: int): void => Async.atomicAdd(counter, 1));
+        println(Async.atomicLoad(counter));
+        Async.destroyAtomic(counter);
+      }
+    `);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe("1000");
+  }, 20000);
+
+  it("sends and receives messages through a channel", async () => {
+    const result = await buildAndRun(`
+      import { Async } from "mint:async";
+      import { println } from "mint:io";
+
+      export function main(): void {
+        let channelId: int = Async.createChannel();
+        let workerId: int = Async.spawn(fn(): void => Async.channelSend(channelId, "ping"));
+        let received: string = Async.channelReceive(channelId);
+        Async.join(workerId);
+        println(received);
+        Async.channelClose(channelId);
+        Async.destroyChannel(channelId);
+      }
+    `);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe("ping");
+  }, 20000);
+
+  it("guards a shared counter with a mutex", async () => {
+    const result = await buildAndRun(`
+      import { Async } from "mint:async";
+      import { println } from "mint:io";
+
+      export function main(): void {
+        let mutexId: int = Async.createMutex();
+        Async.lock(mutexId);
+        let acquired: bool = Async.tryLock(mutexId);
+        Async.unlock(mutexId);
+        let reacquired: bool = Async.tryLock(mutexId);
+        Async.unlock(mutexId);
+        Async.destroyMutex(mutexId);
+        println(acquired);
+        println(reacquired);
+      }
+    `);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim().split(/\r?\n/u)).toEqual(["0", "1"]);
   }, 15000);
 
   it("tracks memory bytes via counters", async () => {

@@ -33,6 +33,13 @@ const arrayType = (elementType: TypeNode): TypeNode => ({
   location: builtinLocation
 });
 
+const functionType = (params: TypeNode[], returnType: TypeNode): TypeNode => ({
+  type: "FunctionType",
+  params,
+  returnType,
+  location: builtinLocation
+});
+
 const namespaceExport = (
   name: string,
   members: BuiltinNamespaceMember[]
@@ -347,7 +354,24 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
     "mint:async",
     {
       builtin: true,
-      builtinIncludes: ["<chrono>", "<cstddef>", "<numeric>", "<thread>", "<vector>"],
+      builtinIncludes: [
+        "<algorithm>",
+        "<atomic>",
+        "<chrono>",
+        "<condition_variable>",
+        "<cstddef>",
+        "<cstdint>",
+        "<functional>",
+        "<memory>",
+        "<mutex>",
+        "<numeric>",
+        "<queue>",
+        "<string>",
+        "<thread>",
+        "<unordered_map>",
+        "<utility>",
+        "<vector>"
+      ],
       program: emptyProgram("mint:async"),
       imports: [],
       exports: new Map([
@@ -356,7 +380,30 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
           namespaceExport("Async", [
             functionMember("sleepMs", [namedType("int")], namedType("void"), "__doublemint_async_sleep_ms"),
             functionMember("parallelSum", [arrayType(namedType("int"))], namedType("int"), "__doublemint_async_parallel_sum"),
-            functionMember("hardwareThreads", [], namedType("int"), "__doublemint_async_hardware_threads")
+            functionMember("parallelMax", [arrayType(namedType("int"))], namedType("int"), "__doublemint_async_parallel_max"),
+            functionMember("parallelMin", [arrayType(namedType("int"))], namedType("int"), "__doublemint_async_parallel_min"),
+            functionMember("hardwareThreads", [], namedType("int"), "__doublemint_async_hardware_threads"),
+            functionMember("spawn", [functionType([], namedType("void"))], namedType("int"), "__doublemint_async_spawn"),
+            functionMember("join", [namedType("int")], namedType("void"), "__doublemint_async_join"),
+            functionMember("detach", [namedType("int")], namedType("void"), "__doublemint_async_detach"),
+            functionMember("parallelFor", [namedType("int"), functionType([namedType("int")], namedType("void"))], namedType("void"), "__doublemint_async_parallel_for"),
+            functionMember("createMutex", [], namedType("int"), "__doublemint_async_mutex_create"),
+            functionMember("lock", [namedType("int")], namedType("void"), "__doublemint_async_mutex_lock"),
+            functionMember("unlock", [namedType("int")], namedType("void"), "__doublemint_async_mutex_unlock"),
+            functionMember("tryLock", [namedType("int")], namedType("bool"), "__doublemint_async_mutex_try_lock"),
+            functionMember("destroyMutex", [namedType("int")], namedType("void"), "__doublemint_async_mutex_destroy"),
+            functionMember("createAtomic", [namedType("int64")], namedType("int"), "__doublemint_async_atomic_create"),
+            functionMember("atomicLoad", [namedType("int")], namedType("int64"), "__doublemint_async_atomic_load"),
+            functionMember("atomicStore", [namedType("int"), namedType("int64")], namedType("void"), "__doublemint_async_atomic_store"),
+            functionMember("atomicAdd", [namedType("int"), namedType("int64")], namedType("int64"), "__doublemint_async_atomic_add"),
+            functionMember("atomicCas", [namedType("int"), namedType("int64"), namedType("int64")], namedType("bool"), "__doublemint_async_atomic_cas"),
+            functionMember("destroyAtomic", [namedType("int")], namedType("void"), "__doublemint_async_atomic_destroy"),
+            functionMember("createChannel", [], namedType("int"), "__doublemint_async_channel_create"),
+            functionMember("channelSend", [namedType("int"), namedType("string")], namedType("void"), "__doublemint_async_channel_send"),
+            functionMember("channelReceive", [namedType("int")], namedType("string"), "__doublemint_async_channel_receive"),
+            functionMember("channelTryReceive", [namedType("int")], namedType("string"), "__doublemint_async_channel_try_receive"),
+            functionMember("channelClose", [namedType("int")], namedType("void"), "__doublemint_async_channel_close"),
+            functionMember("destroyChannel", [namedType("int")], namedType("void"), "__doublemint_async_channel_destroy")
           ])
         ]
       ])

@@ -552,7 +552,7 @@ describe("emitCpp", () => {
       "std::function<std::string(std::string_view)> call_echo"
     );
     expect(byPath.get("build/doublemint/main.cpp")).toContain(
-      "[=](std::string_view value) -> std::string"
+      "[=]([[maybe_unused]] std::string_view value) -> std::string"
     );
   });
 
@@ -610,7 +610,7 @@ describe("emitCpp", () => {
 
     expect(byPath.get("build/doublemint/main.hpp")).toContain("#include <functional>");
     expect(byPath.get("build/doublemint/main.cpp")).toContain(
-      "std::function<int(int)> inc = [=](int value) -> int { return value + 1; };"
+      "std::function<int(int)> inc = [=]([[maybe_unused]] int value) -> int { return value + 1; };"
     );
     expect(byPath.get("build/doublemint/main.cpp")).toContain(
       "std::cout << inc(2) << std::endl;"
