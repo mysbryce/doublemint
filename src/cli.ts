@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { loadConfig } from "./core/config.js";
 import { DoublemintDiagnostic } from "./diagnostics/diagnostic.js";
 import { scanTokens } from "./lexer/scanner.js";
+import { parseProgram } from "./parser/parser.js";
 
 const command = process.argv[2];
 const entry = process.argv[3];
@@ -35,9 +36,12 @@ async function main(): Promise<void> {
   const entryPath = resolve(process.cwd(), entry);
   const source = await readFile(entryPath, "utf8");
   const tokens = scanTokens(source, entryPath);
+  const program = parseProgram(tokens, entryPath);
 
   if (command === "check") {
-    console.log(`OK ${tokens.length} tokens scanned using ${config.cppStandard}.`);
+    console.log(
+      `OK ${program.body.length} declarations parsed using ${config.cppStandard}.`
+    );
     return;
   }
 
@@ -69,4 +73,3 @@ main().catch((error: unknown) => {
   console.error(error);
   process.exitCode = 1;
 });
-

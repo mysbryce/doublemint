@@ -13,7 +13,8 @@ const keywords = new Map<string, TokenKind>([
   ["copy", "COPY"],
   ["struct", "STRUCT"],
   ["function", "FUNCTION"],
-  ["return", "RETURN"]
+  ["return", "RETURN"],
+  ["as", "AS"]
 ]);
 
 export function scanTokens(source: string, filepath: string): Token[] {
@@ -243,4 +244,3 @@ function isIdentifierStart(char: string): boolean {
 function isIdentifierPart(char: string): boolean {
   return /[A-Za-z0-9_]/u.test(char);
 }
-

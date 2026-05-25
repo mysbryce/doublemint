@@ -11,6 +11,7 @@ export type TokenKind =
   | "STRUCT"
   | "FUNCTION"
   | "RETURN"
+  | "AS"
   | "IDENTIFIER"
   | "STRING_LITERAL"
   | "NUMBER_LITERAL"
@@ -44,4 +45,3 @@ export interface Token {
   lexeme: string;
   location: SourceLocation;
 }
-
