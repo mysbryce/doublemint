@@ -2,6 +2,7 @@
 import { resolve } from "node:path";
 import { loadConfig } from "./core/config.js";
 import { DoublemintDiagnostic } from "./diagnostics/diagnostic.js";
+import { emitCppToDisk } from "./emitter/cppEmitter.js";
 import { resolveModuleGraph } from "./resolver/moduleGraph.js";
 import { checkModuleGraph } from "./semantic/checker.js";
 
@@ -40,6 +41,12 @@ async function main(): Promise<void> {
     console.log(
       `OK ${semanticResult.modulesChecked} modules checked using ${config.cppStandard}.`
     );
+    return;
+  }
+
+  if (command === "emit") {
+    const result = await emitCppToDisk(graph, config);
+    console.log(`OK ${result.artifacts.length} C++ files emitted to ${config.outDir}.`);
     return;
   }
 
