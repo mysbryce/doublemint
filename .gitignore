@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.turbo/
+.agents/
+.DS_Store
+*.log
+build/
+out/

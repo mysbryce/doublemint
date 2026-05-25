@@ -1,0 +1,10 @@
+{
+  "rootDir": "src",
+  "outDir": "build/doublemint",
+  "cppStandard": "c++20",
+  "compiler": "clang++",
+  "includeDirs": [],
+  "warningsAsErrors": true,
+  "optimization": "O3"
+}
+
