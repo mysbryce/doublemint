@@ -103,18 +103,53 @@ Supported now:
 - `copy`
 - field access and assignment
 - direct function calls
-- numeric and string literals
-- basic numeric binary expressions
+- builtin `print(...)`
+- numeric, string, and bool literals
+- numeric binary expressions and comparisons
+- `if` / `else`
+- `while` and C-style `for`
+- `switch` with `case` and `default`
+- vector-backed arrays
+- tuple values and tuple indexing
+- struct object literals
+- lambda expressions with `function(...)` types
 - `as` casts
 
 Example:
 
 ```typescript
-import type { PlayerProfile } from "./types";
-import { calculateDistance } from "./math_utils";
+struct Profile {
+  id: int;
+  name: string;
+  level: int;
+}
+
+function scoreLabel(): [int, string] {
+  return (7, "mint");
+}
 
 export function main(): void {
-  calculateDistance(0.0, 0.0, 3.0, 4.0);
+  let profile: Profile = Profile { id: 1, name: "mint", level: 3 };
+  let label: [int, string] = scoreLabel();
+  let inc: function(int): int = fn (value: int): int => value + 1;
+  let values: int[] = [1, 2, 3];
+
+  for (let i: int = 0; i < 3; i = i + 1) {
+    values[0] = values[0] + values[i];
+  }
+
+  switch (profile.name) {
+    case "mint": {
+      print(label[1]);
+    }
+    default: {
+      print("unknown");
+    }
+  }
+
+  if (values[0] > 1) {
+    print(inc(profile.level));
+  }
 }
 ```
 
@@ -147,9 +182,9 @@ Not supported yet:
 
 - classes
 - generics
-- arrays
 - packages
-- standard library helpers like `print`
+- destructuring assignment
+- object methods
 - CMake generation
 - editor tooling
 - rich type inference
