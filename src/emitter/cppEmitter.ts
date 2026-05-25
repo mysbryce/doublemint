@@ -149,7 +149,11 @@ function emitFunctionDefinition(declaration: FunctionDeclaration): string {
   const lines = [`${emitFunctionSignature(declaration)} {`];
 
   for (const statement of declaration.body) {
-    lines.push(`  ${emitStatement(statement)}`);
+    lines.push(`  ${emitStatement(statement, declaration)}`);
+  }
+
+  if (isVoidMain(declaration) && !hasReturnStatement(declaration)) {
+    lines.push("  return 0;");
   }
 
   lines.push("}");
@@ -160,7 +164,7 @@ function emitFunctionSignature(declaration: FunctionDeclaration): string {
   const params = declaration.params
     .map((param) => `${emitParameterType(param.valueType)} ${param.id}`)
     .join(", ");
-  return `${emitType(declaration.returnType)} ${declaration.id}(${params})`;
+  return `${emitFunctionReturnType(declaration)} ${declaration.id}(${params})`;
 }
 
 function emitParameterType(type: TypeNode): string {
@@ -171,17 +175,42 @@ function emitParameterType(type: TypeNode): string {
   return emitType(type);
 }
 
-function emitStatement(statement: Statement): string {
+function emitStatement(statement: Statement, declaration: FunctionDeclaration): string {
   switch (statement.type) {
     case "VariableDeclaration":
       return emitVariableDeclaration(statement);
     case "ReturnStatement":
+      if (isVoidMain(declaration) && !statement.argument) {
+        return "return 0;";
+      }
+
       return statement.argument ? `return ${emitExpression(statement.argument)};` : "return;";
     case "ExpressionStatement":
       return `${emitExpression(statement.expression)};`;
     default:
       assertNever(statement);
   }
+}
+
+function emitFunctionReturnType(declaration: FunctionDeclaration): string {
+  if (isVoidMain(declaration)) {
+    return "int";
+  }
+
+  return emitType(declaration.returnType);
+}
+
+function isVoidMain(declaration: FunctionDeclaration): boolean {
+  return (
+    declaration.id === "main" &&
+    declaration.params.length === 0 &&
+    declaration.returnType.type === "NamedType" &&
+    declaration.returnType.name === "void"
+  );
+}
+
+function hasReturnStatement(declaration: FunctionDeclaration): boolean {
+  return declaration.body.some((statement) => statement.type === "ReturnStatement");
 }
 
 function emitVariableDeclaration(statement: VariableDeclaration): string {

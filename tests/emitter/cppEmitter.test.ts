@@ -108,4 +108,24 @@ describe("emitCpp", () => {
       "return static_cast<float>(sqrt(x));"
     );
   });
+
+  it("emits valid C++ entrypoint for void main", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      export function main(): void {}
+      `
+    );
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+
+    const result = emitCpp(graph, config);
+    const byPath = new Map(
+      result.artifacts.map((artifact) => [artifact.filepath, artifact.content])
+    );
+
+    expect(byPath.get("build/doublemint/main.hpp")).toContain("int main();");
+    expect(byPath.get("build/doublemint/main.cpp")).toContain("int main() {");
+    expect(byPath.get("build/doublemint/main.cpp")).toContain("return 0;");
+  });
 });
