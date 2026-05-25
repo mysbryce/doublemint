@@ -462,6 +462,8 @@ function inferExpressionType(
       return inferIndexType(environment, scope, expression);
     case "ArrayLiteral":
       return inferArrayLiteralType(environment, scope, expression);
+    case "StructLiteral":
+      return inferStructLiteralType(environment, scope, expression);
     case "CopyExpression":
       return inferExpressionType(environment, scope, expression.argument);
     case "CastExpression":
@@ -629,6 +631,76 @@ function inferArrayLiteralType(
     elementType,
     location: expression.location
   };
+}
+
+function inferStructLiteralType(
+  environment: ModuleEnvironment,
+  scope: Scope,
+  expression: Expression & { type: "StructLiteral" }
+): TypeNode {
+  const literalType = namedType(expression.typeName, expression.location);
+  assertKnownType(environment, literalType);
+  const struct = resolveStruct(environment, literalType);
+
+  if (!struct) {
+    throw new DoublemintDiagnostic({
+      code: "DLM4022",
+      severity: "error",
+      message: `Type "${expression.typeName}" is not a struct.`,
+      location: expression.location
+    });
+  }
+
+  const seenFields = new Set<string>();
+
+  for (let index = 0; index < expression.fields.length; index += 1) {
+    const field = expression.fields[index]!;
+
+    if (seenFields.has(field.id)) {
+      throw new DoublemintDiagnostic({
+        code: "DLM4023",
+        severity: "error",
+        message: `Duplicate struct literal field "${field.id}".`,
+        location: field.location
+      });
+    }
+
+    const expectedField = struct.fields.find((candidate) => candidate.id === field.id);
+    if (!expectedField) {
+      throw new DoublemintDiagnostic({
+        code: "DLM4024",
+        severity: "error",
+        message: `Struct "${struct.id}" has no field "${field.id}".`,
+        location: field.location
+      });
+    }
+
+    if (struct.fields[index]?.id !== field.id) {
+      throw new DoublemintDiagnostic({
+        code: "DLM4025",
+        severity: "error",
+        message: `Struct literal field "${field.id}" must follow declaration order.`,
+        location: field.location
+      });
+    }
+
+    const actualType = inferExpressionType(environment, scope, field.value);
+    assertAssignable(environment, expectedField.valueType, actualType, field.location);
+    seenFields.add(field.id);
+  }
+
+  for (const field of struct.fields) {
+    if (!seenFields.has(field.id)) {
+      throw new DoublemintDiagnostic({
+        code: "DLM4026",
+        severity: "error",
+        message: `Missing struct literal field "${field.id}".`,
+        location: expression.location
+      });
+    }
+  }
+
+  return literalType;
 }
 
 function assertMutableAssignmentTarget(scope: Scope, expression: Expression): void {

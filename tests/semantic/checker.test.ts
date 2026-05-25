@@ -405,4 +405,86 @@ describe("checkModuleGraph", () => {
       code: "DLM4003"
     });
   });
+
+  it("accepts struct object literals", async () => {
+    await expect(
+      checkEntry(`
+        struct Profile {
+          id: int;
+          name: string;
+        }
+
+        function main(): void {
+          let profile: Profile = Profile { id: 1, name: "mint" };
+          print(profile.name);
+        }
+      `)
+    ).resolves.toBeUndefined();
+  });
+
+  it("rejects struct object literals with missing fields", async () => {
+    await expect(
+      checkEntry(`
+        struct Profile {
+          id: int;
+          name: string;
+        }
+
+        function main(): void {
+          let profile: Profile = Profile { id: 1 };
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4026"
+    });
+  });
+
+  it("rejects struct object literals with unknown fields", async () => {
+    await expect(
+      checkEntry(`
+        struct Profile {
+          id: int;
+        }
+
+        function main(): void {
+          let profile: Profile = Profile { id: 1, missing: 2 };
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4024"
+    });
+  });
+
+  it("rejects struct object literals with fields out of order", async () => {
+    await expect(
+      checkEntry(`
+        struct Profile {
+          id: int;
+          name: string;
+        }
+
+        function main(): void {
+          let profile: Profile = Profile { name: "mint", id: 1 };
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4025"
+    });
+  });
+
+  it("rejects struct object literals with mismatched field types", async () => {
+    await expect(
+      checkEntry(`
+        struct Profile {
+          id: int;
+        }
+
+        function main(): void {
+          let profile: Profile = Profile { id: "bad" };
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4014"
+    });
+  });
 });

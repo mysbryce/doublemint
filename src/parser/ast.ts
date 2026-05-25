@@ -151,6 +151,7 @@ export type Expression =
   | MemberExpression
   | IndexExpression
   | ArrayLiteralExpression
+  | StructLiteralExpression
   | CopyExpression
   | CastExpression;
 
@@ -207,6 +208,20 @@ export interface IndexExpression {
 export interface ArrayLiteralExpression {
   type: "ArrayLiteral";
   elements: Expression[];
+  location: SourceLocation;
+}
+
+export interface StructLiteralExpression {
+  type: "StructLiteral";
+  typeName: string;
+  fields: StructLiteralField[];
+  location: SourceLocation;
+}
+
+export interface StructLiteralField {
+  type: "StructLiteralField";
+  id: string;
+  value: Expression;
   location: SourceLocation;
 }
 

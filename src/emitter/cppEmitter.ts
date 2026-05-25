@@ -321,6 +321,8 @@ function emitExpression(expression: Expression, expectedType?: TypeNode): string
       return `${emitExpression(expression.object)}[${emitExpression(expression.index)}]`;
     case "ArrayLiteral":
       return emitArrayLiteral(expression, expectedType);
+    case "StructLiteral":
+      return emitStructLiteral(expression);
     case "CopyExpression":
       return emitExpression(expression.argument);
     case "CastExpression":
@@ -328,6 +330,13 @@ function emitExpression(expression: Expression, expectedType?: TypeNode): string
     default:
       assertNever(expression);
   }
+}
+
+function emitStructLiteral(expression: Expression & { type: "StructLiteral" }): string {
+  const fields = expression.fields
+    .map((field) => `.${field.id} = ${emitExpression(field.value)}`)
+    .join(", ");
+  return `${expression.typeName}{${fields}}`;
 }
 
 function emitArrayLiteral(
@@ -470,6 +479,8 @@ function expressionUsesPrint(expression: Expression): boolean {
       return expressionUsesPrint(expression.object) || expressionUsesPrint(expression.index);
     case "ArrayLiteral":
       return expression.elements.some(expressionUsesPrint);
+    case "StructLiteral":
+      return expression.fields.some((field) => expressionUsesPrint(field.value));
     case "CopyExpression":
       return expressionUsesPrint(expression.argument);
     case "CastExpression":

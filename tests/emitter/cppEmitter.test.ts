@@ -239,4 +239,35 @@ describe("emitCpp", () => {
       "for (int i = 0; i <= 3; i = i + 1) {"
     );
   });
+
+  it("emits struct object literals", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      struct Profile {
+        id: int;
+        name: string;
+      }
+
+      export function main(): void {
+        let profile: Profile = Profile { id: 1, name: "mint" };
+        print(profile.name);
+      }
+      `
+    );
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+
+    const result = emitCpp(graph, config);
+    const byPath = new Map(
+      result.artifacts.map((artifact) => [artifact.filepath, artifact.content])
+    );
+
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      'Profile profile = Profile{.id = 1, .name = "mint"};'
+    );
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      "std::cout << profile.name << std::endl;"
+    );
+  });
 });

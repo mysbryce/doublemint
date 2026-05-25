@@ -11,6 +11,7 @@ import type {
   Statement,
   StructDeclaration,
   StructField,
+  StructLiteralField,
   TypeAliasDeclaration,
   TypeNode,
   VariableDeclaration
@@ -553,6 +554,10 @@ class Parser {
   private primary(): Expression {
     if (this.match("IDENTIFIER")) {
       const id = this.previous();
+      if (this.match("LEFT_BRACE")) {
+        return this.structLiteral(id);
+      }
+
       return {
         type: "Identifier",
         name: id.lexeme,
@@ -618,6 +623,31 @@ class Parser {
     }
 
     throw this.error(this.peek(), "DLM2039", `Expected expression but found ${this.peek().kind}.`);
+  }
+
+  private structLiteral(typeToken: Token): Expression {
+    const fields: StructLiteralField[] = [];
+
+    if (!this.check("RIGHT_BRACE")) {
+      do {
+        const id = this.consume("IDENTIFIER", "DLM2054", "Expected struct literal field name.");
+        this.consume("COLON", "DLM2055", "Expected ':' after struct literal field name.");
+        fields.push({
+          type: "StructLiteralField" as const,
+          id: id.lexeme,
+          value: this.expression(),
+          location: id.location
+        });
+      } while (this.match("COMMA"));
+    }
+
+    this.consume("RIGHT_BRACE", "DLM2056", "Expected '}' after struct literal.");
+    return {
+      type: "StructLiteral",
+      typeName: typeToken.lexeme,
+      fields,
+      location: typeToken.location
+    };
   }
 
   private typeNode(): TypeNode {

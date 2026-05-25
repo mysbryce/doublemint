@@ -186,4 +186,34 @@ describe("parseProgram", () => {
       ]
     });
   });
+
+  it("parses struct object literals", () => {
+    const program = parse(`
+      struct Profile {
+        id: int;
+        name: string;
+      }
+
+      function main(): void {
+        let profile: Profile = Profile { id: 1, name: "mint" };
+      }
+    `);
+
+    expect(program.body[1]).toMatchObject({
+      type: "FunctionDeclaration",
+      body: [
+        {
+          type: "VariableDeclaration",
+          init: {
+            type: "StructLiteral",
+            typeName: "Profile",
+            fields: [
+              { id: "id", value: { type: "Literal", value: 1 } },
+              { id: "name", value: { type: "Literal", value: "mint" } }
+            ]
+          }
+        }
+      ]
+    });
+  });
 });

@@ -1,3 +1,9 @@
+struct Profile {
+  id: int;
+  name: string;
+  level: int;
+}
+
 function firstValue(): int {
   let values: int[] = [1, 2, 3];
   values[0] = values[1];
@@ -27,7 +33,12 @@ function showBranch(enabled: bool): void {
 }
 
 export function main(): void {
+  let profile: Profile = Profile { id: 7, name: "mint", level: 3 };
+  profile.level = profile.level + 1;
+
   print("doublemint language tour");
+  print(profile.name);
+  print(profile.level);
   print(firstValue());
   print(loopTotal());
   showBranch(true);
