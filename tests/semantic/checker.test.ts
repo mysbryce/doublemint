@@ -594,4 +594,40 @@ describe("checkModuleGraph", () => {
       code: "DLM4003"
     });
   });
+
+  it("accepts lambdas stored in function-typed variables", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          let inc: function(int): int = fn (value: int): int => value + 1;
+          print(inc(2));
+        }
+      `)
+    ).resolves.toBeUndefined();
+  });
+
+  it("rejects lambdas with mismatched body return types", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          let bad: function(int): int = fn (value: int): int => "bad";
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4014"
+    });
+  });
+
+  it("rejects function-typed calls with bad argument types", async () => {
+    await expect(
+      checkEntry(`
+        function main(): void {
+          let inc: function(int): int = fn (value: int): int => value + 1;
+          inc("bad");
+        }
+      `)
+    ).rejects.toMatchObject({
+      code: "DLM4014"
+    });
+  });
 });

@@ -50,6 +50,7 @@ function describeName(name: string): void {
 export function main(): void {
   let profile: Profile = Profile { id: 7, name: "mint", level: 3 };
   let pair: [int, string] = identityPair();
+  let inc: function(int): int = fn (value: int): int => value + 1;
   profile.level = profile.level + 1;
 
   print("doublemint language tour");
@@ -57,6 +58,7 @@ export function main(): void {
   print(profile.level);
   print(pair[0]);
   print(pair[1]);
+  print(inc(6));
   print(firstValue());
   print(loopTotal());
   describeName(profile.name);

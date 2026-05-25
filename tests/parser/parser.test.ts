@@ -290,4 +290,40 @@ describe("parseProgram", () => {
       ]
     });
   });
+
+  it("parses lambda expressions and function types", () => {
+    const program = parse(`
+      function main(): void {
+        let inc: function(int): int = fn (value: int): int => value + 1;
+        print(inc(2));
+      }
+    `);
+
+    expect(program.body[0]).toMatchObject({
+      type: "FunctionDeclaration",
+      body: [
+        {
+          type: "VariableDeclaration",
+          valueType: {
+            type: "FunctionType",
+            params: [{ name: "int" }],
+            returnType: { name: "int" }
+          },
+          init: {
+            type: "LambdaExpression",
+            params: [{ id: "value", valueType: { name: "int" } }],
+            returnType: { name: "int" }
+          }
+        },
+        {
+          type: "ExpressionStatement",
+          expression: {
+            type: "CallExpression",
+            callee: { type: "Identifier", name: "print" },
+            arguments: [{ type: "CallExpression" }]
+          }
+        }
+      ]
+    });
+  });
 });

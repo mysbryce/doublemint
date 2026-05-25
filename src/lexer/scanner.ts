@@ -13,6 +13,7 @@ const keywords = new Map<string, TokenKind>([
   ["copy", "COPY"],
   ["struct", "STRUCT"],
   ["function", "FUNCTION"],
+  ["fn", "FN"],
   ["return", "RETURN"],
   ["as", "AS"],
   ["if", "IF"],
@@ -106,7 +107,9 @@ class Scanner {
         this.addToken("STAR");
         break;
       case "=":
-        this.addToken(this.match("=") ? "EQUAL_EQUAL" : "EQUAL");
+        this.addToken(
+          this.match(">") ? "ARROW" : this.match("=") ? "EQUAL_EQUAL" : "EQUAL"
+        );
         break;
       case "!":
         if (!this.match("=")) {

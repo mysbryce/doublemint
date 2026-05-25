@@ -62,6 +62,7 @@ function emitHeader(
   const lines: string[] = [
     "#pragma once",
     "",
+    "#include <functional>",
     "#include <string>",
     "#include <tuple>",
     "#include <vector>",
@@ -378,6 +379,8 @@ function emitExpression(expression: Expression, expectedType?: TypeNode): string
       return emitTupleLiteral(expression, expectedType);
     case "StructLiteral":
       return emitStructLiteral(expression);
+    case "LambdaExpression":
+      return emitLambdaExpression(expression);
     case "CopyExpression":
       return emitExpression(expression.argument);
     case "CastExpression":
@@ -385,6 +388,16 @@ function emitExpression(expression: Expression, expectedType?: TypeNode): string
     default:
       assertNever(expression);
   }
+}
+
+function emitLambdaExpression(expression: Expression & { type: "LambdaExpression" }): string {
+  const params = expression.params
+    .map((param) => `${emitType(param.valueType)} ${param.id}`)
+    .join(", ");
+  return `[=](${params}) -> ${emitType(expression.returnType)} { return ${emitExpressionForExpectedType(
+    expression.body,
+    expression.returnType
+  )}; }`;
 }
 
 function emitTupleLiteral(
@@ -458,6 +471,10 @@ function emitType(type: TypeNode): string {
 
   if (type.type === "ArrayType") {
     return `std::vector<${emitType(type.elementType)}>`;
+  }
+
+  if (type.type === "FunctionType") {
+    return `std::function<${emitType(type.returnType)}(${type.params.map(emitType).join(", ")})>`;
   }
 
   switch (type.name) {
@@ -568,6 +585,8 @@ function expressionUsesPrint(expression: Expression): boolean {
       return expression.elements.some(expressionUsesPrint);
     case "StructLiteral":
       return expression.fields.some((field) => expressionUsesPrint(field.value));
+    case "LambdaExpression":
+      return expressionUsesPrint(expression.body);
     case "CopyExpression":
       return expressionUsesPrint(expression.argument);
     case "CastExpression":

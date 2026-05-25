@@ -334,4 +334,31 @@ describe("emitCpp", () => {
     );
     expect(byPath.get("build/doublemint/main.cpp")).toContain("else {");
   });
+
+  it("emits lambda expressions and function types", async () => {
+    const entry = await writeModule(
+      "main.dlm",
+      `
+      export function main(): void {
+        let inc: function(int): int = fn (value: int): int => value + 1;
+        print(inc(2));
+      }
+      `
+    );
+    const graph = await resolveModuleGraph(entry);
+    checkModuleGraph(graph);
+
+    const result = emitCpp(graph, config);
+    const byPath = new Map(
+      result.artifacts.map((artifact) => [artifact.filepath, artifact.content])
+    );
+
+    expect(byPath.get("build/doublemint/main.hpp")).toContain("#include <functional>");
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      "std::function<int(int)> inc = [=](int value) -> int { return value + 1; };"
+    );
+    expect(byPath.get("build/doublemint/main.cpp")).toContain(
+      "std::cout << inc(2) << std::endl;"
+    );
+  });
 });

@@ -69,7 +69,7 @@ export interface Parameter {
   location: SourceLocation;
 }
 
-export type TypeNode = NamedTypeNode | TupleTypeNode | ArrayTypeNode;
+export type TypeNode = NamedTypeNode | TupleTypeNode | ArrayTypeNode | FunctionTypeNode;
 
 export interface NamedTypeNode {
   type: "NamedType";
@@ -86,6 +86,13 @@ export interface TupleTypeNode {
 export interface ArrayTypeNode {
   type: "ArrayType";
   elementType: TypeNode;
+  location: SourceLocation;
+}
+
+export interface FunctionTypeNode {
+  type: "FunctionType";
+  params: TypeNode[];
+  returnType: TypeNode;
   location: SourceLocation;
 }
 
@@ -169,6 +176,7 @@ export type Expression =
   | ArrayLiteralExpression
   | TupleLiteralExpression
   | StructLiteralExpression
+  | LambdaExpression
   | CopyExpression
   | CastExpression;
 
@@ -247,6 +255,14 @@ export interface StructLiteralField {
   type: "StructLiteralField";
   id: string;
   value: Expression;
+  location: SourceLocation;
+}
+
+export interface LambdaExpression {
+  type: "LambdaExpression";
+  params: Parameter[];
+  returnType: TypeNode;
+  body: Expression;
   location: SourceLocation;
 }
 

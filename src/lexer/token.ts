@@ -10,6 +10,7 @@ export type TokenKind =
   | "COPY"
   | "STRUCT"
   | "FUNCTION"
+  | "FN"
   | "RETURN"
   | "AS"
   | "IF"

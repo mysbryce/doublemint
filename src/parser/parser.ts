@@ -603,6 +603,10 @@ class Parser {
   }
 
   private primary(): Expression {
+    if (this.match("FN")) {
+      return this.lambdaExpression();
+    }
+
     if (this.match("IDENTIFIER")) {
       const id = this.previous();
       if (this.match("LEFT_BRACE")) {
@@ -690,6 +694,25 @@ class Parser {
     throw this.error(this.peek(), "DLM2039", `Expected expression but found ${this.peek().kind}.`);
   }
 
+  private lambdaExpression(): Expression {
+    const lambdaToken = this.previous();
+    this.consume("LEFT_PAREN", "DLM2066", "Expected '(' after fn.");
+    const params = this.parameters();
+    this.consume("RIGHT_PAREN", "DLM2067", "Expected ')' after lambda parameters.");
+    this.consume("COLON", "DLM2068", "Expected ':' before lambda return type.");
+    const returnType = this.typeNode();
+    this.consume("ARROW", "DLM2069", "Expected '=>' before lambda body.");
+    const body = this.expression();
+
+    return {
+      type: "LambdaExpression",
+      params,
+      returnType,
+      body,
+      location: lambdaToken.location
+    };
+  }
+
   private structLiteral(typeToken: Token): Expression {
     const fields: StructLiteralField[] = [];
 
@@ -716,6 +739,20 @@ class Parser {
   }
 
   private typeNode(): TypeNode {
+    if (this.match("FUNCTION")) {
+      const functionToken = this.previous();
+      this.consume("LEFT_PAREN", "DLM2070", "Expected '(' after function type.");
+      const params = this.typeList("RIGHT_PAREN");
+      this.consume("RIGHT_PAREN", "DLM2071", "Expected ')' after function type parameters.");
+      this.consume("COLON", "DLM2072", "Expected ':' before function return type.");
+      return {
+        type: "FunctionType",
+        params,
+        returnType: this.typeNode(),
+        location: functionToken.location
+      };
+    }
+
     if (this.match("LEFT_BRACKET")) {
       const tupleToken = this.previous();
       const elements: TypeNode[] = [];
@@ -751,6 +788,20 @@ class Parser {
     }
 
     return typeNode;
+  }
+
+  private typeList(endKind: TokenKind): TypeNode[] {
+    const types: TypeNode[] = [];
+
+    if (this.check(endKind)) {
+      return types;
+    }
+
+    do {
+      types.push(this.typeNode());
+    } while (this.match("COMMA"));
+
+    return types;
   }
 
   private identifierList(context: string): string[] {

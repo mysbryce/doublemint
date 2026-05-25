@@ -485,6 +485,8 @@ function inferExpressionType(
       return inferTupleLiteralType(environment, scope, expression);
     case "StructLiteral":
       return inferStructLiteralType(environment, scope, expression);
+    case "LambdaExpression":
+      return inferLambdaType(environment, scope, expression);
     case "CopyExpression":
       return inferExpressionType(environment, scope, expression.argument);
     case "CastExpression":
@@ -514,16 +516,7 @@ function inferCallType(
   scope: Scope,
   expression: Expression & { type: "CallExpression" }
 ): TypeNode {
-  if (expression.callee.type !== "Identifier") {
-    throw new DoublemintDiagnostic({
-      code: "DLM4006",
-      severity: "error",
-      message: "Only direct function calls are supported.",
-      location: expression.location
-    });
-  }
-
-  if (expression.callee.name === "print") {
+  if (expression.callee.type === "Identifier" && expression.callee.name === "print") {
     if (expression.arguments.length !== 1) {
       throw new DoublemintDiagnostic({
         code: "DLM4017",
@@ -537,33 +530,70 @@ function inferCallType(
     return namedType("void", expression.location);
   }
 
-  const callee = scope.lookup(expression.callee.name);
+  if (expression.callee.type === "Identifier") {
+    const callee = scope.lookup(expression.callee.name);
 
-  if (!callee?.functionType) {
+    if (callee?.functionType) {
+      validateCallArguments(
+        environment,
+        scope,
+        callee.name,
+        callee.functionType.params,
+        expression.arguments,
+        expression.location
+      );
+
+      return callee.functionType.returnType;
+    }
+  }
+
+  const calleeType = inferExpressionType(environment, scope, expression.callee);
+  if (calleeType.type !== "FunctionType") {
     throw new DoublemintDiagnostic({
       code: "DLM4007",
       severity: "error",
-      message: `"${expression.callee.name}" is not a function.`,
+      message: `"${callableName(expression.callee)}" is not a function.`,
       location: expression.callee.location
     });
   }
 
-  if (callee.functionType.params.length !== expression.arguments.length) {
+  validateCallArguments(
+    environment,
+    scope,
+    callableName(expression.callee),
+    calleeType.params,
+    expression.arguments,
+    expression.location
+  );
+  return calleeType.returnType;
+}
+
+function validateCallArguments(
+  environment: ModuleEnvironment,
+  scope: Scope,
+  name: string,
+  params: TypeNode[],
+  args: Expression[],
+  location: SourceLocation
+): void {
+  if (params.length !== args.length) {
     throw new DoublemintDiagnostic({
       code: "DLM4008",
       severity: "error",
-      message: `Function "${callee.name}" expects ${callee.functionType.params.length} arguments but got ${expression.arguments.length}.`,
-      location: expression.location
+      message: `Function "${name}" expects ${params.length} arguments but got ${args.length}.`,
+      location
     });
   }
 
-  for (let index = 0; index < expression.arguments.length; index += 1) {
-    const actualType = inferExpressionType(environment, scope, expression.arguments[index]!);
-    const expectedType = callee.functionType.params[index]!;
-    assertAssignable(environment, expectedType, actualType, expression.arguments[index]!.location);
+  for (let index = 0; index < args.length; index += 1) {
+    const actualType = inferExpressionType(environment, scope, args[index]!);
+    const expectedType = params[index]!;
+    assertAssignable(environment, expectedType, actualType, args[index]!.location);
   }
+}
 
-  return callee.functionType.returnType;
+function callableName(expression: Expression): string {
+  return expression.type === "Identifier" ? expression.name : "<expression>";
 }
 
 function inferMemberType(
@@ -766,6 +796,36 @@ function inferStructLiteralType(
   return literalType;
 }
 
+function inferLambdaType(
+  environment: ModuleEnvironment,
+  scope: Scope,
+  expression: Expression & { type: "LambdaExpression" }
+): TypeNode {
+  assertKnownType(environment, expression.returnType);
+  const lambdaScope = scope.createChild();
+
+  for (const param of expression.params) {
+    assertKnownType(environment, param.valueType);
+    lambdaScope.declare({
+      name: param.id,
+      kind: "variable",
+      valueType: param.valueType,
+      mutability: "immutable",
+      location: param.location
+    });
+  }
+
+  const bodyType = inferExpressionType(environment, lambdaScope, expression.body);
+  assertAssignable(environment, expression.returnType, bodyType, expression.body.location);
+
+  return {
+    type: "FunctionType",
+    params: expression.params.map((param) => param.valueType),
+    returnType: expression.returnType,
+    location: expression.location
+  };
+}
+
 function assertMutableAssignmentTarget(scope: Scope, expression: Expression): void {
   const root = assignmentRoot(expression);
 
@@ -831,6 +891,14 @@ function assertKnownType(environment: ModuleEnvironment, type: TypeNode): void {
     return;
   }
 
+  if (type.type === "FunctionType") {
+    for (const param of type.params) {
+      assertKnownType(environment, param);
+    }
+    assertKnownType(environment, type.returnType);
+    return;
+  }
+
   if (builtInTypes.has(type.name) || type.name === "number") {
     return;
   }
@@ -881,6 +949,21 @@ function assertAssignable(
     }
   }
 
+  if (expected.type === "FunctionType" && actual.type === "FunctionType") {
+    if (expected.params.length === actual.params.length) {
+      for (let index = 0; index < expected.params.length; index += 1) {
+        assertAssignable(
+          environment,
+          expected.params[index]!,
+          actual.params[index]!,
+          location
+        );
+      }
+      assertAssignable(environment, expected.returnType, actual.returnType, location);
+      return;
+    }
+  }
+
   if (isNumericType(environment, expected) && isNumericType(environment, actual)) {
     return;
   }
@@ -904,6 +987,12 @@ function canonicalTypeName(environment: ModuleEnvironment, type: TypeNode): stri
 
   if (type.type === "ArrayType") {
     return `${canonicalTypeName(environment, type.elementType)}[]`;
+  }
+
+  if (type.type === "FunctionType") {
+    return `function(${type.params
+      .map((param) => canonicalTypeName(environment, param))
+      .join(",")}):${canonicalTypeName(environment, type.returnType)}`;
   }
 
   if (type.name === "number") {
@@ -1005,6 +1094,10 @@ function typeToString(type: TypeNode): string {
 
   if (type.type === "ArrayType") {
     return `${typeToString(type.elementType)}[]`;
+  }
+
+  if (type.type === "FunctionType") {
+    return `function(${type.params.map(typeToString).join(", ")}): ${typeToString(type.returnType)}`;
   }
 
   return type.name;
