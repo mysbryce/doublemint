@@ -219,7 +219,7 @@ describe.skipIf(!hasGpp)("mint extended libraries", () => {
 
   it("emits ansi escapes for terminal styling", async () => {
     const result = await buildAndRun(`
-      import { Terminal } from "mint:ui";
+      import { Terminal } from "mint:term";
       import { println } from "mint:io";
 
       export function main(): void {

@@ -1,4 +1,4 @@
-import { Terminal } from "mint:ui";
+import { Terminal } from "mint:term";
 import { print, println } from "mint:io";
 
 export function main(): void {

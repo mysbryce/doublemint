@@ -1027,7 +1027,7 @@ const RUNTIME_SOURCE_MODULES: Record<string, string> = {
   "mint:memory": "memory",
   "mint:simd": "simd",
   "mint:db": "db",
-  "mint:ui": "ui"
+  "mint:term": "term"
 };
 
 function lookupRuntime(map: Record<string, string>, key: string): string {

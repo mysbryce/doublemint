@@ -720,7 +720,7 @@
         }
       ]
     },
-    "mint:ui": {
+    "mint:term": {
       "exports": [
         {
           "name": "Terminal",

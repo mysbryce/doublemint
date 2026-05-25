@@ -426,11 +426,11 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
     }
   ],
   [
-    "mint:ui",
+    "mint:term",
     {
       builtin: true,
       builtinIncludes: ["<iostream>", "<sstream>", "<string>", "<string_view>"],
-      program: emptyProgram("mint:ui"),
+      program: emptyProgram("mint:term"),
       imports: [],
       exports: new Map([
         [
