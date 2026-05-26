@@ -1,5 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
-import { dirname, isAbsolute, resolve } from "node:path";
+import { createHash } from "node:crypto";
+import { writeFileSync } from "node:fs";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { mkdir } from "node:fs/promises";
 import type { DoublemintConfig } from "./config.js";
 import { DoublemintDiagnostic } from "../diagnostics/diagnostic.js";
@@ -21,7 +23,8 @@ export async function buildNativeExecutable(
   config: DoublemintConfig,
   options: NativeBuildOptions
 ): Promise<NativeBuildResult> {
-  const compiler = selectCompiler(options.compiler ?? config.compiler);
+  const cxx = selectCompiler(options.compiler ?? config.compiler);
+  const cc = selectCCompiler(cxx);
   const outputPath = resolve(options.outputPath);
   const cppFiles = emitResult.artifacts
     .filter((artifact) => artifact.filepath.endsWith(".cpp"))
@@ -29,18 +32,78 @@ export async function buildNativeExecutable(
   const nativeSources = (config.nativeSources ?? []).map((source) =>
     isAbsolute(source) ? source : resolve(source)
   );
-  const args = [
-    `-std=${config.cppStandard}`,
-    `-${config.optimization}`,
-    "-Wall",
-    "-Wextra",
-    ...(config.warningsAsErrors ? ["-Werror"] : []),
+
+  const cFiles = emitResult.nativeSources.filter((file) => file.toLowerCase().endsWith(".c"));
+  const cppFromVendor = emitResult.nativeSources.filter((file) => !file.toLowerCase().endsWith(".c"));
+  const allCpp = [...cppFromVendor, ...nativeSources, ...cppFiles];
+
+  const objDir = join(dirname(outputPath), ".doublemint-obj");
+  await mkdir(objDir, { recursive: true });
+
+  const includeFlags = [
     ...config.includeDirs.map((includeDir) => `-I${includeDir}`),
     ...Array.from(new Set(cppFiles.map((filepath) => `-I${dirname(filepath)}`))),
-    ...emitResult.includeDirs.map((includeDir) => `-I${includeDir}`),
-    ...emitResult.defines.map((define) => `-D${define}`),
-    ...emitResult.compileFlags,
-    ...interleaveLanguageFlags([...emitResult.nativeSources, ...nativeSources, ...cppFiles]),
+    ...emitResult.includeDirs.map((includeDir) => `-I${includeDir}`)
+  ];
+  const defineFlags = emitResult.defines.map((define) => `-D${define}`);
+  const extraFlags = emitResult.compileFlags;
+
+  const objects: string[] = [];
+
+  for (const source of cFiles) {
+    const obj = objectPathFor(objDir, source);
+    const args = [
+      "-std=c11",
+      `-${config.optimization}`,
+      ...includeFlags,
+      ...defineFlags,
+      ...extraFlags,
+      "-c",
+      source,
+      "-o",
+      obj
+    ];
+    if (process.env.DOUBLEMINT_DEBUG_COMPILE) {
+      console.error(`[doublemint] ${cc}:`, source);
+    }
+    await runCompiler(cc, args);
+    objects.push(obj);
+  }
+
+  for (const source of allCpp) {
+    const obj = objectPathFor(objDir, source);
+    const args = [
+      `-std=${config.cppStandard}`,
+      `-${config.optimization}`,
+      "-Wall",
+      "-Wextra",
+      ...(config.warningsAsErrors ? ["-Werror"] : []),
+      ...includeFlags,
+      ...defineFlags,
+      ...extraFlags,
+      "-c",
+      source,
+      "-o",
+      obj
+    ];
+    if (process.env.DOUBLEMINT_DEBUG_COMPILE) {
+      console.error(`[doublemint] ${cxx}:`, source);
+    }
+    await runCompiler(cxx, args);
+    objects.push(obj);
+  }
+
+  const responseFile = join(objDir, "link.rsp");
+  writeFileSync(
+    responseFile,
+    objects.map((obj) => `"${obj.replace(/\\/gu, "/")}"`).join("\n"),
+    "utf8"
+  );
+
+  const linkArgs = [
+    `-std=${config.cppStandard}`,
+    `-${config.optimization}`,
+    `@${responseFile}`,
     ...(config.libraryDirs ?? []).map((libraryDir) => `-L${libraryDir}`),
     ...(config.linkLibraries ?? []).map((library) => `-l${library}`),
     ...emitResult.linkLibraries.map((library) => `-l${library}`),
@@ -51,32 +114,21 @@ export async function buildNativeExecutable(
 
   await mkdir(dirname(outputPath), { recursive: true });
   if (process.env.DOUBLEMINT_DEBUG_COMPILE) {
-    console.error("[doublemint] compile args:", JSON.stringify(args, null, 2));
+    console.error(`[doublemint] link with ${cxx}, objects=${objects.length}`);
   }
-  await runCompiler(compiler, args);
+  await runCompiler(cxx, linkArgs);
 
   return {
-    compiler,
+    compiler: cxx,
     outputPath,
-    args
+    args: linkArgs
   };
 }
 
-function interleaveLanguageFlags(files: string[]): string[] {
-  const result: string[] = [];
-  let lastLang: "c" | "cpp" | null = null;
-  for (const filepath of files) {
-    const lang: "c" | "cpp" = filepath.toLowerCase().endsWith(".c") ? "c" : "cpp";
-    if (lang !== lastLang) {
-      result.push("-x", lang === "c" ? "c" : "c++");
-      lastLang = lang;
-    }
-    result.push(filepath);
-  }
-  if (lastLang !== null) {
-    result.push("-x", "none");
-  }
-  return result;
+function objectPathFor(objDir: string, source: string): string {
+  const base = source.replace(/\\/gu, "/").split("/").pop() ?? "src";
+  const hash = createHash("md5").update(source).digest("hex").slice(0, 8);
+  return join(objDir, `${base}.${hash}.o`);
 }
 
 export function selectCompiler(preferred: string): string {
@@ -90,6 +142,24 @@ export function selectCompiler(preferred: string): string {
     }
   }
 
+  return preferred;
+}
+
+function selectCCompiler(cxxCompiler: string): string {
+  const mapping: Record<string, string> = {
+    "g++": "gcc",
+    "clang++": "clang",
+    "c++": "cc"
+  };
+  const preferred = mapping[cxxCompiler] ?? cxxCompiler.replace(/\+\+$/u, "");
+  if (commandExists(preferred)) {
+    return preferred;
+  }
+  for (const fallback of ["gcc", "clang", "cc"]) {
+    if (fallback !== preferred && commandExists(fallback)) {
+      return fallback;
+    }
+  }
   return preferred;
 }
 

@@ -17,6 +17,24 @@ finished and the surface needs to clear MinGW.
   same g++ invocation can compile both languages.
 - `mint:http` is still on cpp-httplib so 136/136 tests stay green.
 
+## Progress update (session 2)
+
+- Two-pass compile is **landed** in `src/core/nativeCompiler.ts`. gcc
+  compiles every `.c` to its own `.o`, g++ compiles every `.cpp` to
+  its own `.o`, and a final g++ invocation links the lot. Object
+  files live in `<outDir>/.doublemint-obj/<basename>.<hash>.o`. The
+  final link reads the object list from a response file
+  (`link.rsp`) to dodge the Windows command-line length cap.
+- `selectCCompiler(cxxCompiler)` maps `g++` -> `gcc`, `clang++` ->
+  `clang`, `c++` -> `cc`, with the same `commandExists` fallback
+  ladder we use for C++.
+- Compile half now succeeds on Windows: libuv .c files build via
+  gcc cleanly, uSockets .c files (including
+  `src/eventing/libuv.c` under the LIBUS_USE_LIBUV define) build
+  cleanly, and `main.cpp` (with the uWS::App wrapper) compiles via
+  g++. All 44 objects land in the obj cache for a clean http example
+  attempt.
+
 ## What blocked the swap mid-session
 
 When I attached uWebSockets to mint:http and tried to build the
@@ -43,9 +61,51 @@ classes of failure showed up in the same g++ invocation:
    cause as (2): the .c files have to compile via gcc.
 
 The honest fix is to **split the compile into two passes** (gcc for
-`.c`, g++ for `.cpp`, link with g++). That is the next session's first
-job, because once it lands the same compile arguments we already pass
-should flow through cleanly.
+`.c`, g++ for `.cpp`, link with g++). That landed this session.
+
+## New blocker (session 2) — linker silent exit 5
+
+With 44 .o files compiled cleanly, `g++` link reports nothing on
+stderr except `collect2.exe: error: ld returned 5 exit status`.
+Running `ld` directly emits the real diagnostics (1,800+ lines of
+undefined references like `__imp__assert`, `strlen`, `memcpy`,
+`std::cout`, `vtable for __cxxabiv1::__si_class_type_info`),
+so the wrapper layer is hiding the symbol issues somehow.
+
+The undefined refs themselves suggest the CRT + libstdc++ links
+aren't being satisfied:
+
+- libuv's `assert()` macro expands to `__imp__assert`, which UCRT
+  exposes as `_assert` / `_wassert`. Either lib mismatch or missing
+  `-DNDEBUG` (tried -DNDEBUG; didn't help).
+- C++ standard library symbols missing — should be auto-pulled by
+  g++ but apparently aren't reaching the response-file path.
+
+### What the next session should investigate first
+
+1. Reproduce by hand: copy the `link.rsp` content into a shell and
+   run `g++ -v` with it to see exactly which libraries collect2
+   passes to ld. Compare against what's missing.
+2. Try `-Wl,--print-map -Wl,Map.txt` so even if ld returns 5 we
+   capture a partial map.
+3. Try the response-file with absolute paths but plain spaces
+   instead of quoted, in case ld's response parser breaks on
+   `"D:/..."` style entries on MinGW.
+4. As a fallback that's nearly guaranteed to work: collapse the obj
+   list into a thin archive via `ar rcsT libdoublemint_http.a *.o`
+   and link the archive instead of the response file. ld's archive
+   path is the most battle-tested input.
+5. If still stuck, drop libuv files we aren't actually using
+   (process-stdio.c, getaddrinfo.c, dl.c may be safe to omit for a
+   pure HTTP server) and see whether the link works with a smaller
+   surface, which would localise the bad object.
+
+## Reverted (again) so the suite stays green
+
+After hitting the linker exit-5, the mint:http rewrite + builtinNative
+block + embed-runtime.mjs cpp-httplib prepend were reverted in the
+working tree. The same drafts as session 1 still apply; the only
+difference now is that the two-pass compile is already in place.
 
 ## Plan for next session
 
