@@ -1218,7 +1218,8 @@ const RUNTIME_SOURCE_MODULES: Record<string, string> = {
   "mint:array": "array",
   "mint:math": "math",
   "mint:base64": "base64",
-  "mint:sql": "sql"
+  "mint:sql": "sql",
+  "mint:test": "test"
 };
 
 function lookupRuntime(map: Record<string, string>, key: string): string {

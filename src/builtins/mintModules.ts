@@ -201,6 +201,30 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
     }
   ],
   [
+    "mint:test",
+    {
+      builtin: true,
+      builtinIncludes: ["<exception>", "<functional>", "<iostream>", "<string>", "<string_view>", "<vector>"],
+      program: emptyProgram("mint:test"),
+      imports: [],
+      exports: new Map([
+        [
+          "Test",
+          namespaceExport("Test", [
+            functionMember("run", [namedType("string"), functionType([], namedType("void"))], namedType("void"), "__doublemint_test_run"),
+            functionMember("expectTrue", [namedType("bool"), namedType("string")], namedType("void"), "__doublemint_test_expect_true"),
+            functionMember("expectInt", [namedType("int"), namedType("int"), namedType("string")], namedType("void"), "__doublemint_test_expect_int"),
+            functionMember("expectString", [namedType("string"), namedType("string"), namedType("string")], namedType("void"), "__doublemint_test_expect_string"),
+            functionMember("expectBool", [namedType("bool"), namedType("bool"), namedType("string")], namedType("void"), "__doublemint_test_expect_bool"),
+            functionMember("report", [], namedType("int"), "__doublemint_test_report"),
+            functionMember("passed", [], namedType("int"), "__doublemint_test_passed"),
+            functionMember("failed", [], namedType("int"), "__doublemint_test_failed")
+          ])
+        ]
+      ])
+    }
+  ],
+  [
     "mint:base64",
     {
       builtin: true,

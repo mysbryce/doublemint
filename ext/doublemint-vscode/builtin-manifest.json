@@ -241,6 +241,82 @@
         }
       ]
     },
+    "mint:test": {
+      "exports": [
+        {
+          "name": "Test",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "run",
+              "kind": "function",
+              "params": [
+                "string",
+                "fn(): void"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "expectTrue",
+              "kind": "function",
+              "params": [
+                "bool",
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "expectInt",
+              "kind": "function",
+              "params": [
+                "int",
+                "int",
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "expectString",
+              "kind": "function",
+              "params": [
+                "string",
+                "string",
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "expectBool",
+              "kind": "function",
+              "params": [
+                "bool",
+                "bool",
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "report",
+              "kind": "function",
+              "params": [],
+              "returnType": "int"
+            },
+            {
+              "name": "passed",
+              "kind": "function",
+              "params": [],
+              "returnType": "int"
+            },
+            {
+              "name": "failed",
+              "kind": "function",
+              "params": [],
+              "returnType": "int"
+            }
+          ]
+        }
+      ]
+    },
     "mint:base64": {
       "exports": [
         {
