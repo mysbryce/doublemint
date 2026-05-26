@@ -16,46 +16,41 @@ let tempDir: string;
 const hasGpp = spawnSync("where.exe", ["g++"], { shell: true }).status === 0;
 
 beforeEach(async () => {
-  tempDir = await mkdtemp(join(tmpdir(), "doublemint-match-"));
+  tempDir = await mkdtemp(join(tmpdir(), "doublemint-guard-"));
 });
 
 afterEach(async () => {
   await rm(tempDir, { recursive: true, force: true });
 });
 
-describe.skipIf(!hasGpp)("match statement", () => {
-  it("dispatches on int literals, enum variants, and a wildcard arm", async () => {
+describe.skipIf(!hasGpp)("match arm guards", () => {
+  it("dispatches with guards in both statement and expression form", async () => {
     const entry = join(tempDir, "main.dlm");
     await writeFile(
       entry,
       `
       import { println } from "mint:io";
 
-      enum Day { Mon, Tue, Wed, Fri }
-
       export function classify(n: int): string {
-        match (n) {
-          0 => { return "zero"; },
-          1 => { return "one"; },
-          _ => { return "many"; }
-        }
-        return "unreachable";
+        return match (n) {
+          _ if n < 0 => "negative",
+          0 => "zero",
+          _ if n < 10 => "small",
+          _ => "big"
+        };
       }
 
       export function main(): void {
+        println(classify(-3));
         println(classify(0));
-        println(classify(1));
-        println(classify(99));
+        println(classify(5));
+        println(classify(100));
 
-        let d: Day = Day.Wed;
-        match (d) {
-          Day.Mon => println("monday"),
-          Day.Tue => println("tuesday"),
-          Day.Wed => {
-            println("wednesday");
-            println("midweek");
-          }
-          _ => println("other")
+        let v: int = 7;
+        match (v) {
+          _ if v < 5 => println("small"),
+          _ if v < 10 => println("medium"),
+          _ => println("large")
         }
       }
       `.trimStart(),
@@ -71,7 +66,7 @@ describe.skipIf(!hasGpp)("match statement", () => {
       warningsAsErrors: true,
       optimization: "O3"
     };
-    const outputPath = join(tempDir, "match.exe");
+    const outputPath = join(tempDir, "guard.exe");
     const graph = await resolveModuleGraph(entry);
     checkModuleGraph(graph);
     const emitResult = await emitCppToDisk(graph, config);
@@ -80,15 +75,15 @@ describe.skipIf(!hasGpp)("match statement", () => {
 
     expect(run.status).toBe(0);
     expect(run.stdout.trim().split(/\r?\n/u)).toEqual([
+      "negative",
       "zero",
-      "one",
-      "many",
-      "wednesday",
-      "midweek"
+      "small",
+      "big",
+      "medium"
     ]);
   });
 
-  it("rejects more than one wildcard arm", async () => {
+  it("rejects a non-bool guard", async () => {
     const entry = join(tempDir, "bad.dlm");
     await writeFile(
       entry,
@@ -96,8 +91,7 @@ describe.skipIf(!hasGpp)("match statement", () => {
       export function main(): void {
         let n: int = 5;
         match (n) {
-          1 => { return; },
-          _ => { return; },
+          _ if n => { return; },
           _ => { return; }
         }
       }
@@ -105,6 +99,6 @@ describe.skipIf(!hasGpp)("match statement", () => {
       "utf8"
     );
     const graph = await resolveModuleGraph(entry);
-    expect(() => checkModuleGraph(graph)).toThrow(/more than one unguarded wildcard/);
+    expect(() => checkModuleGraph(graph)).toThrow(/guard must be a bool/);
   });
 });

@@ -529,7 +529,7 @@ function emitSwitchStatement(
 ): string {
   const tempName = `__dlm_switch_${context.switchCounter}`;
   context.switchCounter += 1;
-  const lines = ["{", `  const auto ${tempName} = ${emitExpression(statement.discriminant, undefined, context)};`];
+  const lines = ["{", `  [[maybe_unused]] const auto ${tempName} = ${emitExpression(statement.discriminant, undefined, context)};`];
 
   for (let index = 0; index < statement.cases.length; index += 1) {
     const switchCase = statement.cases[index]!;
@@ -562,27 +562,27 @@ function emitMatchStatement(
 ): string {
   const tempName = `__dlm_match_${context.switchCounter}`;
   context.switchCounter += 1;
-  const lines = ["{", `  const auto ${tempName} = ${emitExpression(statement.discriminant, undefined, context)};`];
+  const lines = ["{", `  [[maybe_unused]] const auto ${tempName} = ${emitExpression(statement.discriminant, undefined, context)};`];
 
-  const exprArms = statement.arms.filter((arm) => arm.pattern.kind === "expression");
-  const wildcardArm = statement.arms.find((arm) => arm.pattern.kind === "wildcard");
-
-  for (let index = 0; index < exprArms.length; index += 1) {
-    const arm = exprArms[index]!;
-    const pattern = arm.pattern as { kind: "expression"; expression: Expression };
+  for (let index = 0; index < statement.arms.length; index += 1) {
+    const arm = statement.arms[index]!;
     const prefix = index === 0 ? "if" : "else if";
-    lines.push(`  ${prefix} (${tempName} == ${emitExpression(pattern.expression, undefined, context)}) {`);
 
-    for (const nestedStatement of arm.body) {
-      lines.push(`    ${emitStatement(nestedStatement, declaration, context)}`);
+    let condition: string;
+    if (arm.pattern.kind === "wildcard") {
+      condition = arm.guard
+        ? `(${emitExpression(arm.guard, undefined, context)})`
+        : "true";
+    } else {
+      const pattern = arm.pattern as { kind: "expression"; expression: Expression };
+      const eq = `${tempName} == ${emitExpression(pattern.expression, undefined, context)}`;
+      condition = arm.guard
+        ? `(${eq}) && (${emitExpression(arm.guard, undefined, context)})`
+        : eq;
     }
 
-    lines.push("  }");
-  }
-
-  if (wildcardArm) {
-    lines.push(exprArms.length > 0 ? "  else {" : "  if (true) {");
-    for (const nestedStatement of wildcardArm.body) {
+    lines.push(`  ${prefix} (${condition}) {`);
+    for (const nestedStatement of arm.body) {
       lines.push(`    ${emitStatement(nestedStatement, declaration, context)}`);
     }
     lines.push("  }");
@@ -1022,19 +1022,28 @@ function emitMatchExpression(
   context: EmitContext | undefined
 ): string {
   const discriminant = emitExpression(expression.discriminant, undefined, context);
-  const exprArms = expression.arms.filter((arm) => arm.pattern.kind === "expression");
-  const wildcardArm = expression.arms.find((arm) => arm.pattern.kind === "wildcard");
 
-  const pieces: string[] = [];
-  for (let index = 0; index < exprArms.length; index += 1) {
-    const arm = exprArms[index]!;
+  let wildcardCpp = "";
+  const conditionals: string[] = [];
+  for (const arm of expression.arms) {
+    const valueCpp = emitExpression(arm.expression, expectedType, context);
+    if (arm.pattern.kind === "wildcard") {
+      if (arm.guard) {
+        conditionals.push(`(${emitExpression(arm.guard, undefined, context)}) ? ${valueCpp} :`);
+      } else {
+        wildcardCpp = valueCpp;
+      }
+      continue;
+    }
     const pattern = arm.pattern as { kind: "expression"; expression: Expression };
     const patternCpp = emitExpression(pattern.expression, undefined, context);
-    const valueCpp = emitExpression(arm.expression, expectedType, context);
-    pieces.push(`(__dlm_match_v == ${patternCpp}) ? ${valueCpp} :`);
+    const eq = `__dlm_match_v == ${patternCpp}`;
+    const cond = arm.guard
+      ? `((${eq}) && (${emitExpression(arm.guard, undefined, context)}))`
+      : `(${eq})`;
+    conditionals.push(`${cond} ? ${valueCpp} :`);
   }
-  const wildcardCpp = wildcardArm ? emitExpression(wildcardArm.expression, expectedType, context) : "";
-  return `([&]() { const auto __dlm_match_v = ${discriminant}; return ${pieces.join(" ")} ${wildcardCpp}; })()`;
+  return `([&]() { [[maybe_unused]] const auto __dlm_match_v = ${discriminant}; return ${conditionals.join(" ")} ${wildcardCpp}; })()`;
 }
 
 function emitLambdaExpression(

@@ -183,6 +183,7 @@ export interface MatchStatement {
 export interface MatchArm {
   type: "MatchArm";
   pattern: MatchPattern;
+  guard?: Expression;
   body: Statement[];
   location: SourceLocation;
 }
@@ -296,6 +297,7 @@ export interface MatchExpression {
 export interface MatchExpressionArm {
   type: "MatchExpressionArm";
   pattern: MatchPattern;
+  guard?: Expression;
   expression: Expression;
   location: SourceLocation;
 }

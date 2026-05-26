@@ -543,6 +543,7 @@ class Parser {
     while (!this.check("RIGHT_BRACE") && !this.isAtEnd()) {
       const armToken = this.peek();
       const pattern = this.matchPattern();
+      const guard = this.match("IF") ? this.expression() : undefined;
       this.consume("ARROW", "DLM2093", "Expected '=>' after match pattern.");
 
       let body: Statement[];
@@ -562,6 +563,7 @@ class Parser {
       arms.push({
         type: "MatchArm",
         pattern,
+        guard,
         body,
         location: armToken.location
       });
@@ -600,12 +602,14 @@ class Parser {
     while (!this.check("RIGHT_BRACE") && !this.isAtEnd()) {
       const armToken = this.peek();
       const pattern = this.matchPattern();
+      const guard = this.match("IF") ? this.expression() : undefined;
       this.consume("ARROW", "DLM2100", "Expected '=>' after match pattern.");
       const expression = this.expression();
 
       arms.push({
         type: "MatchExpressionArm",
         pattern,
+        guard,
         expression,
         location: armToken.location
       });

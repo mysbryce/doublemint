@@ -504,18 +504,29 @@ function validateStatement(
       let hasWildcard = false;
       for (const arm of statement.arms) {
         if (arm.pattern.kind === "wildcard") {
-          if (hasWildcard) {
+          if (hasWildcard && !arm.guard) {
             throw new DoublemintDiagnostic({
               code: "DLM4071",
               severity: "error",
-              message: "Match has more than one wildcard arm.",
+              message: "Match has more than one unguarded wildcard arm.",
               location: arm.location
             });
           }
-          hasWildcard = true;
+          if (!arm.guard) { hasWildcard = true; }
         } else {
           const patternType = inferExpressionType(environment, scope, arm.pattern.expression);
           assertAssignable(environment, discriminantType, patternType, arm.pattern.location);
+        }
+        if (arm.guard) {
+          const guardType = inferExpressionType(environment, scope, arm.guard);
+          if (canonicalTypeName(environment, guardType) !== "bool") {
+            throw new DoublemintDiagnostic({
+              code: "DLM4083",
+              severity: "error",
+              message: "Match arm guard must be a bool.",
+              location: arm.guard.location
+            });
+          }
         }
         const armScope = scope.createChild();
         for (const nestedStatement of arm.body) {
@@ -847,18 +858,29 @@ function inferExpressionType(
       let resultType: TypeNode | null = null;
       for (const arm of expression.arms) {
         if (arm.pattern.kind === "wildcard") {
-          if (hasWildcard) {
+          if (hasWildcard && !arm.guard) {
             throw new DoublemintDiagnostic({
               code: "DLM4072",
               severity: "error",
-              message: "Match expression has more than one wildcard arm.",
+              message: "Match expression has more than one unguarded wildcard arm.",
               location: arm.location
             });
           }
-          hasWildcard = true;
+          if (!arm.guard) { hasWildcard = true; }
         } else {
           const patternType = inferExpressionType(environment, scope, arm.pattern.expression);
           assertAssignable(environment, discriminantType, patternType, arm.pattern.location);
+        }
+        if (arm.guard) {
+          const guardType = inferExpressionType(environment, scope, arm.guard);
+          if (canonicalTypeName(environment, guardType) !== "bool") {
+            throw new DoublemintDiagnostic({
+              code: "DLM4083",
+              severity: "error",
+              message: "Match arm guard must be a bool.",
+              location: arm.guard.location
+            });
+          }
         }
         const armType = inferExpressionType(environment, scope, arm.expression);
         if (resultType === null) {
