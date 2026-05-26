@@ -490,6 +490,31 @@ function validateStatement(
       }
       break;
     }
+    case "MatchStatement": {
+      const discriminantType = inferExpressionType(environment, scope, statement.discriminant);
+      let hasWildcard = false;
+      for (const arm of statement.arms) {
+        if (arm.pattern.kind === "wildcard") {
+          if (hasWildcard) {
+            throw new DoublemintDiagnostic({
+              code: "DLM4071",
+              severity: "error",
+              message: "Match has more than one wildcard arm.",
+              location: arm.location
+            });
+          }
+          hasWildcard = true;
+        } else {
+          const patternType = inferExpressionType(environment, scope, arm.pattern.expression);
+          assertAssignable(environment, discriminantType, patternType, arm.pattern.location);
+        }
+        const armScope = scope.createChild();
+        for (const nestedStatement of arm.body) {
+          validateStatement(environment, armScope, returnType, nestedStatement);
+        }
+      }
+      break;
+    }
     case "ExpressionStatement":
       inferExpressionType(environment, scope, statement.expression);
       break;

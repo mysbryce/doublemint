@@ -3,6 +3,8 @@ import type { Token, TokenKind } from "../lexer/token.js";
 import type {
   Declaration,
   EnumDeclaration,
+  MatchArm,
+  MatchPattern,
   ExternTypeDeclaration,
   ExternBlockDeclaration,
   Expression,
@@ -338,6 +340,10 @@ class Parser {
       return this.switchStatement();
     }
 
+    if (this.match("MATCH")) {
+      return this.matchStatement();
+    }
+
     if (this.match("DEFER")) {
       return this.deferStatement();
     }
@@ -515,6 +521,72 @@ class Parser {
       defaultBranch: defaultBranch ?? [],
       location: switchToken.location
     };
+  }
+
+  private matchStatement(): Statement {
+    const matchToken = this.previous();
+    this.consume("LEFT_PAREN", "DLM2090", "Expected '(' after match.");
+    const discriminant = this.expression();
+    this.consume("RIGHT_PAREN", "DLM2091", "Expected ')' after match value.");
+    this.consume("LEFT_BRACE", "DLM2092", "Expected '{' before match arms.");
+    const arms: MatchArm[] = [];
+
+    while (!this.check("RIGHT_BRACE") && !this.isAtEnd()) {
+      const armToken = this.peek();
+      const pattern = this.matchPattern();
+      this.consume("ARROW", "DLM2093", "Expected '=>' after match pattern.");
+
+      let body: Statement[];
+      let isBlock = false;
+      if (this.check("LEFT_BRACE")) {
+        body = this.block();
+        isBlock = true;
+      } else {
+        const expression = this.expression();
+        body = [{
+          type: "ExpressionStatement",
+          expression,
+          location: expression.location
+        }];
+      }
+
+      arms.push({
+        type: "MatchArm",
+        pattern,
+        body,
+        location: armToken.location
+      });
+
+      if (!this.check("RIGHT_BRACE")) {
+        if (isBlock) {
+          this.match("COMMA");
+        } else {
+          this.consume("COMMA", "DLM2094", "Expected ',' between match arms.");
+        }
+      }
+    }
+
+    this.consume("RIGHT_BRACE", "DLM2095", "Expected '}' after match arms.");
+
+    if (arms.length === 0) {
+      throw this.error(matchToken, "DLM2096", "Match must have at least one arm.");
+    }
+
+    return {
+      type: "MatchStatement",
+      discriminant,
+      arms,
+      location: matchToken.location
+    };
+  }
+
+  private matchPattern(): MatchPattern {
+    if (this.check("IDENTIFIER") && this.peek().lexeme === "_") {
+      const token = this.advance();
+      return { kind: "wildcard", location: token.location };
+    }
+    const expr = this.expression();
+    return { kind: "expression", expression: expr, location: expr.location };
   }
 
   private expressionStatement(): Statement {

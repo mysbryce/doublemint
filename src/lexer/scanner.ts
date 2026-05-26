@@ -13,6 +13,7 @@ const keywords = new Map<string, TokenKind>([
   ["copy", "COPY"],
   ["struct", "STRUCT"],
   ["enum", "ENUM"],
+  ["match", "MATCH"],
   ["function", "FUNCTION"],
   ["fn", "FN"],
   ["return", "RETURN"],

@@ -168,8 +168,27 @@ export type Statement =
   | WhileStatement
   | ForStatement
   | SwitchStatement
+  | MatchStatement
   | DeferStatement
   | ExpressionStatement;
+
+export interface MatchStatement {
+  type: "MatchStatement";
+  discriminant: Expression;
+  arms: MatchArm[];
+  location: SourceLocation;
+}
+
+export interface MatchArm {
+  type: "MatchArm";
+  pattern: MatchPattern;
+  body: Statement[];
+  location: SourceLocation;
+}
+
+export type MatchPattern =
+  | { kind: "wildcard"; location: SourceLocation }
+  | { kind: "expression"; expression: Expression; location: SourceLocation };
 
 export interface VariableDeclaration {
   type: "VariableDeclaration";

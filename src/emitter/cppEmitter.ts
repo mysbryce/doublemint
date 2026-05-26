@@ -430,6 +430,8 @@ function emitStatement(
       return emitForStatement(statement, declaration, context);
     case "SwitchStatement":
       return emitSwitchStatement(statement, declaration, context);
+    case "MatchStatement":
+      return emitMatchStatement(statement, declaration, context);
     case "ExpressionStatement":
       return `${emitExpression(statement.expression, undefined, context)};`;
     case "DeferStatement":
@@ -525,6 +527,43 @@ function emitSwitchStatement(
   if (statement.defaultBranch.length > 0) {
     lines.push(statement.cases.length > 0 ? "  else {" : "  if (true) {");
     for (const nestedStatement of statement.defaultBranch) {
+      lines.push(`    ${emitStatement(nestedStatement, declaration, context)}`);
+    }
+    lines.push("  }");
+  }
+
+  lines.push("}");
+  return lines.join("\n  ");
+}
+
+function emitMatchStatement(
+  statement: Statement & { type: "MatchStatement" },
+  declaration: FunctionDeclaration,
+  context: EmitContext
+): string {
+  const tempName = `__dlm_match_${context.switchCounter}`;
+  context.switchCounter += 1;
+  const lines = ["{", `  const auto ${tempName} = ${emitExpression(statement.discriminant, undefined, context)};`];
+
+  const exprArms = statement.arms.filter((arm) => arm.pattern.kind === "expression");
+  const wildcardArm = statement.arms.find((arm) => arm.pattern.kind === "wildcard");
+
+  for (let index = 0; index < exprArms.length; index += 1) {
+    const arm = exprArms[index]!;
+    const pattern = arm.pattern as { kind: "expression"; expression: Expression };
+    const prefix = index === 0 ? "if" : "else if";
+    lines.push(`  ${prefix} (${tempName} == ${emitExpression(pattern.expression, undefined, context)}) {`);
+
+    for (const nestedStatement of arm.body) {
+      lines.push(`    ${emitStatement(nestedStatement, declaration, context)}`);
+    }
+
+    lines.push("  }");
+  }
+
+  if (wildcardArm) {
+    lines.push(exprArms.length > 0 ? "  else {" : "  if (true) {");
+    for (const nestedStatement of wildcardArm.body) {
       lines.push(`    ${emitStatement(nestedStatement, declaration, context)}`);
     }
     lines.push("  }");
@@ -632,6 +671,13 @@ function collectStringViewDeclarations(
         collectStringViewDeclarations(nested, mutatedNames, stringViewNames)
       );
       break;
+    case "MatchStatement":
+      statement.arms.forEach((arm) =>
+        arm.body.forEach((nested) =>
+          collectStringViewDeclarations(nested, mutatedNames, stringViewNames)
+        )
+      );
+      break;
     default:
       assertNever(statement);
   }
@@ -684,6 +730,15 @@ function collectAssignedRoots(statement: Statement, roots: Set<string>): void {
         switchCase.body.forEach((nested) => collectAssignedRoots(nested, roots));
       });
       statement.defaultBranch.forEach((nested) => collectAssignedRoots(nested, roots));
+      break;
+    case "MatchStatement":
+      collectAssignedRootsFromExpression(statement.discriminant, roots);
+      statement.arms.forEach((arm) => {
+        if (arm.pattern.kind === "expression") {
+          collectAssignedRootsFromExpression(arm.pattern.expression, roots);
+        }
+        arm.body.forEach((nested) => collectAssignedRoots(nested, roots));
+      });
       break;
     case "ExpressionStatement":
       collectAssignedRootsFromExpression(statement.expression, roots);
@@ -1144,6 +1199,8 @@ function statementUsesDefer(statement: Statement): boolean {
         statement.cases.some((switchCase) => switchCase.body.some(statementUsesDefer)) ||
         statement.defaultBranch.some(statementUsesDefer)
       );
+    case "MatchStatement":
+      return statement.arms.some((arm) => arm.body.some(statementUsesDefer));
     case "VariableDeclaration":
     case "DestructuringDeclaration":
     case "ReturnStatement":
@@ -1353,6 +1410,15 @@ function statementUsesPrint(statement: Statement): boolean {
             switchCase.body.some(statementUsesPrint)
         ) ||
         statement.defaultBranch.some(statementUsesPrint)
+      );
+    case "MatchStatement":
+      return (
+        expressionUsesPrint(statement.discriminant) ||
+        statement.arms.some(
+          (arm) =>
+            (arm.pattern.kind === "expression" && expressionUsesPrint(arm.pattern.expression)) ||
+            arm.body.some(statementUsesPrint)
+        )
       );
     case "ExpressionStatement":
       return expressionUsesPrint(statement.expression);
