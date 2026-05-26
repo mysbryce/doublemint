@@ -88,11 +88,29 @@
   background-color: var(--vp-c-bg-alt) !important;
 }
 .VPSidebarItem.level-0 > .item .text {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--vp-c-text-1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Nested group headers (e.g. Standard Library sub-categories) — keep
+   them readable, no uppercase shouting on every level. */
+.VPSidebarItem.level-1 > .item:has(.indicator) .text,
+.VPSidebarItem.level-1.has-active.collapsed > .item .text {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--vp-c-text-1);
+}
+/* Render emojis at a slightly larger size and align them on the
+   baseline so they sit neatly next to the section label. */
+.VPSidebarItem .text {
+  font-feature-settings: normal;
 }
 .VPSidebarItem.level-1 > .item .link .text,
 .VPSidebarItem.level-2 > .item .link .text {
@@ -141,20 +159,76 @@
   line-height: 1.65;
 }
 
-/* Code */
-.vp-doc div[class*="language-"] {
-  border-radius: 8px;
-  border: 1px solid var(--vp-c-divider);
+/* Code — force the mono stack so it never falls back to a proportional
+   system font, and tighten the rendering so blocks read cleanly. */
+.vp-doc :where(code, kbd, samp, pre, .lang),
+.vp-code,
+.vp-doc div[class*="language-"] pre,
+.vp-doc div[class*="language-"] code,
+.shiki,
+.shiki code,
+.shiki span {
+  font-family: var(--vp-font-family-mono) !important;
+  font-feature-settings: "calt" 1, "ss01" 1;
+  font-variant-ligatures: contextual;
+  -webkit-font-smoothing: antialiased;
 }
-.vp-doc code {
-  font-size: 0.85em;
-  background-color: var(--vp-c-default-soft);
-  border-radius: 4px;
-  padding: 2px 6px;
+
+.vp-doc div[class*="language-"] {
+  border-radius: 10px;
+  border: 1px solid var(--vp-c-divider);
+  background-color: var(--vp-c-bg-soft) !important;
+  margin: 18px 0;
+}
+.vp-doc div[class*="language-"] pre {
+  padding: 18px 20px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  background: transparent !important;
 }
 .vp-doc div[class*="language-"] code {
   background: transparent;
   padding: 0;
+  font-size: 13.5px;
+  color: var(--vp-c-text-1);
+}
+.vp-doc code {
+  font-size: 0.88em;
+  background-color: var(--vp-c-default-soft);
+  border-radius: 5px;
+  padding: 2px 6px;
+  color: var(--vp-c-text-1);
+}
+.vp-doc :is(h1, h2, h3, h4) > code {
+  font-size: 0.92em;
+  background-color: var(--vp-c-default-soft);
+}
+
+/* Shiki token colours — bun-ish dark palette */
+.dark .shiki,
+.dark .shiki span {
+  color: #e6e6e6;
+}
+.dark .shiki .line { display: inline-block; }
+.dark .shiki .token.comment,
+.dark .shiki .token.prolog,
+.dark .shiki .token.cdata { color: #6b7280; font-style: italic; }
+.dark .shiki .token.keyword,
+.dark .shiki .token.boolean,
+.dark .shiki .token.constant { color: #c084fc; }
+.dark .shiki .token.string,
+.dark .shiki .token.regex,
+.dark .shiki .token.char { color: #5cd3a8; }
+.dark .shiki .token.number { color: #fbbf24; }
+.dark .shiki .token.function { color: #60a5fa; }
+.dark .shiki .token.class-name,
+.dark .shiki .token.builtin { color: #34d399; }
+.dark .shiki .token.operator,
+.dark .shiki .token.punctuation { color: #94a3b8; }
+
+/* Line numbers / scroll */
+.vp-doc div[class*="language-"]:hover .copy {
+  opacity: 0.85;
 }
 
 /* Tables — bun-style tidy */

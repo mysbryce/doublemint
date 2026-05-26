@@ -24,13 +24,15 @@
     "dev": "tsx src/cli.ts",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "docs:check-style": "node scripts/check-docs-style.mjs"
   },
   "engines": {
     "node": ">=20.11"
   },
   "packageManager": "pnpm@11.0.9",
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/node": "^22.15.29",
     "tsup": "^8.5.0",
     "tsx": "^4.19.4",
