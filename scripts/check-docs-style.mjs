@@ -66,9 +66,28 @@ try {
       return headers.map((h) => h.textContent?.trim() ?? "");
     });
 
+    const icons = await page.evaluate(() => {
+      const headers = Array.from(
+        document.querySelectorAll(".VPSidebarItem .text[data-icon]")
+      );
+      return headers.map((h) => ({
+        label: (h.textContent ?? "").trim(),
+        icon: h.getAttribute("data-icon"),
+        cssVar: getComputedStyle(h).getPropertyValue("--icon").trim().slice(0, 40)
+      }));
+    });
+
     console.log(`--- ${target.label} (${target.url})`);
     console.log("  code font:", codeFont);
     console.log("  sidebar sections:", sidebarSections);
+    console.log("  icons applied:", icons.length, "items");
+    if (icons.length === 0) {
+      console.warn("  WARNING: no icons were applied");
+    } else {
+      for (const i of icons) {
+        console.log(`    - "${i.label}" -> ${i.icon}  (${i.cssVar}${i.cssVar.length > 0 ? '…' : ''})`);
+      }
+    }
     console.log("");
   }
 

@@ -63,7 +63,7 @@ export default defineConfig({
     ],
     sidebar: [
       {
-        text: "🚀  Get Started",
+        text: "Get Started",
         collapsed: false,
         items: [
           { text: "Welcome", link: "/start/welcome" },
@@ -75,7 +75,7 @@ export default defineConfig({
         ]
       },
       {
-        text: "⚙️  Core & Transpiler",
+        text: "Core & Transpiler",
         collapsed: false,
         items: [
           { text: "Pipeline", link: "/core/pipeline" },
@@ -89,7 +89,7 @@ export default defineConfig({
         ]
       },
       {
-        text: "📘  Language",
+        text: "Language",
         collapsed: false,
         items: [
           { text: "Overview", link: "/language/overview" },
@@ -103,7 +103,7 @@ export default defineConfig({
         ]
       },
       {
-        text: "💻  CLI",
+        text: "CLI",
         collapsed: false,
         items: [
           { text: "Commands", link: "/cli/commands" },
@@ -115,22 +115,22 @@ export default defineConfig({
         ]
       },
       {
-        text: "📦  Standard Library",
+        text: "Standard Library",
         collapsed: false,
         items: [
           { text: "Overview", link: "/stdlib/overview" },
           {
-            text: "🖥  I/O & Console",
+            text: "I/O & Console",
             collapsed: true,
             items: [{ text: "mint:io", link: "/stdlib/io" }]
           },
           {
-            text: "📂  Files & Modules",
+            text: "Files & Modules",
             collapsed: true,
             items: [{ text: "mint:fs", link: "/stdlib/fs" }]
           },
           {
-            text: "🔤  Strings & Collections",
+            text: "Strings & Collections",
             collapsed: true,
             items: [
               { text: "mint:string", link: "/stdlib/string" },
@@ -139,7 +139,7 @@ export default defineConfig({
             ]
           },
           {
-            text: "🔢  Math & Numerics",
+            text: "Math & Numerics",
             collapsed: true,
             items: [
               { text: "mint:math", link: "/stdlib/math" },
@@ -147,7 +147,7 @@ export default defineConfig({
             ]
           },
           {
-            text: "⏰  Time & OS",
+            text: "Time & OS",
             collapsed: true,
             items: [
               { text: "mint:time", link: "/stdlib/time" },
@@ -156,17 +156,17 @@ export default defineConfig({
             ]
           },
           {
-            text: "🌐  HTTP Server",
+            text: "HTTP Server",
             collapsed: true,
             items: [{ text: "mint:http", link: "/stdlib/http" }]
           },
           {
-            text: "🔌  Networking & Sockets",
+            text: "Networking & Sockets",
             collapsed: true,
             items: [{ text: "mint:net", link: "/stdlib/net" }]
           },
           {
-            text: "🧾  JSON & Schema",
+            text: "JSON & Schema",
             collapsed: true,
             items: [
               { text: "mint:json", link: "/stdlib/json" },
@@ -174,7 +174,7 @@ export default defineConfig({
             ]
           },
           {
-            text: "🔐  Crypto & Hashing",
+            text: "Crypto & Hashing",
             collapsed: true,
             items: [
               { text: "mint:crypto", link: "/stdlib/crypto" },
@@ -182,7 +182,7 @@ export default defineConfig({
             ]
           },
           {
-            text: "🔍  Regex & Logging",
+            text: "Regex & Logging",
             collapsed: true,
             items: [
               { text: "mint:regex", link: "/stdlib/regex" },
@@ -190,7 +190,7 @@ export default defineConfig({
             ]
           },
           {
-            text: "💾  Database",
+            text: "Database",
             collapsed: true,
             items: [
               { text: "mint:sql", link: "/stdlib/sql" },
@@ -198,7 +198,7 @@ export default defineConfig({
             ]
           },
           {
-            text: "⚡  Async & Memory",
+            text: "Async & Memory",
             collapsed: true,
             items: [
               { text: "mint:async", link: "/stdlib/async" },
@@ -206,7 +206,7 @@ export default defineConfig({
             ]
           },
           {
-            text: "🧪  Terminal & Testing",
+            text: "Terminal & Testing",
             collapsed: true,
             items: [
               { text: "mint:term", link: "/stdlib/term" },
@@ -216,7 +216,7 @@ export default defineConfig({
         ]
       },
       {
-        text: "🏷  Releases",
+        text: "Releases",
         collapsed: false,
         items: [{ text: "Changelog", link: "/releases/" }]
       }
