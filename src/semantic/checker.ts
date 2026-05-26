@@ -934,6 +934,16 @@ function inferCallType(
         );
         return applyGenericSubstitution(extension.returnType, subs);
       }
+
+      if (
+        memberExpr.property === "toString" &&
+        isNumericType(environment, objectType) &&
+        expression.arguments.length === 0
+      ) {
+        memberExpr.autoInvoke = false;
+        memberExpr.primitiveExtensionNative = "std::to_string";
+        return namedType("string", expression.location);
+      }
     }
   }
 
