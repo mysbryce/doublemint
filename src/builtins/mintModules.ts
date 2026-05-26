@@ -537,6 +537,49 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
     }
   ],
   [
+    "mint:schema",
+    {
+      builtin: true,
+      builtinIncludes: [
+        "<cstdint>",
+        "<memory>",
+        "<string>",
+        "<string_view>",
+        "<unordered_map>",
+        "<vector>"
+      ],
+      program: emptyProgram("mint:schema"),
+      imports: [],
+      exports: new Map([
+        [
+          "ValidationResult",
+          classExport("ValidationResult", [
+            property("ok", namedType("bool")),
+            property("error", namedType("string")),
+            method("has", [namedType("string")], namedType("bool")),
+            method("getString", [namedType("string")], namedType("string")),
+            method("getInt", [namedType("string")], namedType("int")),
+            method("getInt64", [namedType("string")], namedType("int64")),
+            method("getFloat", [namedType("string")], namedType("double")),
+            method("getBool", [namedType("string")], namedType("bool"))
+          ])
+        ],
+        [
+          "Schema",
+          classExport("Schema", [
+            method("required", [namedType("string"), namedType("string")], namedType("void")),
+            method("optional", [namedType("string"), namedType("string")], namedType("void")),
+            method("requiredArray", [namedType("string"), namedType("string")], namedType("void")),
+            method("optionalArray", [namedType("string"), namedType("string")], namedType("void")),
+            method("requiredObject", [namedType("string"), namedType("Schema")], namedType("void")),
+            method("optionalObject", [namedType("string"), namedType("Schema")], namedType("void")),
+            method("validate", [namedType("string")], namedType("ValidationResult"))
+          ])
+        ]
+      ])
+    }
+  ],
+  [
     "mint:http",
     {
       builtin: true,

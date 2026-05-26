@@ -191,6 +191,13 @@ class Scanner {
 
   private string(): void {
     while (this.peek() !== "\"" && !this.isAtEnd()) {
+      if (this.peek() === "\\") {
+        this.advance();
+        if (!this.isAtEnd()) {
+          this.advance();
+        }
+        continue;
+      }
       this.advance();
     }
 

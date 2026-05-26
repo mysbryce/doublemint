@@ -1134,6 +1134,144 @@
         }
       ]
     },
+    "mint:schema": {
+      "exports": [
+        {
+          "name": "ValidationResult",
+          "kind": "class",
+          "members": [
+            {
+              "name": "ok",
+              "kind": "function",
+              "params": [],
+              "returnType": "bool"
+            },
+            {
+              "name": "error",
+              "kind": "function",
+              "params": [],
+              "returnType": "string"
+            },
+            {
+              "name": "has",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "getString",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "getInt",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "getInt64",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "int64"
+            },
+            {
+              "name": "getFloat",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "getBool",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "bool"
+            }
+          ]
+        },
+        {
+          "name": "Schema",
+          "kind": "class",
+          "members": [
+            {
+              "name": "required",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "optional",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "requiredArray",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "optionalArray",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "requiredObject",
+              "kind": "function",
+              "params": [
+                "string",
+                "Schema"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "optionalObject",
+              "kind": "function",
+              "params": [
+                "string",
+                "Schema"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "validate",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "ValidationResult"
+            }
+          ]
+        }
+      ]
+    },
     "mint:http": {
       "exports": [
         {
