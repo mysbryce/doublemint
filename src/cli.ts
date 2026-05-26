@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { stdin } from "node:process";
-import { resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { buildNativeExecutable } from "./core/nativeCompiler.js";
 import { loadConfig } from "./core/config.js";
 import { DoublemintDiagnostic } from "./diagnostics/diagnostic.js";
@@ -8,20 +10,48 @@ import { emitCppToDisk } from "./emitter/cppEmitter.js";
 import { resolveModuleGraph } from "./resolver/moduleGraph.js";
 import { checkModuleGraph } from "./semantic/checker.js";
 
+function readVersion(): string {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    resolve(here, "..", "package.json"),
+    resolve(here, "..", "..", "package.json"),
+    resolve(here, "..", "..", "..", "package.json")
+  ];
+  for (const candidate of candidates) {
+    try {
+      const pkg = JSON.parse(readFileSync(candidate, "utf8"));
+      if (pkg.name === "doublemint" && typeof pkg.version === "string") { return pkg.version; }
+    } catch {
+      // ignore
+    }
+  }
+  return "0.0.0-unknown";
+}
+
 const args = parseCliArgs(process.argv.slice(2));
 
 async function main(): Promise<void> {
+  if (args.version) {
+    console.log(`doublemint ${readVersion()}`);
+    return;
+  }
+
   if (!args.command || args.help) {
     printHelp();
     return;
   }
 
-  if (!["check", "emit", "build"].includes(args.command)) {
+  if (args.command === "version") {
+    console.log(`doublemint ${readVersion()}`);
+    return;
+  }
+
+  if (!["check", "emit", "build", "version"].includes(args.command)) {
     throw new DoublemintDiagnostic({
       code: "DLM0001",
       severity: "error",
       message: `Unknown command "${args.command}".`,
-      hint: "Use check, emit, or build."
+      hint: "Use check, emit, build, or version."
     });
   }
 
@@ -91,13 +121,15 @@ async function main(): Promise<void> {
 }
 
 function printHelp(): void {
-  console.log(`doublemint
+  console.log(`doublemint ${readVersion()}
 
 Usage:
   doublemint check <entry.dlm>
   doublemint check --stdin-filepath <entry.dlm>
   doublemint emit <entry.dlm>
   doublemint build <entry.dlm> --out <binary> [--compiler <clang++|g++>] [--cpp-out <dir>]
+  doublemint version
+  doublemint --help
 `);
 }
 
@@ -109,13 +141,15 @@ interface CliArgs {
   cppOut?: string;
   stdinFilepath?: string;
   help: boolean;
+  version: boolean;
 }
 
 function parseCliArgs(argv: string[]): CliArgs {
   const [command, ...rest] = argv;
   const parsed: CliArgs = {
     command,
-    help: command === "--help" || command === "-h"
+    help: command === "--help" || command === "-h",
+    version: command === "--version" || command === "-v"
   };
 
   for (let index = 0; index < rest.length; index += 1) {
@@ -123,6 +157,11 @@ function parseCliArgs(argv: string[]): CliArgs {
 
     if (arg === "--help" || arg === "-h") {
       parsed.help = true;
+      continue;
+    }
+
+    if (arg === "--version" || arg === "-v") {
+      parsed.version = true;
       continue;
     }
 
