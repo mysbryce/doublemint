@@ -75,6 +75,141 @@
         }
       ]
     },
+    "mint:array": {
+      "exports": [
+        {
+          "name": "Array",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "map",
+              "kind": "function",
+              "params": [
+                "T[]",
+                "fn(T): U"
+              ],
+              "returnType": "U[]"
+            },
+            {
+              "name": "filter",
+              "kind": "function",
+              "params": [
+                "T[]",
+                "fn(T): bool"
+              ],
+              "returnType": "T[]"
+            },
+            {
+              "name": "reduce",
+              "kind": "function",
+              "params": [
+                "T[]",
+                "U",
+                "fn(U, T): U"
+              ],
+              "returnType": "U"
+            },
+            {
+              "name": "findIndex",
+              "kind": "function",
+              "params": [
+                "T[]",
+                "fn(T): bool"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "any",
+              "kind": "function",
+              "params": [
+                "T[]",
+                "fn(T): bool"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "all",
+              "kind": "function",
+              "params": [
+                "T[]",
+                "fn(T): bool"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "reverse",
+              "kind": "function",
+              "params": [
+                "T[]"
+              ],
+              "returnType": "T[]"
+            },
+            {
+              "name": "sort",
+              "kind": "function",
+              "params": [
+                "T[]"
+              ],
+              "returnType": "T[]"
+            },
+            {
+              "name": "sortBy",
+              "kind": "function",
+              "params": [
+                "T[]",
+                "fn(T, T): bool"
+              ],
+              "returnType": "T[]"
+            },
+            {
+              "name": "length",
+              "kind": "function",
+              "params": [
+                "T[]"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "concat",
+              "kind": "function",
+              "params": [
+                "T[]",
+                "T[]"
+              ],
+              "returnType": "T[]"
+            },
+            {
+              "name": "slice",
+              "kind": "function",
+              "params": [
+                "T[]",
+                "int",
+                "int"
+              ],
+              "returnType": "T[]"
+            },
+            {
+              "name": "contains",
+              "kind": "function",
+              "params": [
+                "T[]",
+                "T"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "indexOf",
+              "kind": "function",
+              "params": [
+                "T[]",
+                "T"
+              ],
+              "returnType": "int"
+            }
+          ]
+        }
+      ]
+    },
     "mint:string": {
       "exports": [
         {

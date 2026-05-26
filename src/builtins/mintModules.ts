@@ -148,6 +148,81 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
     }
   ],
   [
+    "mint:array",
+    {
+      builtin: true,
+      builtinIncludes: ["<algorithm>", "<functional>", "<type_traits>", "<vector>"],
+      program: emptyProgram("mint:array"),
+      imports: [],
+      exports: new Map([
+        [
+          "Array",
+          namespaceExport("Array", [
+            functionMember(
+              "map",
+              [arrayType(namedType("T")), functionType([namedType("T")], namedType("U"))],
+              arrayType(namedType("U")),
+              "__doublemint_array_map"
+            ),
+            functionMember(
+              "filter",
+              [arrayType(namedType("T")), functionType([namedType("T")], namedType("bool"))],
+              arrayType(namedType("T")),
+              "__doublemint_array_filter"
+            ),
+            functionMember(
+              "reduce",
+              [arrayType(namedType("T")), namedType("U"), functionType([namedType("U"), namedType("T")], namedType("U"))],
+              namedType("U"),
+              "__doublemint_array_reduce"
+            ),
+            functionMember(
+              "findIndex",
+              [arrayType(namedType("T")), functionType([namedType("T")], namedType("bool"))],
+              namedType("int"),
+              "__doublemint_array_find_index"
+            ),
+            functionMember(
+              "any",
+              [arrayType(namedType("T")), functionType([namedType("T")], namedType("bool"))],
+              namedType("bool"),
+              "__doublemint_array_any"
+            ),
+            functionMember(
+              "all",
+              [arrayType(namedType("T")), functionType([namedType("T")], namedType("bool"))],
+              namedType("bool"),
+              "__doublemint_array_all"
+            ),
+            functionMember("reverse", [arrayType(namedType("T"))], arrayType(namedType("T")), "__doublemint_array_reverse"),
+            functionMember("sort", [arrayType(namedType("T"))], arrayType(namedType("T")), "__doublemint_array_sort"),
+            functionMember(
+              "sortBy",
+              [arrayType(namedType("T")), functionType([namedType("T"), namedType("T")], namedType("bool"))],
+              arrayType(namedType("T")),
+              "__doublemint_array_sort_by"
+            ),
+            functionMember("length", [arrayType(namedType("T"))], namedType("int"), "__doublemint_array_length"),
+            functionMember(
+              "concat",
+              [arrayType(namedType("T")), arrayType(namedType("T"))],
+              arrayType(namedType("T")),
+              "__doublemint_array_concat"
+            ),
+            functionMember(
+              "slice",
+              [arrayType(namedType("T")), namedType("int"), namedType("int")],
+              arrayType(namedType("T")),
+              "__doublemint_array_slice"
+            ),
+            functionMember("contains", [arrayType(namedType("T")), namedType("T")], namedType("bool"), "__doublemint_array_contains"),
+            functionMember("indexOf", [arrayType(namedType("T")), namedType("T")], namedType("int"), "__doublemint_array_index_of")
+          ])
+        ]
+      ])
+    }
+  ],
+  [
     "mint:string",
     {
       builtin: true,

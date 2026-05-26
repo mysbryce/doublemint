@@ -742,7 +742,7 @@ function inferCallType(
     const callee = scope.lookup(expression.callee.name);
 
     if (callee?.functionType) {
-      validateCallArguments(
+      const subs = validateCallArguments(
         environment,
         scope,
         callee.name,
@@ -751,7 +751,7 @@ function inferCallType(
         expression.location
       );
 
-      return callee.functionType.returnType;
+      return applyGenericSubstitution(callee.functionType.returnType, subs);
     }
   }
 
@@ -765,7 +765,7 @@ function inferCallType(
       const classMethod = resolveClassMethod(environment, objectType, memberExpr.property);
       if (classMethod && classMethod.type === "FunctionType") {
         memberExpr.autoInvoke = false;
-        validateCallArguments(
+        const subs = validateCallArguments(
           environment,
           scope,
           memberExpr.property,
@@ -773,13 +773,13 @@ function inferCallType(
           expression.arguments,
           expression.location
         );
-        return classMethod.returnType;
+        return applyGenericSubstitution(classMethod.returnType, subs);
       }
       const extension = resolvePrimitiveExtension(environment, scope, objectType, memberExpr.property);
       if (extension) {
         memberExpr.autoInvoke = false;
         memberExpr.primitiveExtensionNative = extension.nativeName;
-        validateCallArguments(
+        const subs = validateCallArguments(
           environment,
           scope,
           memberExpr.property,
@@ -787,7 +787,7 @@ function inferCallType(
           expression.arguments,
           expression.location
         );
-        return extension.returnType;
+        return applyGenericSubstitution(extension.returnType, subs);
       }
     }
   }
@@ -806,7 +806,7 @@ function inferCallType(
     });
   }
 
-  validateCallArguments(
+  const subs = validateCallArguments(
     environment,
     scope,
     callableName(expression.callee),
@@ -814,7 +814,7 @@ function inferCallType(
     expression.arguments,
     expression.location
   );
-  return calleeType.returnType;
+  return applyGenericSubstitution(calleeType.returnType, subs);
 }
 
 function validateCallArguments(
@@ -824,7 +824,7 @@ function validateCallArguments(
   params: TypeNode[],
   args: Expression[],
   location: SourceLocation
-): void {
+): Map<string, TypeNode> {
   if (params.length !== args.length) {
     throw new DoublemintDiagnostic({
       code: "DLM4008",
@@ -834,11 +834,71 @@ function validateCallArguments(
     });
   }
 
+  const substitutions = new Map<string, TypeNode>();
   for (let index = 0; index < args.length; index += 1) {
     const actualType = inferExpressionType(environment, scope, args[index]!);
-    const expectedType = params[index]!;
+    const declared = params[index]!;
+    collectGenericSubstitutions(declared, actualType, substitutions);
+    const expectedType = applyGenericSubstitution(declared, substitutions);
     assertAssignable(environment, expectedType, actualType, args[index]!.location);
   }
+  return substitutions;
+}
+
+function isGenericPlaceholder(name: string): boolean {
+  return /^[A-Z][0-9]*$/u.test(name) && name !== "PI";
+}
+
+function collectGenericSubstitutions(declared: TypeNode, actual: TypeNode, out: Map<string, TypeNode>): void {
+  if (declared.type === "NamedType" && isGenericPlaceholder(declared.name)) {
+    if (!out.has(declared.name)) { out.set(declared.name, actual); }
+    return;
+  }
+  if (declared.type === "ArrayType" && actual.type === "ArrayType") {
+    collectGenericSubstitutions(declared.elementType, actual.elementType, out);
+    return;
+  }
+  if (declared.type === "FunctionType" && actual.type === "FunctionType") {
+    for (let index = 0; index < declared.params.length && index < actual.params.length; index += 1) {
+      collectGenericSubstitutions(declared.params[index]!, actual.params[index]!, out);
+    }
+    collectGenericSubstitutions(declared.returnType, actual.returnType, out);
+    return;
+  }
+  if (declared.type === "GenericType" && actual.type === "GenericType") {
+    for (let index = 0; index < declared.typeArgs.length && index < actual.typeArgs.length; index += 1) {
+      collectGenericSubstitutions(declared.typeArgs[index]!, actual.typeArgs[index]!, out);
+    }
+    return;
+  }
+  if (declared.type === "OptionalType" && actual.type === "OptionalType") {
+    collectGenericSubstitutions(declared.valueType, actual.valueType, out);
+    return;
+  }
+}
+
+function applyGenericSubstitution(type: TypeNode, subs: Map<string, TypeNode>): TypeNode {
+  if (subs.size === 0) { return type; }
+  if (type.type === "NamedType" && subs.has(type.name)) {
+    return subs.get(type.name)!;
+  }
+  if (type.type === "ArrayType") {
+    return { ...type, elementType: applyGenericSubstitution(type.elementType, subs) };
+  }
+  if (type.type === "FunctionType") {
+    return {
+      ...type,
+      params: type.params.map((p) => applyGenericSubstitution(p, subs)),
+      returnType: applyGenericSubstitution(type.returnType, subs)
+    };
+  }
+  if (type.type === "GenericType") {
+    return { ...type, typeArgs: type.typeArgs.map((a) => applyGenericSubstitution(a, subs)) };
+  }
+  if (type.type === "OptionalType") {
+    return { ...type, valueType: applyGenericSubstitution(type.valueType, subs) };
+  }
+  return type;
 }
 
 function callableName(expression: Expression): string {
@@ -1574,22 +1634,20 @@ function resolvePrimitiveExtension(
   receiverType: TypeNode,
   methodName: string
 ): PrimitiveExtensionMatch | null {
-  const receiverName = canonicalTypeName(environment, receiverType);
-  if (!receiverName) { return null; }
-  const primitives = new Set(["string", "int", "int64", "float", "double", "bool"]);
-  if (!primitives.has(receiverName)) { return null; }
-
   for (const namespaceSymbol of scope.allNamespaceSymbols()) {
     const member = namespaceSymbol.namespaceMembers?.get(methodName);
     if (!member?.functionType || !member.nativeName) { continue; }
     const params = member.functionType.params;
     if (params.length < 1) { continue; }
     const firstParam = params[0]!;
-    if (canonicalTypeName(environment, firstParam) !== receiverName) { continue; }
+    const subs = new Map<string, TypeNode>();
+    collectGenericSubstitutions(firstParam, receiverType, subs);
+    const substituted = applyGenericSubstitution(firstParam, subs);
+    if (!typesEqual(environment, substituted, receiverType)) { continue; }
     return {
       nativeName: member.nativeName,
-      remainingParams: params.slice(1),
-      returnType: member.functionType.returnType
+      remainingParams: params.slice(1).map((p) => applyGenericSubstitution(p, subs)),
+      returnType: applyGenericSubstitution(member.functionType.returnType, subs)
     };
   }
   return null;
