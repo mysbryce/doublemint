@@ -111,6 +111,22 @@ try {
       }));
     });
 
+    const subCategoryLayout = await page.evaluate(() => {
+      const sub = document.querySelector(
+        ".VPSidebarItem.level-1 .text[data-icon]"
+      );
+      if (!sub) { return null; }
+      const subStyle = getComputedStyle(sub);
+      const before = getComputedStyle(sub, "::before");
+      return {
+        label: (sub.textContent ?? "").trim(),
+        display: subStyle.display,
+        gap: subStyle.gap || subStyle.columnGap,
+        iconWidth: before.width,
+        iconHeight: before.height
+      };
+    });
+
     console.log(`--- ${target.label} (${target.url})`);
     if (sidebarVisibility) {
       console.log(
@@ -129,9 +145,26 @@ try {
     console.log("  icons applied:", icons.length, "items");
     if (icons.length === 0) {
       console.warn("  WARNING: no icons were applied");
-    } else {
-      for (const i of icons) {
-        console.log(`    - "${i.label}" -> ${i.icon}  (${i.cssVar}${i.cssVar.length > 0 ? '…' : ''})`);
+    }
+    if (subCategoryLayout) {
+      console.log(
+        "  sub-category layout:",
+        `label = "${subCategoryLayout.label}",`,
+        `display = ${subCategoryLayout.display},`,
+        `gap = ${subCategoryLayout.gap},`,
+        `icon = ${subCategoryLayout.iconWidth} x ${subCategoryLayout.iconHeight}`
+      );
+      const okDisplay =
+        subCategoryLayout.display === "inline-flex" ||
+        subCategoryLayout.display === "flex";
+      const okGap =
+        subCategoryLayout.gap &&
+        subCategoryLayout.gap !== "normal" &&
+        subCategoryLayout.gap !== "0px";
+      if (!okDisplay || !okGap) {
+        console.warn(
+          "  WARNING: sub-category icon row is missing flex / gap"
+        );
       }
     }
     console.log("");

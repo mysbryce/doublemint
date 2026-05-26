@@ -104,14 +104,28 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--vp-c-text-1);
+}
+/* Nested group headers (Standard Library sub-categories) — keep them
+   readable, no uppercase shouting, smaller weight than the L0
+   headers. */
+.VPSidebarItem.level-1 > .item .text {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--vp-c-text-1);
+}
+
+/* Lucide-style SVG icons injected via the data-icon attribute set in
+   theme/index.ts. The icon sits in a fixed-width "slot" before the
+   label so every row in the sidebar — top-level and nested
+   sub-categories alike — lines up. */
+.VPSidebarItem .text[data-icon] {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  line-height: 1.25;
 }
-
-/* Lucide-style SVG icons injected via data-icon attribute set in
-   theme/index.ts. The text node is wrapped in inline-flex so the
-   ::before icon sits to the left of the label. */
 .VPSidebarItem .text[data-icon]::before {
   content: "";
   display: inline-block;
@@ -128,6 +142,18 @@
   -webkit-mask-position: center;
   flex-shrink: 0;
   opacity: 0.9;
+}
+/* Sub-category icons get a slightly smaller mask + extra breathing
+   room so they don't crowd the smaller label. */
+.VPSidebarItem.level-1 .text[data-icon] {
+  gap: 10px;
+}
+.VPSidebarItem.level-1 .text[data-icon]::before {
+  width: 14px;
+  height: 14px;
+  mask-size: 14px 14px;
+  -webkit-mask-size: 14px 14px;
+  opacity: 0.85;
 }
 
 /* Each icon below is a Lucide-style 24x24 outline SVG inlined as a
