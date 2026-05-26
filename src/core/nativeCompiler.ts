@@ -183,10 +183,6 @@ async function linkWithFrontendOrCollect2(cxx: string, args: string[]): Promise<
   delete sanitizedEnv["COLLECT_GCC_OPTIONS"];
   if (process.env.DOUBLEMINT_DEBUG_COMPILE) {
     console.error("[doublemint] invoking collect2 directly with sanitized env");
-    console.error("[doublemint] collect2 cmd:", collect2);
-    for (const arg of collect2Args) {
-      console.error("[doublemint] arg:", arg);
-    }
   }
   await runCompilerWithEnv(collect2, collect2Args, sanitizedEnv);
 }
