@@ -10,6 +10,7 @@ import { emitCppToDisk } from "./emitter/cppEmitter.js";
 import { resolveModuleGraph } from "./resolver/moduleGraph.js";
 import { checkModuleGraph } from "./semantic/checker.js";
 import { buildBuiltinManifest } from "./builtins/mintModules.js";
+import { formatSource } from "./format/formatter.js";
 
 function readVersion(): string {
   const here = dirname(fileURLToPath(import.meta.url));
@@ -57,12 +58,17 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (!["check", "emit", "build", "version", "info", "init"].includes(args.command)) {
+  if (args.command === "fmt") {
+    runFmt(args.entry, { write: args.write, check: args.check });
+    return;
+  }
+
+  if (!["check", "emit", "build", "version", "info", "init", "fmt"].includes(args.command)) {
     throw new DoublemintDiagnostic({
       code: "DLM0001",
       severity: "error",
       message: `Unknown command "${args.command}".`,
-      hint: "Use check, emit, build, version, or info."
+      hint: "Use check, emit, build, fmt, init, version, or info."
     });
   }
 
@@ -139,6 +145,7 @@ Usage:
   doublemint check --stdin-filepath <entry.dlm>
   doublemint emit <entry.dlm>
   doublemint build <entry.dlm> --out <binary> [--compiler <clang++|g++>] [--cpp-out <dir>]
+  doublemint fmt <entry.dlm> [--write | --check]
   doublemint init [dir]
   doublemint info
   doublemint version
@@ -167,6 +174,48 @@ export function main(): void {
   console.log("next: doublemint build " + entryPath + " --out " + join(dir, projectName) + (process.platform === "win32" ? ".exe" : ""));
 }
 
+function runFmt(target: string | undefined, opts: { write?: boolean; check?: boolean }): void {
+  if (!target) {
+    throw new DoublemintDiagnostic({
+      code: "DLM0002",
+      severity: "error",
+      message: "Command \"fmt\" requires an entry .dlm file."
+    });
+  }
+  if (opts.write && opts.check) {
+    throw new DoublemintDiagnostic({
+      code: "DLM0007",
+      severity: "error",
+      message: "Options \"--write\" and \"--check\" are mutually exclusive."
+    });
+  }
+  const path = resolve(process.cwd(), target);
+  const source = readFileSync(path, "utf8");
+  const result = formatSource(source);
+
+  if (opts.check) {
+    if (result.changed) {
+      console.error(`fmt: ${path} needs formatting`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log(`OK ${path} already formatted.`);
+    return;
+  }
+
+  if (opts.write) {
+    if (result.changed) {
+      writeFileSync(path, result.output, "utf8");
+      console.log(`wrote ${path}`);
+    } else {
+      console.log(`unchanged ${path}`);
+    }
+    return;
+  }
+
+  process.stdout.write(result.output);
+}
+
 function printInfo(): void {
   const manifest = buildBuiltinManifest();
   console.log(`doublemint ${readVersion()}\n`);
@@ -187,6 +236,8 @@ interface CliArgs {
   compiler?: string;
   cppOut?: string;
   stdinFilepath?: string;
+  write?: boolean;
+  check?: boolean;
   help: boolean;
   version: boolean;
 }
@@ -227,6 +278,16 @@ function parseCliArgs(argv: string[]): CliArgs {
     if (arg === "--cpp-out") {
       parsed.cppOut = requireFlagValue(rest, index, "--cpp-out");
       index += 1;
+      continue;
+    }
+
+    if (arg === "--write") {
+      parsed.write = true;
+      continue;
+    }
+
+    if (arg === "--check") {
+      parsed.check = true;
       continue;
     }
 
