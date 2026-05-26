@@ -424,7 +424,7 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
     "mint:os",
     {
       builtin: true,
-      builtinIncludes: ["<array>", "<cstdlib>", "<cstdio>", "<memory>", "<string>"],
+      builtinIncludes: ["<array>", "<cstdlib>", "<cstdio>", "<memory>", "<string>", "<string_view>", "<vector>"],
       program: emptyProgram("mint:os"),
       imports: [],
       exports: new Map([
@@ -433,7 +433,11 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
           namespaceExport("OS", [
             functionMember("isLinux", [], namedType("bool"), "__doublemint_os_is_linux"),
             functionMember("isWindows", [], namedType("bool"), "__doublemint_os_is_windows"),
-            functionMember("execute", [namedType("string")], namedType("string"), "__doublemint_os_execute")
+            functionMember("execute", [namedType("string")], namedType("string"), "__doublemint_os_execute"),
+            functionMember("runOutput", [namedType("string")], namedType("string"), "__doublemint_os_run_output"),
+            functionMember("runExitCode", [namedType("string")], namedType("int"), "__doublemint_os_run_exit_code"),
+            functionMember("argsQuote", [namedType("string")], namedType("string"), "__doublemint_os_args_quote"),
+            functionMember("argsJoin", [arrayType(namedType("string"))], namedType("string"), "__doublemint_os_args_join")
           ])
         ],
         [

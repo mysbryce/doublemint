@@ -1054,6 +1054,38 @@
                 "string"
               ],
               "returnType": "string"
+            },
+            {
+              "name": "runOutput",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "runExitCode",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "argsQuote",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "argsJoin",
+              "kind": "function",
+              "params": [
+                "string[]"
+              ],
+              "returnType": "string"
             }
           ]
         },
