@@ -81,24 +81,46 @@ aren't being satisfied:
 - C++ standard library symbols missing — should be auto-pulled by
   g++ but apparently aren't reaching the response-file path.
 
-### What the next session should investigate first
+### Root cause — narrowed in session 3
 
-1. Reproduce by hand: copy the `link.rsp` content into a shell and
-   run `g++ -v` with it to see exactly which libraries collect2
-   passes to ld. Compare against what's missing.
-2. Try `-Wl,--print-map -Wl,Map.txt` so even if ld returns 5 we
-   capture a partial map.
-3. Try the response-file with absolute paths but plain spaces
-   instead of quoted, in case ld's response parser breaks on
-   `"D:/..."` style entries on MinGW.
-4. As a fallback that's nearly guaranteed to work: collapse the obj
-   list into a thin archive via `ar rcsT libdoublemint_http.a *.o`
-   and link the archive instead of the response file. ld's archive
-   path is the most battle-tested input.
-5. If still stuck, drop libuv files we aren't actually using
-   (process-stdio.c, getaddrinfo.c, dl.c may be safe to omit for a
-   pure HTTP server) and see whether the link works with a smaller
-   surface, which would localise the bad object.
+The linker isn't the bug; the `g++` frontend on MSYS2 UCRT64
+(GCC 15.2.0) is. Reproducer:
+
+```bash
+# Works: collect2 directly, with the EXACT args g++ -### prints,
+# exits with code 1 and prints the real 50-line undefined-reference list.
+"$LIBEXEC/collect2.exe" -plugin … -m i386pep … main.cpp.o libuv.o -lstdc++ … -o t.exe
+
+# Fails: g++ wrapping that same collect2 call.
+g++ main.cpp.o libuv.o -o t.exe
+# -> stderr is just: collect2.exe: error: ld returned 5 exit status
+```
+
+Same env, same args, same collect2 binary; only the parent process
+differs. `ld` direct also works (exit 1, full diagnostics). The
+bug is between `g++.exe` and `collect2.exe` on this specific
+MinGW UCRT64 build — most likely a stderr pipe handling issue
+(collect2's child output never reaches g++'s reporting layer, and
+some other failure path converts the underlying ld error into the
+opaque "5" code).
+
+### Workaround paths to try next
+
+1. **Bypass g++ for the link step.** From nativeCompiler, query
+   GCC for `collect2.exe` (`g++ --print-prog-name=collect2`) plus
+   the implicit args via `g++ -###`, then invoke collect2 directly.
+   collect2 in shell already proved it surfaces real errors.
+2. **Try a different MinGW.** This is reproducible on MSYS2 UCRT64
+   GCC 15.2.0. Compile + link with MSYS2 MINGW64 (GCC 14) or
+   LLVM-MinGW to see whether it's just this one toolchain.
+3. **Static-link libuv into a `.a` first.** `ar rcs libuv.a *.o`
+   gave the same exit 5 in shell (already tried), so probably not
+   the way.
+
+The compile half of the pipeline is solid — once a working link
+path exists, the rest of the swap (uWebSockets http.cpp + the
+builtinNative bundle on mint:http) is a copy-paste from the
+already-drafted code below.
 
 ## Reverted (again) so the suite stays green
 
