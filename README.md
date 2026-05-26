@@ -84,12 +84,12 @@ node dist/cli.js build examples/language_tour/main.dlm --out build/language-tour
 
 ## Language Surface
 
-Supported (through `0.0.1-dev-37`):
+Supported (through `0.0.1-dev-40`):
 
 - **Bindings**: `let` (mutable), `const` (immutable), `constexpr`.
 - **Types**: `int`, `int64`, `float`, `double`, `string`, `bool`, `char`, `Array<T>`, tuples, `Optional<T>`, `T1 | T2 | …` unions, `Future<T>`, plus user-defined `struct`, `enum`, `type` aliases.
 - **Functions**: named functions with typed params + return, `async function` (returns `Future<T>`), generic free functions with inference, `extern` blocks for C/C++ interop, lambdas (single-expression and block bodies).
-- **Statements**: `if`/`else`, `while`, C-style `for`, `for (let x of arr)` and `for (let [a, b] of pairs)` range loops, `switch`/`case`/`default`, `match` (guards allowed) / `_`, `defer`, `return`, tuple destructuring (`let [a, b] = expr;`).
+- **Statements**: `if`/`else`, `while`, C-style `for`, `for (let x of arr)` and `for (let [a, b] of pairs)` range loops, `switch`/`case`/`default`, `match` (guards allowed) / `_`, `try`/`catch`/`throw`, `defer`, `return`, tuple destructuring (`let [a, b] = expr;`).
 - **Expressions**: arithmetic `+ - * / %`, comparisons `== != < <= > >=`, logical `&& ||`, unary `- ! ~`, prefix + postfix `++ --`, bitwise `& | ^ << >>`, compound assignment (`+= -= *= /= %= &= |= ^= <<= >>=`), ternary `a ? b : c`, match expressions, template literals (`` `hello ${name}` ``), string concat with `+`, member access, indexing, `as` casts, `copy`, `new T(…)`, `await expr`.
 - **Numeric literals**: `1_000_000`, `0xFF`, `0o755`, `0b1010` plus the standard decimal / float forms.
 - **Method-style on primitives**: any `mint:*` namespace function whose first parameter unifies with the receiver becomes a method (`name.upper()` ≡ `String.upper(name)`); numeric and bool primitives also have a built-in `.toString()` without needing an import.
@@ -98,11 +98,12 @@ Run `doublemint info` to enumerate the active stdlib modules at any time. The cu
 
 ```
 mint:array      mint:async       mint:base64      mint:collections
-mint:crypto     mint:db          mint:fs          mint:http
-mint:io         mint:json        mint:log         mint:math
-mint:memory     mint:net         mint:os          mint:process
-mint:regex      mint:schema      mint:simd        mint:sql
-mint:string     mint:term        mint:test        mint:time
+mint:crypto     mint:db          mint:fmt         mint:fs
+mint:http       mint:io          mint:json        mint:log
+mint:math       mint:memory      mint:net         mint:os
+mint:process    mint:regex       mint:schema      mint:simd
+mint:sql        mint:string      mint:term        mint:test
+mint:time
 ```
 
 ## A Tour

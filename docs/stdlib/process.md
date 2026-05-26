@@ -18,6 +18,37 @@ import { Process } from "mint:process";
 | `Process.runOutput` | `(cmd: string): string` | Run and capture stdout. |
 | `Process.runExitCode` | `(cmd: string): int` | Alias for `Process.run`. |
 
+## Streaming pipes
+
+Open a pipe to a child process and read its stdout line by line (or
+write to its stdin). Backed by `popen` / `_popen` — works on POSIX
+and Windows.
+
+| Symbol | Signature | Purpose |
+| --- | --- | --- |
+| `Process.streamOpen` | `(command: string, mode: string): int` | `"r"` reads stdout, `"w"` writes stdin. Returns a handle or `-1`. |
+| `Process.streamReadLine` | `(handle: int): string` | Read until newline; empty string at EOF. |
+| `Process.streamEof` | `(handle: int): bool` | True once the child closes its pipe. |
+| `Process.streamWriteLine` | `(handle: int, text: string): bool` | Auto-appends `\n` + flushes. |
+| `Process.streamClose` | `(handle: int): int` | Returns the child's exit status (via `pclose` / `_pclose`). |
+
+```mint
+import { Process } from "mint:process";
+import { String } from "mint:string";
+import { println } from "mint:io";
+
+export function main(): void {
+  let h: int = Process.streamOpen("ls -1", "r");
+  while (!Process.streamEof(h)) {
+    let line: string = Process.streamReadLine(h);
+    if (String.length(line) > 0) {
+      println(line);
+    }
+  }
+  Process.streamClose(h);
+}
+```
+
 ## Open a target process
 
 | Symbol | Signature | Purpose |

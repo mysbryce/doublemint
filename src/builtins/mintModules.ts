@@ -775,7 +775,7 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
     "mint:process",
     {
       builtin: true,
-      builtinIncludes: ["<cstdint>", "<string>", "<vector>"],
+      builtinIncludes: ["<cstdint>", "<cstdio>", "<memory>", "<string>", "<vector>"],
       program: emptyProgram("mint:process"),
       imports: [],
       exports: new Map([
@@ -799,7 +799,12 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
             functionMember("findWindowByClass", [namedType("string")], namedType("int64"), "__doublemint_process_find_window_by_class"),
             functionMember("findWindowByTitle", [namedType("string")], namedType("int64"), "__doublemint_process_find_window_by_title"),
             functionMember("findChildWindow", [namedType("int64"), namedType("string")], namedType("int64"), "__doublemint_process_find_child_window"),
-            functionMember("getWindowText", [namedType("int64")], namedType("string"), "__doublemint_process_get_window_text")
+            functionMember("getWindowText", [namedType("int64")], namedType("string"), "__doublemint_process_get_window_text"),
+            functionMember("streamOpen", [namedType("string"), namedType("string")], namedType("int"), "__doublemint_process_stream_open"),
+            functionMember("streamReadLine", [namedType("int")], namedType("string"), "__doublemint_process_stream_read_line"),
+            functionMember("streamEof", [namedType("int")], namedType("bool"), "__doublemint_process_stream_eof"),
+            functionMember("streamWriteLine", [namedType("int"), namedType("string")], namedType("bool"), "__doublemint_process_stream_write_line"),
+            functionMember("streamClose", [namedType("int")], namedType("int"), "__doublemint_process_stream_close")
           ])
         ]
       ])

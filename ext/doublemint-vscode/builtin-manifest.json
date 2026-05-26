@@ -2140,6 +2140,48 @@
                 "int64"
               ],
               "returnType": "string"
+            },
+            {
+              "name": "streamOpen",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "streamReadLine",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "streamEof",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "streamWriteLine",
+              "kind": "function",
+              "params": [
+                "int",
+                "string"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "streamClose",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "int"
             }
           ]
         }

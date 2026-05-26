@@ -404,3 +404,81 @@ struct PatternByte {
   return 0;
 #endif
 }
+
+// --- Streaming pipes (popen / _popen) ------------------------------------
+namespace doublemint_process_stream {
+
+struct StreamHandle {
+  FILE* file;
+  bool eof;
+};
+
+inline std::vector<std::unique_ptr<StreamHandle>>& registry() {
+  static std::vector<std::unique_ptr<StreamHandle>> instances;
+  return instances;
+}
+
+}  // namespace doublemint_process_stream
+
+[[maybe_unused]] static int __doublemint_process_stream_open(
+    const std::string& command, const std::string& mode) {
+#ifdef _WIN32
+  FILE* file = _popen(command.c_str(), mode.c_str());
+#else
+  FILE* file = popen(command.c_str(), mode.c_str());
+#endif
+  if (file == nullptr) { return -1; }
+  auto& reg = doublemint_process_stream::registry();
+  reg.push_back(std::make_unique<doublemint_process_stream::StreamHandle>(
+      doublemint_process_stream::StreamHandle{file, false}));
+  return static_cast<int>(reg.size()) - 1;
+}
+
+[[maybe_unused]] static std::string __doublemint_process_stream_read_line(int handle) {
+  auto& reg = doublemint_process_stream::registry();
+  if (handle < 0 || static_cast<std::size_t>(handle) >= reg.size()) { return std::string(); }
+  auto& slot = reg[static_cast<std::size_t>(handle)];
+  if (!slot || slot->file == nullptr || slot->eof) { return std::string(); }
+  std::string line;
+  int ch;
+  while ((ch = std::fgetc(slot->file)) != EOF) {
+    if (ch == '\n') { return line; }
+    line += static_cast<char>(ch);
+  }
+  slot->eof = true;
+  return line;
+}
+
+[[maybe_unused]] static bool __doublemint_process_stream_eof(int handle) {
+  auto& reg = doublemint_process_stream::registry();
+  if (handle < 0 || static_cast<std::size_t>(handle) >= reg.size()) { return true; }
+  auto& slot = reg[static_cast<std::size_t>(handle)];
+  return !slot || slot->eof;
+}
+
+[[maybe_unused]] static bool __doublemint_process_stream_write_line(
+    int handle, const std::string& text) {
+  auto& reg = doublemint_process_stream::registry();
+  if (handle < 0 || static_cast<std::size_t>(handle) >= reg.size()) { return false; }
+  auto& slot = reg[static_cast<std::size_t>(handle)];
+  if (!slot || slot->file == nullptr) { return false; }
+  if (std::fputs(text.c_str(), slot->file) == EOF) { return false; }
+  if (std::fputc('\n', slot->file) == EOF) { return false; }
+  std::fflush(slot->file);
+  return true;
+}
+
+[[maybe_unused]] static int __doublemint_process_stream_close(int handle) {
+  auto& reg = doublemint_process_stream::registry();
+  if (handle < 0 || static_cast<std::size_t>(handle) >= reg.size()) { return -1; }
+  auto& slot = reg[static_cast<std::size_t>(handle)];
+  if (!slot || slot->file == nullptr) { return -1; }
+#ifdef _WIN32
+  int status = _pclose(slot->file);
+#else
+  int status = pclose(slot->file);
+#endif
+  slot->file = nullptr;
+  slot->eof = true;
+  return status;
+}
