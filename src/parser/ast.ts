@@ -250,7 +250,9 @@ export type Expression =
   | LambdaExpression
   | CopyExpression
   | CastExpression
-  | NewExpression;
+  | NewExpression
+  | ConditionalExpression
+  | TemplateLiteralExpression;
 
 export interface IdentifierExpression {
   type: "Identifier";
@@ -268,9 +270,11 @@ export interface LiteralExpression {
 
 export interface BinaryExpression {
   type: "BinaryExpression";
-  operator: "+" | "-" | "*" | "/" | "==" | "!=" | "<" | "<=" | ">" | ">=";
+  operator: "+" | "-" | "*" | "/" | "==" | "!=" | "<" | "<=" | ">" | ">=" | "&&" | "||";
   left: Expression;
   right: Expression;
+  /** Set by the checker when both operands are strings, so the emitter can wrap them in std::string. */
+  stringConcat?: boolean;
   location: SourceLocation;
 }
 
@@ -337,7 +341,10 @@ export interface LambdaExpression {
   type: "LambdaExpression";
   params: Parameter[];
   returnType: TypeNode;
+  /** Single-expression body. Used when blockBody is undefined. */
   body: Expression;
+  /** Multi-statement block body. When set, the emitter uses it and ignores `body`. */
+  blockBody?: Statement[];
   location: SourceLocation;
 }
 
@@ -360,3 +367,21 @@ export interface NewExpression {
   arguments: Expression[];
   location: SourceLocation;
 }
+
+export interface ConditionalExpression {
+  type: "ConditionalExpression";
+  condition: Expression;
+  thenBranch: Expression;
+  elseBranch: Expression;
+  location: SourceLocation;
+}
+
+export interface TemplateLiteralExpression {
+  type: "TemplateLiteral";
+  parts: TemplatePart[];
+  location: SourceLocation;
+}
+
+export type TemplatePart =
+  | { kind: "string"; value: string }
+  | { kind: "identifier"; name: string };

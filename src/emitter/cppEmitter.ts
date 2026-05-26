@@ -39,6 +39,7 @@ interface EmitContext {
   stringViewVariables: Set<string>;
   nativeFunctions: Map<string, string>;
   nativeMembers: Map<string, string>;
+  usesTemplateLiteral?: boolean;
 }
 
 export async function emitCppToDisk(
@@ -166,11 +167,29 @@ function emitHeader(
     "#include <cstdint>",
     "#include <functional>",
     "#include <optional>",
+    "#include <sstream>",
     "#include <string>",
     "#include <string_view>",
     "#include <tuple>",
+    "#include <type_traits>",
     "#include <variant>",
     "#include <vector>",
+    "",
+    "#ifndef __DOUBLEMINT_TEMPLATE_TO_STRING_DEFINED__",
+    "#define __DOUBLEMINT_TEMPLATE_TO_STRING_DEFINED__",
+    "template <typename T>",
+    "inline std::string __doublemint_template_to_string(const T& value) {",
+    "  if constexpr (std::is_convertible_v<T, std::string_view>) {",
+    "    return std::string(value);",
+    "  } else if constexpr (std::is_same_v<T, bool>) {",
+    "    return value ? std::string(\"true\") : std::string(\"false\");",
+    "  } else if constexpr (std::is_arithmetic_v<T>) {",
+    "    return std::to_string(value);",
+    "  } else {",
+    "    std::ostringstream s; s << value; return s.str();",
+    "  }",
+    "}",
+    "#endif",
     ""
   ];
 
@@ -704,6 +723,13 @@ function collectAssignedRootsFromExpression(expression: Expression, roots: Set<s
         collectAssignedRootsFromExpression(argument, roots);
       }
       break;
+    case "ConditionalExpression":
+      collectAssignedRootsFromExpression(expression.condition, roots);
+      collectAssignedRootsFromExpression(expression.thenBranch, roots);
+      collectAssignedRootsFromExpression(expression.elseBranch, roots);
+      break;
+    case "TemplateLiteral":
+      break;
     default:
       assertNever(expression);
   }
@@ -769,6 +795,9 @@ function emitExpression(
     case "Literal":
       return emitLiteral(expression, expectedType);
     case "BinaryExpression":
+      if (expression.stringConcat) {
+        return `(std::string(${emitExpression(expression.left, undefined, context)}) + std::string(${emitExpression(expression.right, undefined, context)}))`;
+      }
       return `${emitExpression(expression.left, undefined, context)} ${expression.operator} ${emitExpression(expression.right, undefined, context)}`;
     case "AssignmentExpression":
       return `${emitExpression(expression.left, undefined, context)} = ${emitExpression(expression.right, undefined, context)}`;
@@ -819,6 +848,18 @@ function emitExpression(
       return `${emitType(expression.targetType)}(${expression.arguments
         .map((argument) => emitExpression(argument, undefined, context))
         .join(", ")})`;
+    case "ConditionalExpression":
+      return `(${emitExpression(expression.condition, undefined, context)} ? ${emitExpression(expression.thenBranch, expectedType, context)} : ${emitExpression(expression.elseBranch, expectedType, context)})`;
+    case "TemplateLiteral": {
+      const pieces = expression.parts.map((part) => {
+        if (part.kind === "string") {
+          return `std::string(${JSON.stringify(part.value)})`;
+        }
+        return `__doublemint_template_to_string(${part.name})`;
+      });
+      if (context) { context.usesTemplateLiteral = true; }
+      return `(${pieces.join(" + ")})`;
+    }
     default:
       assertNever(expression);
   }
@@ -831,6 +872,29 @@ function emitLambdaExpression(
   const params = expression.params
     .map((param) => `[[maybe_unused]] ${emitParameterType(param.valueType)} ${param.id}`)
     .join(", ");
+  if (expression.blockBody) {
+    const fakeDecl: FunctionDeclaration = {
+      type: "FunctionDeclaration",
+      id: "__lambda",
+      params: expression.params,
+      returnType: expression.returnType,
+      body: expression.blockBody,
+      exported: false,
+      extern: false,
+      location: expression.location
+    };
+    const innerContext: EmitContext = context ?? {
+      switchCounter: 0,
+      deferCounter: 0,
+      stringViewVariables: new Set<string>(),
+      nativeFunctions: new Map<string, string>(),
+      nativeMembers: new Map<string, string>()
+    };
+    const stmts = expression.blockBody
+      .map((statement) => emitStatement(statement, fakeDecl, innerContext))
+      .join("\n  ");
+    return `[=](${params}) -> ${emitType(expression.returnType)} {\n  ${stmts}\n}`;
+  }
   const bodyExpression = emitExpressionForExpectedType(
     expression.body,
     expression.returnType,
@@ -1283,6 +1347,12 @@ function expressionUsesPrint(expression: Expression): boolean {
       return expressionUsesPrint(expression.expression);
     case "NewExpression":
       return expression.arguments.some(expressionUsesPrint);
+    case "ConditionalExpression":
+      return expressionUsesPrint(expression.condition) ||
+        expressionUsesPrint(expression.thenBranch) ||
+        expressionUsesPrint(expression.elseBranch);
+    case "TemplateLiteral":
+      return false;
     default:
       assertNever(expression);
   }

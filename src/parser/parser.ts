@@ -14,6 +14,7 @@ import type {
   StructField,
   StructLiteralField,
   SwitchCase,
+  TemplatePart,
   TypeAliasDeclaration,
   TypeNode,
   VariableDeclaration
@@ -507,7 +508,7 @@ class Parser {
   }
 
   private assignment(): Expression {
-    const expression = this.equality();
+    const expression = this.ternary();
 
     if (this.match("EQUAL")) {
       return {
@@ -518,6 +519,51 @@ class Parser {
       };
     }
 
+    return expression;
+  }
+
+  private ternary(): Expression {
+    const condition = this.logicalOr();
+    if (this.match("QUESTION")) {
+      const thenExpr = this.expression();
+      this.consume("COLON", "DLM2076", "Expected ':' in ternary expression.");
+      const elseExpr = this.assignment();
+      return {
+        type: "ConditionalExpression",
+        condition,
+        thenBranch: thenExpr,
+        elseBranch: elseExpr,
+        location: condition.location
+      };
+    }
+    return condition;
+  }
+
+  private logicalOr(): Expression {
+    let expression = this.logicalAnd();
+    while (this.match("PIPE_PIPE")) {
+      expression = {
+        type: "BinaryExpression",
+        operator: "||",
+        left: expression,
+        right: this.logicalAnd(),
+        location: expression.location
+      };
+    }
+    return expression;
+  }
+
+  private logicalAnd(): Expression {
+    let expression = this.equality();
+    while (this.match("AMP_AMP")) {
+      expression = {
+        type: "BinaryExpression",
+        operator: "&&",
+        left: expression,
+        right: this.equality(),
+        location: expression.location
+      };
+    }
     return expression;
   }
 
@@ -718,9 +764,18 @@ class Parser {
 
     if (this.match("STRING_LITERAL")) {
       const literal = this.previous();
+      const raw = unquote(literal.lexeme);
+      if (raw.includes("${")) {
+        const parts = splitTemplate(raw);
+        return {
+          type: "TemplateLiteral",
+          parts,
+          location: literal.location
+        };
+      }
       return {
         type: "Literal",
-        value: unquote(literal.lexeme),
+        value: raw,
         raw: literal.lexeme,
         literalKind: "string",
         location: literal.location
@@ -798,6 +853,25 @@ class Parser {
     this.consume("COLON", "DLM2068", "Expected ':' before lambda return type.");
     const returnType = this.typeNode();
     this.consume("ARROW", "DLM2069", "Expected '=>' before lambda body.");
+
+    if (this.check("LEFT_BRACE")) {
+      const blockBody = this.block();
+      return {
+        type: "LambdaExpression",
+        params,
+        returnType,
+        body: {
+          type: "Literal",
+          value: null,
+          raw: "null",
+          literalKind: "null",
+          location: lambdaToken.location
+        },
+        blockBody,
+        location: lambdaToken.location
+      };
+    }
+
     const body = this.expression();
 
     return {
@@ -1061,4 +1135,27 @@ class Parser {
 
 function unquote(raw: string): string {
   return raw.slice(1, -1);
+}
+
+function splitTemplate(text: string): TemplatePart[] {
+  const parts: TemplatePart[] = [];
+  let buffer = "";
+  let index = 0;
+  while (index < text.length) {
+    if (text[index] === "$" && text[index + 1] === "{") {
+      const end = text.indexOf("}", index + 2);
+      if (end < 0) { break; }
+      const name = text.slice(index + 2, end).trim();
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/u.test(name)) {
+        if (buffer.length > 0) { parts.push({ kind: "string", value: buffer }); buffer = ""; }
+        parts.push({ kind: "identifier", name });
+        index = end + 1;
+        continue;
+      }
+    }
+    buffer += text[index];
+    index += 1;
+  }
+  if (buffer.length > 0) { parts.push({ kind: "string", value: buffer }); }
+  return parts;
 }

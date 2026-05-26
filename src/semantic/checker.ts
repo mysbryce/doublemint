@@ -600,6 +600,21 @@ function inferExpressionType(
         return namedType("bool", expression.location);
       }
 
+      if (expression.operator === "+" &&
+          canonicalTypeName(environment, left) === "string" &&
+          canonicalTypeName(environment, right) === "string") {
+        expression.stringConcat = true;
+        return namedType("string", expression.location);
+      }
+
+      if (
+        (expression.operator === "&&" || expression.operator === "||") &&
+        canonicalTypeName(environment, left) === "bool" &&
+        canonicalTypeName(environment, right) === "bool"
+      ) {
+        return namedType("bool", expression.location);
+      }
+
       if (!isNumericType(environment, left) || !isNumericType(environment, right)) {
         throw new DoublemintDiagnostic({
           code: "DLM4005",
@@ -643,6 +658,44 @@ function inferExpressionType(
         inferExpressionType(environment, scope, argument);
       }
       return expression.targetType;
+    case "TemplateLiteral": {
+      for (const part of expression.parts) {
+        if (part.kind === "identifier") {
+          const symbol = scope.lookup(part.name);
+          if (!symbol || symbol.kind === "namespace") {
+            throw new DoublemintDiagnostic({
+              code: "DLM4034",
+              severity: "error",
+              message: `Unknown identifier "${part.name}" in template literal.`,
+              location: expression.location
+            });
+          }
+        }
+      }
+      return namedType("string", expression.location);
+    }
+    case "ConditionalExpression": {
+      const condType = inferExpressionType(environment, scope, expression.condition);
+      if (canonicalTypeName(environment, condType) !== "bool") {
+        throw new DoublemintDiagnostic({
+          code: "DLM4032",
+          severity: "error",
+          message: "Ternary condition must be bool.",
+          location: expression.condition.location
+        });
+      }
+      const thenType = inferExpressionType(environment, scope, expression.thenBranch);
+      const elseType = inferExpressionType(environment, scope, expression.elseBranch);
+      if (!typesEqual(environment, thenType, elseType)) {
+        throw new DoublemintDiagnostic({
+          code: "DLM4033",
+          severity: "error",
+          message: "Ternary branches must have the same type.",
+          location: expression.location
+        });
+      }
+      return thenType;
+    }
     default:
       assertNever(expression);
   }
@@ -1048,11 +1101,17 @@ function inferLambdaType(
     });
   }
 
-  const bodyType = inferExpressionType(environment, lambdaScope, expression.body);
-  const returnsVoid =
-    expression.returnType.type === "NamedType" && expression.returnType.name === "void";
-  if (!returnsVoid) {
-    assertAssignable(environment, expression.returnType, bodyType, expression.body.location);
+  if (expression.blockBody) {
+    for (const statement of expression.blockBody) {
+      validateStatement(environment, lambdaScope, expression.returnType, statement);
+    }
+  } else {
+    const bodyType = inferExpressionType(environment, lambdaScope, expression.body);
+    const returnsVoid =
+      expression.returnType.type === "NamedType" && expression.returnType.name === "void";
+    if (!returnsVoid) {
+      assertAssignable(environment, expression.returnType, bodyType, expression.body.location);
+    }
   }
 
   return {

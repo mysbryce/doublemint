@@ -113,10 +113,10 @@ class Scanner {
         this.addToken("STAR");
         break;
       case "&":
-        this.addToken("AMPERSAND");
+        this.addToken(this.match("&") ? "AMP_AMP" : "AMPERSAND");
         break;
       case "|":
-        this.addToken("PIPE");
+        this.addToken(this.match("|") ? "PIPE_PIPE" : "PIPE");
         break;
       case "=":
         this.addToken(
