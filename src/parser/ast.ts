@@ -314,8 +314,9 @@ export interface LiteralExpression {
 
 export interface UnaryExpression {
   type: "UnaryExpression";
-  operator: "-" | "!";
+  operator: "-" | "!" | "++" | "--";
   argument: Expression;
+  postfix?: boolean;
   location: SourceLocation;
 }
 

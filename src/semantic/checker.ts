@@ -637,6 +637,18 @@ function inferExpressionType(
       );
     case "UnaryExpression": {
       const argType = inferExpressionType(environment, scope, expression.argument);
+      if (expression.operator === "++" || expression.operator === "--") {
+        if (!isNumericType(environment, argType)) {
+          throw new DoublemintDiagnostic({
+            code: "DLM4078",
+            severity: "error",
+            message: `Operator "${expression.operator}" requires a numeric operand.`,
+            location: expression.location
+          });
+        }
+        assertMutableAssignmentTarget(scope, expression.argument);
+        return argType;
+      }
       if (expression.operator === "-") {
         if (!isNumericType(environment, argType)) {
           throw new DoublemintDiagnostic({

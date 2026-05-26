@@ -109,7 +109,9 @@ class Scanner {
         this.addToken("QUESTION");
         break;
       case "+":
-        this.addToken(this.match("=") ? "PLUS_EQUAL" : "PLUS");
+        this.addToken(
+          this.match("+") ? "PLUS_PLUS" : this.match("=") ? "PLUS_EQUAL" : "PLUS"
+        );
         break;
       case "*":
         this.addToken(this.match("=") ? "STAR_EQUAL" : "STAR");
@@ -136,7 +138,13 @@ class Scanner {
         break;
       case "-":
         this.addToken(
-          this.match(">") ? "ARROW" : this.match("=") ? "MINUS_EQUAL" : "MINUS"
+          this.match(">")
+            ? "ARROW"
+            : this.match("-")
+              ? "MINUS_MINUS"
+              : this.match("=")
+                ? "MINUS_EQUAL"
+                : "MINUS"
         );
         break;
       case "/":

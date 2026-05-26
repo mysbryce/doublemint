@@ -890,6 +890,9 @@ function emitExpression(
     case "Literal":
       return emitLiteral(expression, expectedType);
     case "UnaryExpression":
+      if (expression.postfix) {
+        return `(${emitExpression(expression.argument, undefined, context)}${expression.operator})`;
+      }
       return `(${expression.operator}(${emitExpression(expression.argument, undefined, context)}))`;
     case "BinaryExpression":
       if (expression.stringConcat) {

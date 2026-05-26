@@ -874,6 +874,16 @@ class Parser {
           index,
           location: expression.location
         };
+      } else if (this.match("PLUS_PLUS", "MINUS_MINUS")) {
+        const opToken = this.previous();
+        const operator = opToken.lexeme as "++" | "--";
+        expression = {
+          type: "UnaryExpression",
+          operator,
+          argument: expression,
+          postfix: true,
+          location: expression.location
+        };
       } else {
         return expression;
       }

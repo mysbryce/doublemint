@@ -52,6 +52,8 @@ export type TokenKind =
   | "PIPE_PIPE"
   | "TEMPLATE_LITERAL"
   | "EQUAL"
+  | "PLUS_PLUS"
+  | "MINUS_MINUS"
   | "PLUS_EQUAL"
   | "MINUS_EQUAL"
   | "STAR_EQUAL"

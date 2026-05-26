@@ -1,6 +1,6 @@
 {
   "name": "doublemint",
-  "version": "0.0.1-dev-21",
+  "version": "0.0.1-dev-22",
   "description": "Production-grade .dlm to C++20 transpiler.",
   "type": "module",
   "bin": {
