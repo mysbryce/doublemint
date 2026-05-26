@@ -1,29 +1,45 @@
 class HeaderMap {
  private:
-  std::unordered_map<std::string, std::string> data_;
+  std::vector<std::pair<std::string, std::string>> data_;
+  static bool equalsCaseInsensitive(std::string_view a, std::string_view b) {
+    if (a.size() != b.size()) { return false; }
+    for (std::size_t index = 0; index < a.size(); ++index) {
+      char ca = a[index]; char cb = b[index];
+      if (ca >= 'A' && ca <= 'Z') { ca = static_cast<char>(ca + 32); }
+      if (cb >= 'A' && cb <= 'Z') { cb = static_cast<char>(cb + 32); }
+      if (ca != cb) { return false; }
+    }
+    return true;
+  }
 
  public:
   HeaderMap() = default;
   void set(std::string_view key, std::string_view value) {
-    data_[std::string(key)] = std::string(value);
+    data_.emplace_back(std::string(key), std::string(value));
   }
   std::string operator[](std::string_view key) const {
-    auto entry = data_.find(std::string(key));
-    return entry == data_.end() ? std::string() : entry->second;
+    for (const auto& entry : data_) {
+      if (entry.first == key) { return entry.second; }
+    }
+    for (const auto& entry : data_) {
+      if (equalsCaseInsensitive(entry.first, key)) { return entry.second; }
+    }
+    return std::string();
   }
 };
 
 namespace doublemint_http_detail {
 struct ServerHolder;
+struct ContextState;
 }
 
 class Context {
  private:
-  const void* req_;
-  void* res_;
+  std::shared_ptr<doublemint_http_detail::ContextState> state_;
 
  public:
-  Context(const void* req, void* res) noexcept : req_(req), res_(res) {}
+  explicit Context(std::shared_ptr<doublemint_http_detail::ContextState> state) noexcept
+      : state_(std::move(state)) {}
   std::string method() const;
   std::string path() const;
   std::string body() const;

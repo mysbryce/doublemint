@@ -597,10 +597,47 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
         "<mutex>",
         "<string>",
         "<string_view>",
-        "<unordered_map>"
+        "<unordered_map>",
+        "<utility>",
+        "<vector>"
       ],
       builtinLinkLibraries: {
-        win32: ["ws2_32"]
+        win32: ["ws2_32", "iphlpapi", "psapi", "userenv", "advapi32", "dbghelp", "ole32", "uuid", "shell32"]
+      },
+      builtinNative: {
+        vendorDirs: ["libuv/include", "libuv/src", "uSockets/src", "uWebSockets/src"],
+        sources: [
+          {
+            vendorDir: "libuv/src",
+            patterns: [
+              "fs-poll.c", "idna.c", "inet.c", "random.c", "strscpy.c", "strtok.c",
+              "thread-common.c", "threadpool.c", "timer.c", "uv-common.c",
+              "uv-data-getter-setters.c", "version.c"
+            ]
+          },
+          {
+            vendorDir: "libuv/src/win",
+            patterns: ["*.c"],
+            platforms: ["win32"]
+          },
+          {
+            vendorDir: "uSockets/src",
+            patterns: ["bsd.c", "context.c", "loop.c", "socket.c", "udp.c"]
+          },
+          {
+            vendorDir: "uSockets/src/eventing",
+            patterns: ["libuv.c"]
+          }
+        ],
+        defines: {
+          win32: ["LIBUS_USE_LIBUV=1", "LIBUS_NO_SSL=1", "UWS_NO_ZLIB=1", "WIN32_LEAN_AND_MEAN", "_WIN32_WINNT=0x0602", "NDEBUG"],
+          linux: ["LIBUS_USE_LIBUV=1", "LIBUS_NO_SSL=1", "UWS_NO_ZLIB=1", "_FILE_OFFSET_BITS=64", "_LARGEFILE_SOURCE", "_GNU_SOURCE"],
+          darwin: ["LIBUS_USE_LIBUV=1", "LIBUS_NO_SSL=1", "UWS_NO_ZLIB=1", "_DARWIN_UNLIMITED_SELECT=1"]
+        },
+        linkLibraries: {
+          linux: ["pthread", "dl", "rt"],
+          darwin: ["pthread"]
+        }
       },
       program: emptyProgram("mint:http"),
       imports: [],

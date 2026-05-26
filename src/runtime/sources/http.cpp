@@ -1,142 +1,285 @@
-// Implementation of Http and Context classes from runtime/headers/http.hpp,
-// using cpp-httplib (prepended at embed time by scripts/embed-runtime.mjs).
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wall"
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpedantic"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wparentheses"
+#include "App.h"
+#pragma GCC diagnostic pop
 
 namespace doublemint_http_detail {
 
-struct ServerHolder {
-  httplib::Server server;
+struct ContextState {
+  uWS::HttpResponse<false>* response = nullptr;
+  std::string method;
+  std::string path;
+  std::string body;
+  std::vector<std::pair<std::string, std::string>> headers;
+  std::unordered_map<std::string, std::string> pathParams;
+  std::unordered_map<std::string, std::string> queryParams;
+  int pendingStatus = 0;
+  std::vector<std::pair<std::string, std::string>> pendingHeaders;
+  bool ended = false;
 };
 
-[[maybe_unused]] static const httplib::Request* asRequest(const void* p) {
-  return reinterpret_cast<const httplib::Request*>(p);
+struct ServerHolder {
+  std::unique_ptr<uWS::App> app;
+  us_listen_socket_t* listenSocket = nullptr;
+  ServerHolder() : app(std::make_unique<uWS::App>()) {}
+};
+
+[[maybe_unused]] static std::unordered_map<std::string, std::string> parseQueryString(std::string_view query) {
+  std::unordered_map<std::string, std::string> out;
+  std::size_t start = 0;
+  while (start <= query.size()) {
+    std::size_t end = query.find('&', start);
+    if (end == std::string_view::npos) { end = query.size(); }
+    auto piece = query.substr(start, end - start);
+    auto eq = piece.find('=');
+    if (eq != std::string_view::npos) {
+      out.emplace(std::string(piece.substr(0, eq)), std::string(piece.substr(eq + 1)));
+    } else if (!piece.empty()) {
+      out.emplace(std::string(piece), std::string());
+    }
+    if (end == query.size()) { break; }
+    start = end + 1;
+  }
+  return out;
 }
 
-[[maybe_unused]] static httplib::Response* asResponse(void* p) {
-  return reinterpret_cast<httplib::Response*>(p);
+[[maybe_unused]] static std::vector<std::string> extractPathParamNames(std::string_view pattern) {
+  std::vector<std::string> names;
+  std::size_t cursor = 0;
+  while (cursor < pattern.size()) {
+    auto colon = pattern.find(':', cursor);
+    if (colon == std::string_view::npos) { break; }
+    auto stop = colon + 1;
+    while (stop < pattern.size()) {
+      char c = pattern[stop];
+      bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
+      if (!ok) { break; }
+      ++stop;
+    }
+    names.emplace_back(pattern.substr(colon + 1, stop - colon - 1));
+    cursor = stop;
+  }
+  return names;
 }
 
-[[maybe_unused]] static httplib::Server::Handler makeBridge(
+[[maybe_unused]] static void applyPendingHeaders(ContextState& state) {
+  if (state.ended) { return; }
+  if (state.pendingStatus > 0) {
+    state.response->writeStatus(std::to_string(state.pendingStatus));
+  }
+  for (const auto& header : state.pendingHeaders) {
+    state.response->writeHeader(header.first, header.second);
+  }
+  state.pendingHeaders.clear();
+}
+
+[[maybe_unused]] static void invokeHandler(
+    uWS::HttpResponse<false>* res,
+    uWS::HttpRequest* req,
+    const std::vector<std::string>& paramNames,
+    const std::function<void(const Context&)>& handler,
+    bool collectBody) {
+  auto state = std::make_shared<ContextState>();
+  state->response = res;
+  state->method = std::string(req->getMethod());
+  for (auto& ch : state->method) {
+    if (ch >= 'a' && ch <= 'z') { ch = static_cast<char>(ch - 32); }
+  }
+  state->path = std::string(req->getUrl());
+  for (std::size_t index = 0; index < paramNames.size(); ++index) {
+    auto value = req->getParameter(static_cast<unsigned short>(index));
+    if (!value.empty()) {
+      state->pathParams.emplace(paramNames[index], std::string(value));
+    }
+  }
+  state->queryParams = parseQueryString(req->getQuery());
+  for (auto it = req->begin(); it != req->end(); ++it) {
+    auto pair = *it;
+    state->headers.emplace_back(std::string(pair.first), std::string(pair.second));
+  }
+
+  res->onAborted([state]() { state->ended = true; });
+
+  if (!collectBody) {
+    handler(Context(state));
+    if (!state->ended) {
+      applyPendingHeaders(*state);
+      res->end();
+      state->ended = true;
+    }
+    return;
+  }
+
+  res->onData([state, handler](std::string_view chunk, bool last) {
+    state->body.append(chunk.data(), chunk.size());
+    if (last && !state->ended) {
+      handler(Context(state));
+      if (!state->ended) {
+        applyPendingHeaders(*state);
+        state->response->end();
+        state->ended = true;
+      }
+    }
+  });
+}
+
+[[maybe_unused]] static void registerRoute(
+    ServerHolder& holder,
+    const std::string& method,
+    std::string_view pattern,
     const std::function<void(const Context&)>& handler) {
-  return [handler](const httplib::Request& req, httplib::Response& res) {
-    Context ctx(&req, &res);
-    handler(ctx);
+  auto names = extractPathParamNames(pattern);
+  bool collectBody = method != "GET" && method != "HEAD" && method != "OPTIONS";
+  auto adapter = [names, handler, collectBody](uWS::HttpResponse<false>* res, uWS::HttpRequest* req) {
+    invokeHandler(res, req, names, handler, collectBody);
   };
+  std::string p(pattern);
+  if (method == "GET") { holder.app->get(p, adapter); }
+  else if (method == "POST") { holder.app->post(p, adapter); }
+  else if (method == "PUT") { holder.app->put(p, adapter); }
+  else if (method == "DELETE") { holder.app->del(p, adapter); }
+  else if (method == "PATCH") { holder.app->patch(p, adapter); }
+  else if (method == "OPTIONS") { holder.app->options(p, adapter); }
 }
 
 }  // namespace doublemint_http_detail
 
-std::string Context::method() const {
-  return doublemint_http_detail::asRequest(req_)->method;
-}
-
-std::string Context::path() const {
-  return doublemint_http_detail::asRequest(req_)->path;
-}
-
-std::string Context::body() const {
-  return doublemint_http_detail::asRequest(req_)->body;
-}
+std::string Context::method() const { return state_->method; }
+std::string Context::path() const { return state_->path; }
+std::string Context::body() const { return state_->body; }
 
 HeaderMap Context::headers() const {
   HeaderMap result;
-  for (const auto& entry : doublemint_http_detail::asRequest(req_)->headers) {
-    result.set(entry.first, entry.second);
-  }
+  for (const auto& entry : state_->headers) { result.set(entry.first, entry.second); }
   return result;
 }
 
 HeaderMap Context::params() const {
   HeaderMap result;
-  for (const auto& entry : doublemint_http_detail::asRequest(req_)->path_params) {
-    result.set(entry.first, entry.second);
-  }
+  for (const auto& entry : state_->pathParams) { result.set(entry.first, entry.second); }
   return result;
 }
 
 HeaderMap Context::query() const {
   HeaderMap result;
-  for (const auto& entry : doublemint_http_detail::asRequest(req_)->params) {
-    result.set(entry.first, entry.second);
-  }
+  for (const auto& entry : state_->queryParams) { result.set(entry.first, entry.second); }
   return result;
 }
 
 std::string Context::header(std::string_view name) const {
-  return doublemint_http_detail::asRequest(req_)->get_header_value(std::string(name));
+  std::string lower(name);
+  for (auto& ch : lower) {
+    if (ch >= 'A' && ch <= 'Z') { ch = static_cast<char>(ch + 32); }
+  }
+  for (const auto& entry : state_->headers) {
+    std::string key = entry.first;
+    for (auto& ch : key) {
+      if (ch >= 'A' && ch <= 'Z') { ch = static_cast<char>(ch + 32); }
+    }
+    if (key == lower) { return entry.second; }
+  }
+  return std::string();
 }
 
 std::string Context::param(std::string_view name) const {
-  const auto& params = doublemint_http_detail::asRequest(req_)->path_params;
-  auto entry = params.find(std::string(name));
-  return entry == params.end() ? std::string() : entry->second;
+  auto entry = state_->pathParams.find(std::string(name));
+  return entry == state_->pathParams.end() ? std::string() : entry->second;
 }
 
 std::string Context::queryParam(std::string_view name) const {
-  return doublemint_http_detail::asRequest(req_)->get_param_value(std::string(name));
+  auto entry = state_->queryParams.find(std::string(name));
+  return entry == state_->queryParams.end() ? std::string() : entry->second;
 }
 
-void Context::setStatus(int status) const {
-  doublemint_http_detail::asResponse(res_)->status = status;
-}
+void Context::setStatus(int status) const { state_->pendingStatus = status; }
 
 void Context::setHeader(std::string_view name, std::string_view value) const {
-  doublemint_http_detail::asResponse(res_)->set_header(std::string(name), std::string(value));
+  state_->pendingHeaders.emplace_back(std::string(name), std::string(value));
 }
 
 void Context::text(std::string_view body) const {
-  auto* res = doublemint_http_detail::asResponse(res_);
-  if (res->status == 0 || res->status == -1) { res->status = 200; }
-  res->set_content(std::string(body), "text/plain; charset=utf-8");
+  if (state_->ended) { return; }
+  if (state_->pendingStatus == 0) { state_->pendingStatus = 200; }
+  state_->pendingHeaders.emplace_back("Content-Type", "text/plain; charset=utf-8");
+  doublemint_http_detail::applyPendingHeaders(*state_);
+  state_->response->end(body);
+  state_->ended = true;
 }
 
 void Context::json(std::string_view body) const {
-  auto* res = doublemint_http_detail::asResponse(res_);
-  if (res->status == 0 || res->status == -1) { res->status = 200; }
-  res->set_content(std::string(body), "application/json; charset=utf-8");
+  if (state_->ended) { return; }
+  if (state_->pendingStatus == 0) { state_->pendingStatus = 200; }
+  state_->pendingHeaders.emplace_back("Content-Type", "application/json; charset=utf-8");
+  doublemint_http_detail::applyPendingHeaders(*state_);
+  state_->response->end(body);
+  state_->ended = true;
 }
 
 void Context::html(std::string_view body) const {
-  auto* res = doublemint_http_detail::asResponse(res_);
-  if (res->status == 0 || res->status == -1) { res->status = 200; }
-  res->set_content(std::string(body), "text/html; charset=utf-8");
+  if (state_->ended) { return; }
+  if (state_->pendingStatus == 0) { state_->pendingStatus = 200; }
+  state_->pendingHeaders.emplace_back("Content-Type", "text/html; charset=utf-8");
+  doublemint_http_detail::applyPendingHeaders(*state_);
+  state_->response->end(body);
+  state_->ended = true;
 }
 
 void Context::send(int status, std::string_view contentType, std::string_view body) const {
-  auto* res = doublemint_http_detail::asResponse(res_);
-  res->status = status;
-  res->set_content(std::string(body), std::string(contentType));
+  if (state_->ended) { return; }
+  state_->pendingStatus = status;
+  state_->pendingHeaders.emplace_back("Content-Type", std::string(contentType));
+  doublemint_http_detail::applyPendingHeaders(*state_);
+  state_->response->end(body);
+  state_->ended = true;
 }
 
 Http::Http() : holder_(std::make_shared<doublemint_http_detail::ServerHolder>()) {}
 
 void Http::get(std::string_view pattern, const std::function<void(const Context&)>& handler) {
-  holder_->server.Get(std::string(pattern), doublemint_http_detail::makeBridge(handler));
+  doublemint_http_detail::registerRoute(*holder_, "GET", pattern, handler);
 }
-
 void Http::post(std::string_view pattern, const std::function<void(const Context&)>& handler) {
-  holder_->server.Post(std::string(pattern), doublemint_http_detail::makeBridge(handler));
+  doublemint_http_detail::registerRoute(*holder_, "POST", pattern, handler);
 }
-
 void Http::put(std::string_view pattern, const std::function<void(const Context&)>& handler) {
-  holder_->server.Put(std::string(pattern), doublemint_http_detail::makeBridge(handler));
+  doublemint_http_detail::registerRoute(*holder_, "PUT", pattern, handler);
 }
-
 void Http::del(std::string_view pattern, const std::function<void(const Context&)>& handler) {
-  holder_->server.Delete(std::string(pattern), doublemint_http_detail::makeBridge(handler));
+  doublemint_http_detail::registerRoute(*holder_, "DELETE", pattern, handler);
 }
-
 void Http::patch(std::string_view pattern, const std::function<void(const Context&)>& handler) {
-  holder_->server.Patch(std::string(pattern), doublemint_http_detail::makeBridge(handler));
+  doublemint_http_detail::registerRoute(*holder_, "PATCH", pattern, handler);
 }
-
 void Http::options(std::string_view pattern, const std::function<void(const Context&)>& handler) {
-  holder_->server.Options(std::string(pattern), doublemint_http_detail::makeBridge(handler));
+  doublemint_http_detail::registerRoute(*holder_, "OPTIONS", pattern, handler);
 }
 
 bool Http::listen(std::string_view host, int port) {
-  return holder_->server.listen(host.empty() ? std::string("0.0.0.0") : std::string(host), port);
+  auto* shared = holder_.get();
+  bool ok = false;
+  std::string hostStr = host.empty() ? std::string("0.0.0.0") : std::string(host);
+  shared->app->listen(hostStr, port, [shared, &ok](us_listen_socket_t* token) {
+    if (token != nullptr) {
+      shared->listenSocket = token;
+      ok = true;
+    }
+  });
+  shared->app->run();
+  return ok;
 }
 
 void Http::stop() {
-  holder_->server.stop();
+  if (holder_->listenSocket != nullptr) {
+    us_listen_socket_close(0, holder_->listenSocket);
+    holder_->listenSocket = nullptr;
+  }
 }

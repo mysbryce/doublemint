@@ -20,38 +20,8 @@ function readDirectory(directory) {
   return map;
 }
 
-function readVendor(name) {
-  const filepath = join(vendorDir, `${name}.hpp`);
-  if (!existsSync(filepath)) {
-    throw new Error(`Vendor header ${filepath} not found.`);
-  }
-  return readFileSync(filepath, "utf8").replace(/\r\n/gu, "\n").replace(/\n+$/u, "");
-}
-
 const headers = readDirectory(headersDir);
 const sources = readDirectory(sourcesDir);
-
-if (sources.http !== undefined) {
-  const vendor = readVendor("cpp-httplib");
-  const pragmaPush = [
-    "#pragma GCC diagnostic push",
-    "#pragma GCC diagnostic ignored \"-Wall\"",
-    "#pragma GCC diagnostic ignored \"-Wextra\"",
-    "#pragma GCC diagnostic ignored \"-Wpedantic\"",
-    "#pragma GCC diagnostic ignored \"-Wunused-parameter\"",
-    "#pragma GCC diagnostic ignored \"-Wunused-function\"",
-    "#pragma GCC diagnostic ignored \"-Wunused-variable\"",
-    "#pragma GCC diagnostic ignored \"-Wunused-but-set-variable\"",
-    "#pragma GCC diagnostic ignored \"-Wsign-compare\"",
-    "#pragma GCC diagnostic ignored \"-Wmissing-field-initializers\"",
-    "#pragma GCC diagnostic ignored \"-Wdeprecated-declarations\"",
-    "#pragma GCC diagnostic ignored \"-Wtype-limits\"",
-    "#pragma GCC diagnostic ignored \"-Wparentheses\"",
-    "#pragma GCC diagnostic ignored \"-Wnarrowing\""
-  ].join("\n");
-  const pragmaPop = "#pragma GCC diagnostic pop";
-  sources.http = `${pragmaPush}\n${vendor}\n${pragmaPop}\n\n${sources.http}`;
-}
 
 function emitRecord(name, map) {
   const entries = Object.keys(map)
