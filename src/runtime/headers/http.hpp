@@ -33,6 +33,25 @@ struct ServerHolder;
 struct ContextState;
 }
 
+namespace doublemint_fetch_detail {
+struct ResponseState;
+}
+
+class HttpResponse {
+ private:
+  std::shared_ptr<doublemint_fetch_detail::ResponseState> state_;
+
+ public:
+  explicit HttpResponse(std::shared_ptr<doublemint_fetch_detail::ResponseState> state) noexcept
+      : state_(std::move(state)) {}
+  int status() const;
+  std::string body() const;
+  HeaderMap headers() const;
+  std::string header(std::string_view name) const;
+  bool ok() const;
+  std::string error() const;
+};
+
 class Context {
  private:
   std::shared_ptr<doublemint_http_detail::ContextState> state_;
@@ -76,17 +95,17 @@ class Http {
 
  public:
   Http();
-  void get(std::string_view pattern, const std::function<void(const Context&)>& handler);
-  void post(std::string_view pattern, const std::function<void(const Context&)>& handler);
-  void put(std::string_view pattern, const std::function<void(const Context&)>& handler);
-  void del(std::string_view pattern, const std::function<void(const Context&)>& handler);
-  void patch(std::string_view pattern, const std::function<void(const Context&)>& handler);
-  void options(std::string_view pattern, const std::function<void(const Context&)>& handler);
+  void get(std::string_view pattern, const std::function<void(const Context&)>& handler) const;
+  void post(std::string_view pattern, const std::function<void(const Context&)>& handler) const;
+  void put(std::string_view pattern, const std::function<void(const Context&)>& handler) const;
+  void del(std::string_view pattern, const std::function<void(const Context&)>& handler) const;
+  void patch(std::string_view pattern, const std::function<void(const Context&)>& handler) const;
+  void options(std::string_view pattern, const std::function<void(const Context&)>& handler) const;
   void ws(
       std::string_view pattern,
       const std::function<void(const WebSocket&)>& open,
       const std::function<void(const WebSocket&, std::string_view)>& message,
-      const std::function<void(const WebSocket&)>& close);
-  bool listen(std::string_view host, int port);
-  void stop();
+      const std::function<void(const WebSocket&)>& close) const;
+  bool listen(std::string_view host, int port) const;
+  void stop() const;
 };

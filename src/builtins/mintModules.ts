@@ -802,6 +802,25 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
           classExport("HeaderMap", [])
         ],
         [
+          "HttpResponse",
+          classExport("HttpResponse", [
+            property("status", namedType("int")),
+            property("body", namedType("string")),
+            property("ok", namedType("bool")),
+            property("error", namedType("string")),
+            property("headers", namedType("HeaderMap")),
+            method("header", [namedType("string")], namedType("string"))
+          ])
+        ],
+        [
+          "Fetch",
+          namespaceExport("Fetch", [
+            functionMember("get", [namedType("string")], namedType("HttpResponse"), "__doublemint_fetch_get"),
+            functionMember("post", [namedType("string"), namedType("string"), namedType("string")], namedType("HttpResponse"), "__doublemint_fetch_post"),
+            functionMember("request", [namedType("string"), namedType("string"), namedType("string"), namedType("string")], namedType("HttpResponse"), "__doublemint_fetch_request")
+          ])
+        ],
+        [
           "WebSocket",
           classExport("WebSocket", [
             method("send", [namedType("string")], namedType("void")),

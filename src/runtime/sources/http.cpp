@@ -244,22 +244,22 @@ void Context::send(int status, std::string_view contentType, std::string_view bo
 
 Http::Http() : holder_(std::make_shared<doublemint_http_detail::ServerHolder>()) {}
 
-void Http::get(std::string_view pattern, const std::function<void(const Context&)>& handler) {
+void Http::get(std::string_view pattern, const std::function<void(const Context&)>& handler) const {
   doublemint_http_detail::registerRoute(*holder_, "GET", pattern, handler);
 }
-void Http::post(std::string_view pattern, const std::function<void(const Context&)>& handler) {
+void Http::post(std::string_view pattern, const std::function<void(const Context&)>& handler) const {
   doublemint_http_detail::registerRoute(*holder_, "POST", pattern, handler);
 }
-void Http::put(std::string_view pattern, const std::function<void(const Context&)>& handler) {
+void Http::put(std::string_view pattern, const std::function<void(const Context&)>& handler) const {
   doublemint_http_detail::registerRoute(*holder_, "PUT", pattern, handler);
 }
-void Http::del(std::string_view pattern, const std::function<void(const Context&)>& handler) {
+void Http::del(std::string_view pattern, const std::function<void(const Context&)>& handler) const {
   doublemint_http_detail::registerRoute(*holder_, "DELETE", pattern, handler);
 }
-void Http::patch(std::string_view pattern, const std::function<void(const Context&)>& handler) {
+void Http::patch(std::string_view pattern, const std::function<void(const Context&)>& handler) const {
   doublemint_http_detail::registerRoute(*holder_, "PATCH", pattern, handler);
 }
-void Http::options(std::string_view pattern, const std::function<void(const Context&)>& handler) {
+void Http::options(std::string_view pattern, const std::function<void(const Context&)>& handler) const {
   doublemint_http_detail::registerRoute(*holder_, "OPTIONS", pattern, handler);
 }
 
@@ -305,7 +305,7 @@ void Http::ws(
     std::string_view pattern,
     const std::function<void(const WebSocket&)>& openHandler,
     const std::function<void(const WebSocket&, std::string_view)>& messageHandler,
-    const std::function<void(const WebSocket&)>& closeHandler) {
+    const std::function<void(const WebSocket&)>& closeHandler) const {
   using namespace doublemint_http_detail;
   uWS::App::WebSocketBehavior<WsPerSocket> behavior{};
   behavior.open = [openHandler](WsType* ws) {
@@ -326,7 +326,7 @@ void Http::ws(
   holder_->app->ws<WsPerSocket>(std::string(pattern), std::move(behavior));
 }
 
-bool Http::listen(std::string_view host, int port) {
+bool Http::listen(std::string_view host, int port) const {
   auto* shared = holder_.get();
   bool ok = false;
   std::string hostStr = host.empty() ? std::string("0.0.0.0") : std::string(host);
@@ -340,9 +340,256 @@ bool Http::listen(std::string_view host, int port) {
   return ok;
 }
 
-void Http::stop() {
+void Http::stop() const {
   if (holder_->listenSocket != nullptr) {
     us_listen_socket_close(0, holder_->listenSocket);
     holder_->listenSocket = nullptr;
   }
+}
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <unistd.h>
+#endif
+
+namespace doublemint_fetch_detail {
+
+struct UrlParts {
+  std::string scheme;
+  std::string host;
+  int port = 80;
+  std::string path;
+};
+
+struct ResponseState {
+  int status = 0;
+  std::string body;
+  std::vector<std::pair<std::string, std::string>> headers;
+  std::string error;
+};
+
+[[maybe_unused]] static UrlParts parseUrl(std::string_view url) {
+  UrlParts parts;
+  parts.scheme = "http";
+  parts.port = 80;
+  parts.path = "/";
+  std::size_t start = 0;
+  auto schemeEnd = url.find("://");
+  if (schemeEnd != std::string_view::npos) {
+    parts.scheme = std::string(url.substr(0, schemeEnd));
+    start = schemeEnd + 3;
+    if (parts.scheme == "https") { parts.port = 443; }
+  }
+  auto pathStart = url.find('/', start);
+  std::string_view hostSpan = pathStart == std::string_view::npos
+      ? url.substr(start)
+      : url.substr(start, pathStart - start);
+  if (pathStart != std::string_view::npos) { parts.path = std::string(url.substr(pathStart)); }
+  auto colon = hostSpan.find(':');
+  if (colon != std::string_view::npos) {
+    parts.host = std::string(hostSpan.substr(0, colon));
+    try { parts.port = std::stoi(std::string(hostSpan.substr(colon + 1))); } catch (...) {}
+  } else {
+    parts.host = std::string(hostSpan);
+  }
+  return parts;
+}
+
+#ifdef _WIN32
+struct WsaGuard {
+  bool ok = false;
+  WsaGuard() {
+    WSADATA data;
+    ok = WSAStartup(MAKEWORD(2, 2), &data) == 0;
+  }
+  ~WsaGuard() { if (ok) { WSACleanup(); } }
+};
+#endif
+
+[[maybe_unused]] static int openTcp(const std::string& host, int port, std::string& error) {
+#ifdef _WIN32
+  static WsaGuard guard;
+  if (!guard.ok) { error = "WSAStartup failed"; return -1; }
+#endif
+  struct addrinfo hints{};
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
+  struct addrinfo* res = nullptr;
+  std::string portStr = std::to_string(port);
+  if (getaddrinfo(host.c_str(), portStr.c_str(), &hints, &res) != 0 || res == nullptr) {
+    error = "DNS lookup failed for " + host;
+    return -1;
+  }
+  int fd = static_cast<int>(socket(res->ai_family, res->ai_socktype, res->ai_protocol));
+  if (fd < 0) { freeaddrinfo(res); error = "socket() failed"; return -1; }
+  if (connect(fd, res->ai_addr, static_cast<int>(res->ai_addrlen)) != 0) {
+    freeaddrinfo(res);
+#ifdef _WIN32
+    closesocket(fd);
+#else
+    ::close(fd);
+#endif
+    error = "connect() failed";
+    return -1;
+  }
+  freeaddrinfo(res);
+  return fd;
+}
+
+[[maybe_unused]] static void closeTcp(int fd) {
+#ifdef _WIN32
+  closesocket(fd);
+#else
+  ::close(fd);
+#endif
+}
+
+[[maybe_unused]] static bool writeAll(int fd, const char* data, std::size_t size, std::string& error) {
+  std::size_t sent = 0;
+  while (sent < size) {
+    int n = send(fd, data + sent, static_cast<int>(size - sent), 0);
+    if (n <= 0) { error = "send() failed"; return false; }
+    sent += static_cast<std::size_t>(n);
+  }
+  return true;
+}
+
+[[maybe_unused]] static std::string readAll(int fd) {
+  std::string out;
+  char buffer[4096];
+  while (true) {
+    int n = recv(fd, buffer, static_cast<int>(sizeof(buffer)), 0);
+    if (n <= 0) { break; }
+    out.append(buffer, static_cast<std::size_t>(n));
+  }
+  return out;
+}
+
+[[maybe_unused]] static std::shared_ptr<ResponseState> performRequest(
+    const std::string& method, std::string_view url,
+    std::string_view body, std::string_view contentType,
+    const std::vector<std::pair<std::string, std::string>>& extraHeaders) {
+  auto state = std::make_shared<ResponseState>();
+  auto parts = parseUrl(url);
+  if (parts.scheme != "http") {
+    state->error = "Only http:// is supported (no SSL vendored)";
+    return state;
+  }
+  std::string openError;
+  int fd = openTcp(parts.host, parts.port, openError);
+  if (fd < 0) { state->error = openError; return state; }
+
+  std::string request;
+  request.reserve(256 + body.size());
+  request += method;
+  request += " ";
+  request += parts.path;
+  request += " HTTP/1.1\r\n";
+  request += "Host: " + parts.host;
+  if (parts.port != 80) { request += ":" + std::to_string(parts.port); }
+  request += "\r\n";
+  request += "User-Agent: doublemint/0.0.1\r\n";
+  request += "Connection: close\r\n";
+  bool ctSet = false;
+  for (const auto& header : extraHeaders) {
+    request += header.first + ": " + header.second + "\r\n";
+    std::string lower(header.first);
+    for (auto& ch : lower) { if (ch >= 'A' && ch <= 'Z') { ch = static_cast<char>(ch + 32); } }
+    if (lower == "content-type") { ctSet = true; }
+  }
+  if (!body.empty()) {
+    request += "Content-Length: " + std::to_string(body.size()) + "\r\n";
+    if (!ctSet && !contentType.empty()) {
+      request += "Content-Type: " + std::string(contentType) + "\r\n";
+    }
+  }
+  request += "\r\n";
+  if (!body.empty()) { request.append(body); }
+
+  std::string writeError;
+  if (!writeAll(fd, request.data(), request.size(), writeError)) {
+    state->error = writeError;
+    closeTcp(fd);
+    return state;
+  }
+  std::string response = readAll(fd);
+  closeTcp(fd);
+
+  auto headerEnd = response.find("\r\n\r\n");
+  if (headerEnd == std::string::npos) { state->error = "malformed response"; return state; }
+  std::string headerBlock = response.substr(0, headerEnd);
+  state->body = response.substr(headerEnd + 4);
+
+  std::size_t start = 0;
+  auto lineEnd = headerBlock.find("\r\n", start);
+  std::string statusLine = headerBlock.substr(0, lineEnd == std::string::npos ? headerBlock.size() : lineEnd);
+  auto firstSpace = statusLine.find(' ');
+  if (firstSpace != std::string::npos) {
+    auto secondSpace = statusLine.find(' ', firstSpace + 1);
+    try {
+      state->status = std::stoi(statusLine.substr(firstSpace + 1, secondSpace - firstSpace - 1));
+    } catch (...) {}
+  }
+  start = lineEnd + 2;
+  while (start < headerBlock.size()) {
+    auto nextEnd = headerBlock.find("\r\n", start);
+    std::string line = headerBlock.substr(start, nextEnd == std::string::npos ? headerBlock.size() - start : nextEnd - start);
+    auto colon = line.find(':');
+    if (colon != std::string::npos) {
+      std::string key = line.substr(0, colon);
+      std::size_t valueStart = colon + 1;
+      while (valueStart < line.size() && (line[valueStart] == ' ' || line[valueStart] == '\t')) { ++valueStart; }
+      std::string value = line.substr(valueStart);
+      state->headers.emplace_back(std::move(key), std::move(value));
+    }
+    if (nextEnd == std::string::npos) { break; }
+    start = nextEnd + 2;
+  }
+  return state;
+}
+
+}  // namespace doublemint_fetch_detail
+
+int HttpResponse::status() const { return state_ ? state_->status : 0; }
+std::string HttpResponse::body() const { return state_ ? state_->body : std::string(); }
+std::string HttpResponse::error() const { return state_ ? state_->error : std::string(); }
+bool HttpResponse::ok() const { return state_ && state_->error.empty() && state_->status >= 200 && state_->status < 300; }
+HeaderMap HttpResponse::headers() const {
+  HeaderMap result;
+  if (state_) { for (const auto& entry : state_->headers) { result.set(entry.first, entry.second); } }
+  return result;
+}
+std::string HttpResponse::header(std::string_view name) const {
+  if (!state_) { return std::string(); }
+  std::string lower(name);
+  for (auto& ch : lower) { if (ch >= 'A' && ch <= 'Z') { ch = static_cast<char>(ch + 32); } }
+  for (const auto& entry : state_->headers) {
+    std::string key = entry.first;
+    for (auto& ch : key) { if (ch >= 'A' && ch <= 'Z') { ch = static_cast<char>(ch + 32); } }
+    if (key == lower) { return entry.second; }
+  }
+  return std::string();
+}
+
+[[maybe_unused]] static HttpResponse __doublemint_fetch_get(std::string_view url) {
+  auto state = doublemint_fetch_detail::performRequest("GET", url, std::string_view(), std::string_view(), {});
+  return HttpResponse(state);
+}
+
+[[maybe_unused]] static HttpResponse __doublemint_fetch_post(
+    std::string_view url, std::string_view body, std::string_view contentType) {
+  auto state = doublemint_fetch_detail::performRequest("POST", url, body, contentType, {});
+  return HttpResponse(state);
+}
+
+[[maybe_unused]] static HttpResponse __doublemint_fetch_request(
+    std::string_view method, std::string_view url,
+    std::string_view body, std::string_view contentType) {
+  auto state = doublemint_fetch_detail::performRequest(std::string(method), url, body, contentType, {});
+  return HttpResponse(state);
 }

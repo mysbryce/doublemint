@@ -1974,6 +1974,85 @@
           "members": []
         },
         {
+          "name": "HttpResponse",
+          "kind": "class",
+          "members": [
+            {
+              "name": "status",
+              "kind": "function",
+              "params": [],
+              "returnType": "int"
+            },
+            {
+              "name": "body",
+              "kind": "function",
+              "params": [],
+              "returnType": "string"
+            },
+            {
+              "name": "ok",
+              "kind": "function",
+              "params": [],
+              "returnType": "bool"
+            },
+            {
+              "name": "error",
+              "kind": "function",
+              "params": [],
+              "returnType": "string"
+            },
+            {
+              "name": "headers",
+              "kind": "function",
+              "params": [],
+              "returnType": "HeaderMap"
+            },
+            {
+              "name": "header",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            }
+          ]
+        },
+        {
+          "name": "Fetch",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "get",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "HttpResponse"
+            },
+            {
+              "name": "post",
+              "kind": "function",
+              "params": [
+                "string",
+                "string",
+                "string"
+              ],
+              "returnType": "HttpResponse"
+            },
+            {
+              "name": "request",
+              "kind": "function",
+              "params": [
+                "string",
+                "string",
+                "string",
+                "string"
+              ],
+              "returnType": "HttpResponse"
+            }
+          ]
+        },
+        {
           "name": "WebSocket",
           "kind": "class",
           "members": [
