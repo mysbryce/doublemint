@@ -10,6 +10,17 @@ language-level [`async / await`](/language/async).
 import { Async } from "mint:async";
 ```
 
+## Closure → `Future<T>`
+
+| Symbol | Signature | Purpose |
+| --- | --- | --- |
+| `Async.run` | `<T>(fn: function(): T): Future<T>` | Schedule a closure on a worker thread and return a `Future<T>` you can `await`. `T` is inferred from the closure's return type. |
+
+```mint
+let f: Future<int> = Async.run(fn(): int => 21 * 2);
+let v: int = await f;
+```
+
 ## Threads
 
 | Symbol | Signature | Purpose |

@@ -43,6 +43,33 @@ export function main(): void {
 - Returns the inner `T`.
 - Lowered to `(expr).get()`.
 
+## Wrapping a closure with `Async.run`
+
+When the unit of work doesn't deserve a named function,
+`Async.run(fn)` converts a zero-arg closure into a
+`Future<T>` — `T` is inferred from the closure's return.
+
+```mint
+import { Async } from "mint:async";
+
+export function main(): void {
+  let f: Future<int> = Async.run(fn(): int => 21 * 2);
+  let v: int = await f;  // 42
+
+  let chunks: Future<int>[] = [
+    Async.run(fn(): int => compute(0, 1000)),
+    Async.run(fn(): int => compute(1000, 2000))
+  ];
+  let total: int = 0;
+  for (let chunk of chunks) {
+    total += await chunk;
+  }
+}
+```
+
+Lowers to `std::async(std::launch::async, fn)`, same as
+the async-function form.
+
 ## Storing without awaiting
 
 ```mint

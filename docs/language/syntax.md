@@ -86,6 +86,10 @@ for (let name of ["alpha", "beta"]) {
   println(name);
 }
 
+for (let [n, label] of pairs) {     // destructure tuple elements
+  println(n.toString() + " " + label);
+}
+
 while (running) {
   step();
 }
