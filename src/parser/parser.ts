@@ -798,7 +798,7 @@ class Parser {
   }
 
   private comparison(): Expression {
-    let expression = this.cast();
+    let expression = this.shift();
 
     while (this.match("LESS", "LESS_EQUAL", "GREATER", "GREATER_EQUAL")) {
       const operator = this.previous();
@@ -806,9 +806,45 @@ class Parser {
         type: "BinaryExpression",
         operator: operator.lexeme as "<" | "<=" | ">" | ">=",
         left: expression,
-        right: this.cast(),
+        right: this.shift(),
         location: expression.location
       };
+    }
+
+    return expression;
+  }
+
+  private shift(): Expression {
+    let expression = this.cast();
+
+    while (true) {
+      if (this.check("LESS") && this.peekNext()?.kind === "LESS") {
+        const start = this.previous();
+        this.advance();
+        this.advance();
+        expression = {
+          type: "BinaryExpression",
+          operator: "<<",
+          left: expression,
+          right: this.cast(),
+          location: start?.location ?? expression.location
+        };
+        continue;
+      }
+      if (this.check("GREATER") && this.peekNext()?.kind === "GREATER") {
+        const start = this.previous();
+        this.advance();
+        this.advance();
+        expression = {
+          type: "BinaryExpression",
+          operator: ">>",
+          left: expression,
+          right: this.cast(),
+          location: start?.location ?? expression.location
+        };
+        continue;
+      }
+      break;
     }
 
     return expression;
@@ -1353,6 +1389,10 @@ class Parser {
 
   private peek(): Token {
     return this.tokens[this.current] ?? this.tokens[this.tokens.length - 1]!;
+  }
+
+  private peekNext(): Token | undefined {
+    return this.tokens[this.current + 1];
   }
 
   private previous(): Token {

@@ -748,7 +748,14 @@ function inferExpressionType(
         });
       }
 
-      if (expression.operator === "%" || expression.operator === "&" || expression.operator === "|" || expression.operator === "^") {
+      if (
+        expression.operator === "%" ||
+        expression.operator === "&" ||
+        expression.operator === "|" ||
+        expression.operator === "^" ||
+        expression.operator === "<<" ||
+        expression.operator === ">>"
+      ) {
         const integerNames = new Set(["int", "int64", "number"]);
         const leftName = canonicalTypeName(environment, left);
         const rightName = canonicalTypeName(environment, right);
