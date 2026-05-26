@@ -451,6 +451,33 @@ class Parser {
   private forStatement(): Statement {
     const forToken = this.previous();
     this.consume("LEFT_PAREN", "DLM2050", "Expected '(' after for.");
+
+    // for (let x of expr) { ... }
+    // for (let x: T of expr) { ... }
+    if (
+      (this.check("LET") || this.check("CONST")) &&
+      this.looksLikeForOf()
+    ) {
+      const kindToken = this.advance();
+      const kind = kindToken.kind === "LET" ? "let" : "const";
+      const id = this.consume("IDENTIFIER", "DLM2104", "Expected for-of binding name.");
+      let valueType: TypeNode | null = null;
+      if (this.match("COLON")) {
+        valueType = this.typeNode();
+      }
+      this.consume("OF", "DLM2105", "Expected 'of' in for-of loop.");
+      const iterable = this.expression();
+      this.consume("RIGHT_PAREN", "DLM2106", "Expected ')' after for-of expression.");
+      const body = this.block();
+      return {
+        type: "ForOfStatement",
+        binding: { kind, id: id.lexeme, valueType, location: id.location },
+        iterable,
+        body,
+        location: forToken.location
+      };
+    }
+
     const init = this.forInit();
     const condition = this.check("SEMICOLON") ? null : this.expression();
     this.consume("SEMICOLON", "DLM2051", "Expected ';' after for condition.");
@@ -466,6 +493,29 @@ class Parser {
       body,
       location: forToken.location
     };
+  }
+
+  private looksLikeForOf(): boolean {
+    // Look ahead from "let"/"const" for IDENTIFIER ":"|"of"
+    let offset = 1;
+    if (this.tokenAt(offset).kind !== "IDENTIFIER") { return false; }
+    offset += 1;
+    if (this.tokenAt(offset).kind === "OF") { return true; }
+    if (this.tokenAt(offset).kind === "COLON") {
+      // Skip the type until we see OF or EQUAL/SEMICOLON
+      let depth = 0;
+      offset += 1;
+      while (true) {
+        const t = this.tokenAt(offset);
+        if (t.kind === "EOF") { return false; }
+        if (t.kind === "LESS" || t.kind === "LEFT_BRACKET" || t.kind === "LEFT_PAREN") { depth += 1; }
+        if (t.kind === "GREATER" || t.kind === "RIGHT_BRACKET" || t.kind === "RIGHT_PAREN") { depth = Math.max(0, depth - 1); }
+        if (depth === 0 && t.kind === "OF") { return true; }
+        if (depth === 0 && (t.kind === "EQUAL" || t.kind === "SEMICOLON")) { return false; }
+        offset += 1;
+      }
+    }
+    return false;
   }
 
   private forInit(): VariableDeclaration | Expression | null {

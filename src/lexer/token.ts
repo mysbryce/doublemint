@@ -13,6 +13,7 @@ export type TokenKind =
   | "MATCH"
   | "ASYNC"
   | "AWAIT"
+  | "OF"
   | "FUNCTION"
   | "FN"
   | "RETURN"

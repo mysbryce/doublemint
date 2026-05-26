@@ -449,6 +449,8 @@ function emitStatement(
       return emitForStatement(statement, declaration, context);
     case "SwitchStatement":
       return emitSwitchStatement(statement, declaration, context);
+    case "ForOfStatement":
+      return emitForOfStatement(statement, declaration, context);
     case "MatchStatement":
       return emitMatchStatement(statement, declaration, context);
     case "ExpressionStatement":
@@ -551,6 +553,20 @@ function emitSwitchStatement(
     lines.push("  }");
   }
 
+  lines.push("}");
+  return lines.join("\n  ");
+}
+
+function emitForOfStatement(
+  statement: Statement & { type: "ForOfStatement" },
+  declaration: FunctionDeclaration,
+  context: EmitContext
+): string {
+  const iterable = emitExpression(statement.iterable, undefined, context);
+  const lines = [`for (const auto& ${statement.binding.id} : ${iterable}) {`];
+  for (const nestedStatement of statement.body) {
+    lines.push(`  ${emitStatement(nestedStatement, declaration, context)}`);
+  }
   lines.push("}");
   return lines.join("\n  ");
 }
@@ -701,6 +717,11 @@ function collectStringViewDeclarations(
         )
       );
       break;
+    case "ForOfStatement":
+      statement.body.forEach((nested) =>
+        collectStringViewDeclarations(nested, mutatedNames, stringViewNames)
+      );
+      break;
     default:
       assertNever(statement);
   }
@@ -762,6 +783,10 @@ function collectAssignedRoots(statement: Statement, roots: Set<string>): void {
         }
         arm.body.forEach((nested) => collectAssignedRoots(nested, roots));
       });
+      break;
+    case "ForOfStatement":
+      collectAssignedRootsFromExpression(statement.iterable, roots);
+      statement.body.forEach((nested) => collectAssignedRoots(nested, roots));
       break;
     case "ExpressionStatement":
       collectAssignedRootsFromExpression(statement.expression, roots);
@@ -1303,6 +1328,8 @@ function statementUsesDefer(statement: Statement): boolean {
       );
     case "MatchStatement":
       return statement.arms.some((arm) => arm.body.some(statementUsesDefer));
+    case "ForOfStatement":
+      return statement.body.some(statementUsesDefer);
     case "VariableDeclaration":
     case "DestructuringDeclaration":
     case "ReturnStatement":
@@ -1521,6 +1548,11 @@ function statementUsesPrint(statement: Statement): boolean {
             (arm.pattern.kind === "expression" && expressionUsesPrint(arm.pattern.expression)) ||
             arm.body.some(statementUsesPrint)
         )
+      );
+    case "ForOfStatement":
+      return (
+        expressionUsesPrint(statement.iterable) ||
+        statement.body.some(statementUsesPrint)
       );
     case "ExpressionStatement":
       return expressionUsesPrint(statement.expression);

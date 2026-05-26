@@ -16,6 +16,7 @@ const keywords = new Map<string, TokenKind>([
   ["match", "MATCH"],
   ["async", "ASYNC"],
   ["await", "AWAIT"],
+  ["of", "OF"],
   ["function", "FUNCTION"],
   ["fn", "FN"],
   ["return", "RETURN"],

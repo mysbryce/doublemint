@@ -499,6 +499,39 @@ function validateStatement(
       }
       break;
     }
+    case "ForOfStatement": {
+      const iterableType = inferExpressionType(environment, scope, statement.iterable);
+      if (iterableType.type !== "ArrayType") {
+        throw new DoublemintDiagnostic({
+          code: "DLM4084",
+          severity: "error",
+          message: "for-of requires an array iterable.",
+          location: statement.iterable.location
+        });
+      }
+      const elementType = iterableType.elementType;
+      if (statement.binding.valueType) {
+        assertKnownType(environment, statement.binding.valueType);
+        assertAssignable(
+          environment,
+          statement.binding.valueType,
+          elementType,
+          statement.binding.location
+        );
+      }
+      const loopScope = scope.createChild();
+      loopScope.declare({
+        name: statement.binding.id,
+        kind: "variable",
+        valueType: statement.binding.valueType ?? elementType,
+        mutability: statement.binding.kind === "let" ? "mutable" : "immutable",
+        location: statement.binding.location
+      });
+      for (const nestedStatement of statement.body) {
+        validateStatement(environment, loopScope, returnType, nestedStatement);
+      }
+      break;
+    }
     case "MatchStatement": {
       const discriminantType = inferExpressionType(environment, scope, statement.discriminant);
       let hasWildcard = false;

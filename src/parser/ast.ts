@@ -168,10 +168,19 @@ export type Statement =
   | IfStatement
   | WhileStatement
   | ForStatement
+  | ForOfStatement
   | SwitchStatement
   | MatchStatement
   | DeferStatement
   | ExpressionStatement;
+
+export interface ForOfStatement {
+  type: "ForOfStatement";
+  binding: { kind: "let" | "const"; id: string; valueType: TypeNode | null; location: SourceLocation };
+  iterable: Expression;
+  body: Statement[];
+  location: SourceLocation;
+}
 
 export interface MatchStatement {
   type: "MatchStatement";
