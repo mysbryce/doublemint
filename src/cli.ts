@@ -11,6 +11,7 @@ import { resolveModuleGraph } from "./resolver/moduleGraph.js";
 import { checkModuleGraph } from "./semantic/checker.js";
 import { buildBuiltinManifest } from "./builtins/mintModules.js";
 import { formatSource } from "./format/formatter.js";
+import { runRepl } from "./repl/repl.js";
 
 function readVersion(): string {
   const here = dirname(fileURLToPath(import.meta.url));
@@ -63,12 +64,17 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (!["check", "emit", "build", "version", "info", "init", "fmt"].includes(args.command)) {
+  if (args.command === "repl") {
+    await runRepl();
+    return;
+  }
+
+  if (!["check", "emit", "build", "version", "info", "init", "fmt", "repl"].includes(args.command)) {
     throw new DoublemintDiagnostic({
       code: "DLM0001",
       severity: "error",
       message: `Unknown command "${args.command}".`,
-      hint: "Use check, emit, build, fmt, init, version, or info."
+      hint: "Use check, emit, build, fmt, repl, init, version, or info."
     });
   }
 
@@ -146,6 +152,7 @@ Usage:
   doublemint emit <entry.dlm>
   doublemint build <entry.dlm> --out <binary> [--compiler <clang++|g++>] [--cpp-out <dir>]
   doublemint fmt <entry.dlm> [--write | --check]
+  doublemint repl
   doublemint init [dir]
   doublemint info
   doublemint version
