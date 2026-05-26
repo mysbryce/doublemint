@@ -1,6 +1,6 @@
 {
   "name": "doublemint",
-  "version": "0.1.0",
+  "version": "0.0.1-dev-1",
   "description": "Production-grade .dlm to C++20 transpiler.",
   "type": "module",
   "bin": {
@@ -18,6 +18,7 @@
     "check": "tsc --noEmit",
     "pack:vsix": "node scripts/pack-vsix.mjs",
     "build:examples": "node scripts/build-examples.mjs",
+    "version:bump": "node scripts/bump-version.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "dev": "tsx src/cli.ts"
