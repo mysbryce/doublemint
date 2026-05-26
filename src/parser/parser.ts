@@ -678,9 +678,9 @@ class Parser {
       };
     }
 
-    if (this.match("PLUS_EQUAL", "MINUS_EQUAL", "STAR_EQUAL", "SLASH_EQUAL")) {
+    if (this.match("PLUS_EQUAL", "MINUS_EQUAL", "STAR_EQUAL", "SLASH_EQUAL", "PERCENT_EQUAL", "AMPERSAND_EQUAL", "PIPE_EQUAL", "CARET_EQUAL")) {
       const opToken = this.previous();
-      const operator = opToken.lexeme as "+=" | "-=" | "*=" | "/=";
+      const operator = opToken.lexeme as "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=";
       return {
         type: "AssignmentExpression",
         operator,

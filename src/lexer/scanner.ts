@@ -111,10 +111,10 @@ class Scanner {
         this.addToken("QUESTION");
         break;
       case "%":
-        this.addToken("PERCENT");
+        this.addToken(this.match("=") ? "PERCENT_EQUAL" : "PERCENT");
         break;
       case "^":
-        this.addToken("CARET");
+        this.addToken(this.match("=") ? "CARET_EQUAL" : "CARET");
         break;
       case "~":
         this.addToken("TILDE");
@@ -128,10 +128,14 @@ class Scanner {
         this.addToken(this.match("=") ? "STAR_EQUAL" : "STAR");
         break;
       case "&":
-        this.addToken(this.match("&") ? "AMP_AMP" : "AMPERSAND");
+        this.addToken(
+          this.match("&") ? "AMP_AMP" : this.match("=") ? "AMPERSAND_EQUAL" : "AMPERSAND"
+        );
         break;
       case "|":
-        this.addToken(this.match("|") ? "PIPE_PIPE" : "PIPE");
+        this.addToken(
+          this.match("|") ? "PIPE_PIPE" : this.match("=") ? "PIPE_EQUAL" : "PIPE"
+        );
         break;
       case "=":
         this.addToken(

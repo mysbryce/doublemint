@@ -899,6 +899,21 @@ function inferAssignmentType(
         location: expression.location
       });
     }
+    const integerOps = new Set(["%=", "&=", "|=", "^="]);
+    if (integerOps.has(expression.operator)) {
+      const integerNames = new Set(["int", "int64", "number"]);
+      if (
+        !integerNames.has(canonicalTypeName(environment, leftType)) ||
+        !integerNames.has(canonicalTypeName(environment, rightType))
+      ) {
+        throw new DoublemintDiagnostic({
+          code: "DLM4082",
+          severity: "error",
+          message: `Compound assignment "${expression.operator}" requires integer operands.`,
+          location: expression.location
+        });
+      }
+    }
     return leftType;
   }
 
