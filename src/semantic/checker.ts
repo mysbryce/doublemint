@@ -752,6 +752,47 @@ function inferExpressionType(
       }
       return thenType;
     }
+    case "MatchExpression": {
+      const discriminantType = inferExpressionType(environment, scope, expression.discriminant);
+      let hasWildcard = false;
+      let resultType: TypeNode | null = null;
+      for (const arm of expression.arms) {
+        if (arm.pattern.kind === "wildcard") {
+          if (hasWildcard) {
+            throw new DoublemintDiagnostic({
+              code: "DLM4072",
+              severity: "error",
+              message: "Match expression has more than one wildcard arm.",
+              location: arm.location
+            });
+          }
+          hasWildcard = true;
+        } else {
+          const patternType = inferExpressionType(environment, scope, arm.pattern.expression);
+          assertAssignable(environment, discriminantType, patternType, arm.pattern.location);
+        }
+        const armType = inferExpressionType(environment, scope, arm.expression);
+        if (resultType === null) {
+          resultType = armType;
+        } else if (!typesEqual(environment, resultType, armType)) {
+          throw new DoublemintDiagnostic({
+            code: "DLM4073",
+            severity: "error",
+            message: "Match expression arms must have the same type.",
+            location: arm.expression.location
+          });
+        }
+      }
+      if (!hasWildcard) {
+        throw new DoublemintDiagnostic({
+          code: "DLM4074",
+          severity: "error",
+          message: "Match expression must include a wildcard arm (_ => ...).",
+          location: expression.location
+        });
+      }
+      return resultType ?? namedType("void", expression.location);
+    }
     default:
       assertNever(expression);
   }

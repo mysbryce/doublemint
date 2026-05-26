@@ -811,6 +811,15 @@ function collectAssignedRootsFromExpression(expression: Expression, roots: Set<s
       collectAssignedRootsFromExpression(expression.thenBranch, roots);
       collectAssignedRootsFromExpression(expression.elseBranch, roots);
       break;
+    case "MatchExpression":
+      collectAssignedRootsFromExpression(expression.discriminant, roots);
+      expression.arms.forEach((arm) => {
+        if (arm.pattern.kind === "expression") {
+          collectAssignedRootsFromExpression(arm.pattern.expression, roots);
+        }
+        collectAssignedRootsFromExpression(arm.expression, roots);
+      });
+      break;
     case "TemplateLiteral":
       break;
     default:
@@ -945,6 +954,8 @@ function emitExpression(
         .join(", ")})`;
     case "ConditionalExpression":
       return `(${emitExpression(expression.condition, undefined, context)} ? ${emitExpression(expression.thenBranch, expectedType, context)} : ${emitExpression(expression.elseBranch, expectedType, context)})`;
+    case "MatchExpression":
+      return emitMatchExpression(expression, expectedType, context);
     case "TemplateLiteral": {
       const pieces = expression.parts.map((part) => {
         if (part.kind === "string") {
@@ -958,6 +969,27 @@ function emitExpression(
     default:
       assertNever(expression);
   }
+}
+
+function emitMatchExpression(
+  expression: Expression & { type: "MatchExpression" },
+  expectedType: TypeNode | undefined,
+  context: EmitContext | undefined
+): string {
+  const discriminant = emitExpression(expression.discriminant, undefined, context);
+  const exprArms = expression.arms.filter((arm) => arm.pattern.kind === "expression");
+  const wildcardArm = expression.arms.find((arm) => arm.pattern.kind === "wildcard");
+
+  const pieces: string[] = [];
+  for (let index = 0; index < exprArms.length; index += 1) {
+    const arm = exprArms[index]!;
+    const pattern = arm.pattern as { kind: "expression"; expression: Expression };
+    const patternCpp = emitExpression(pattern.expression, undefined, context);
+    const valueCpp = emitExpression(arm.expression, expectedType, context);
+    pieces.push(`(__dlm_match_v == ${patternCpp}) ? ${valueCpp} :`);
+  }
+  const wildcardCpp = wildcardArm ? emitExpression(wildcardArm.expression, expectedType, context) : "";
+  return `([&]() { const auto __dlm_match_v = ${discriminant}; return ${pieces.join(" ")} ${wildcardCpp}; })()`;
 }
 
 function emitLambdaExpression(
@@ -1465,6 +1497,15 @@ function expressionUsesPrint(expression: Expression): boolean {
       return expressionUsesPrint(expression.condition) ||
         expressionUsesPrint(expression.thenBranch) ||
         expressionUsesPrint(expression.elseBranch);
+    case "MatchExpression":
+      return (
+        expressionUsesPrint(expression.discriminant) ||
+        expression.arms.some(
+          (arm) =>
+            (arm.pattern.kind === "expression" && expressionUsesPrint(arm.pattern.expression)) ||
+            expressionUsesPrint(arm.expression)
+        )
+      );
     case "TemplateLiteral":
       return false;
     default:

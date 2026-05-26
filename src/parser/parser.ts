@@ -4,6 +4,8 @@ import type {
   Declaration,
   EnumDeclaration,
   MatchArm,
+  MatchExpression,
+  MatchExpressionArm,
   MatchPattern,
   ExternTypeDeclaration,
   ExternBlockDeclaration,
@@ -580,6 +582,46 @@ class Parser {
     };
   }
 
+  private matchExpression(): MatchExpression {
+    const matchToken = this.previous();
+    this.consume("LEFT_PAREN", "DLM2097", "Expected '(' after match.");
+    const discriminant = this.expression();
+    this.consume("RIGHT_PAREN", "DLM2098", "Expected ')' after match value.");
+    this.consume("LEFT_BRACE", "DLM2099", "Expected '{' before match arms.");
+    const arms: MatchExpressionArm[] = [];
+
+    while (!this.check("RIGHT_BRACE") && !this.isAtEnd()) {
+      const armToken = this.peek();
+      const pattern = this.matchPattern();
+      this.consume("ARROW", "DLM2100", "Expected '=>' after match pattern.");
+      const expression = this.expression();
+
+      arms.push({
+        type: "MatchExpressionArm",
+        pattern,
+        expression,
+        location: armToken.location
+      });
+
+      if (!this.check("RIGHT_BRACE")) {
+        this.consume("COMMA", "DLM2101", "Expected ',' between match arms.");
+      }
+    }
+
+    this.consume("RIGHT_BRACE", "DLM2102", "Expected '}' after match arms.");
+
+    if (arms.length === 0) {
+      throw this.error(matchToken, "DLM2103", "Match expression must have at least one arm.");
+    }
+
+    return {
+      type: "MatchExpression",
+      discriminant,
+      arms,
+      location: matchToken.location
+    };
+  }
+
   private matchPattern(): MatchPattern {
     if (this.check("IDENTIFIER") && this.peek().lexeme === "_") {
       const token = this.advance();
@@ -831,6 +873,10 @@ class Parser {
   private primary(): Expression {
     if (this.match("FN")) {
       return this.lambdaExpression();
+    }
+
+    if (this.match("MATCH")) {
+      return this.matchExpression();
     }
 
     if (this.match("NEW")) {

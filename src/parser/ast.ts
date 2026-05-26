@@ -280,7 +280,22 @@ export type Expression =
   | CastExpression
   | NewExpression
   | ConditionalExpression
+  | MatchExpression
   | TemplateLiteralExpression;
+
+export interface MatchExpression {
+  type: "MatchExpression";
+  discriminant: Expression;
+  arms: MatchExpressionArm[];
+  location: SourceLocation;
+}
+
+export interface MatchExpressionArm {
+  type: "MatchExpressionArm";
+  pattern: MatchPattern;
+  expression: Expression;
+  location: SourceLocation;
+}
 
 export interface IdentifierExpression {
   type: "Identifier";
