@@ -600,6 +600,38 @@ function validateStatement(
       }
       break;
     }
+    case "TryStatement": {
+      const tryScope = scope.createChild();
+      for (const nested of statement.block) {
+        validateStatement(environment, tryScope, returnType, nested);
+      }
+      const catchScope = scope.createChild();
+      if (statement.catchBinding) {
+        catchScope.declare({
+          name: statement.catchBinding.id,
+          kind: "variable",
+          valueType: namedType("string", statement.catchBinding.location),
+          mutability: "immutable",
+          location: statement.catchBinding.location
+        });
+      }
+      for (const nested of statement.catchBlock) {
+        validateStatement(environment, catchScope, returnType, nested);
+      }
+      break;
+    }
+    case "ThrowStatement": {
+      const argType = inferExpressionType(environment, scope, statement.argument);
+      if (canonicalTypeName(environment, argType) !== "string") {
+        throw new DoublemintDiagnostic({
+          code: "DLM4087",
+          severity: "error",
+          message: "throw requires a string argument.",
+          location: statement.argument.location
+        });
+      }
+      break;
+    }
     case "ExpressionStatement":
       inferExpressionType(environment, scope, statement.expression);
       break;

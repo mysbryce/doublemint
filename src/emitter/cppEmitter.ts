@@ -170,6 +170,7 @@ function emitHeader(
     "#include <functional>",
     "#include <optional>",
     "#include <sstream>",
+    "#include <stdexcept>",
     "#include <string>",
     "#include <string_view>",
     "#include <tuple>",
@@ -455,6 +456,10 @@ function emitStatement(
       return emitSwitchStatement(statement, declaration, context);
     case "ForOfStatement":
       return emitForOfStatement(statement, declaration, context);
+    case "TryStatement":
+      return emitTryStatement(statement, declaration, context);
+    case "ThrowStatement":
+      return `throw std::runtime_error(std::string(${emitExpression(statement.argument, undefined, context)}));`;
     case "MatchStatement":
       return emitMatchStatement(statement, declaration, context);
     case "ExpressionStatement":
@@ -557,6 +562,28 @@ function emitSwitchStatement(
     lines.push("  }");
   }
 
+  lines.push("}");
+  return lines.join("\n  ");
+}
+
+function emitTryStatement(
+  statement: Statement & { type: "TryStatement" },
+  declaration: FunctionDeclaration,
+  context: EmitContext
+): string {
+  const lines: string[] = ["try {"];
+  for (const nested of statement.block) {
+    lines.push(`  ${emitStatement(nested, declaration, context)}`);
+  }
+  if (statement.catchBinding) {
+    lines.push(`} catch (const std::exception& __dlm_err) {`);
+    lines.push(`  const std::string ${statement.catchBinding.id} = std::string(__dlm_err.what());`);
+  } else {
+    lines.push(`} catch (...) {`);
+  }
+  for (const nested of statement.catchBlock) {
+    lines.push(`  ${emitStatement(nested, declaration, context)}`);
+  }
   lines.push("}");
   return lines.join("\n  ");
 }
@@ -730,6 +757,16 @@ function collectStringViewDeclarations(
         collectStringViewDeclarations(nested, mutatedNames, stringViewNames)
       );
       break;
+    case "TryStatement":
+      statement.block.forEach((nested) =>
+        collectStringViewDeclarations(nested, mutatedNames, stringViewNames)
+      );
+      statement.catchBlock.forEach((nested) =>
+        collectStringViewDeclarations(nested, mutatedNames, stringViewNames)
+      );
+      break;
+    case "ThrowStatement":
+      break;
     default:
       assertNever(statement);
   }
@@ -795,6 +832,13 @@ function collectAssignedRoots(statement: Statement, roots: Set<string>): void {
     case "ForOfStatement":
       collectAssignedRootsFromExpression(statement.iterable, roots);
       statement.body.forEach((nested) => collectAssignedRoots(nested, roots));
+      break;
+    case "TryStatement":
+      statement.block.forEach((nested) => collectAssignedRoots(nested, roots));
+      statement.catchBlock.forEach((nested) => collectAssignedRoots(nested, roots));
+      break;
+    case "ThrowStatement":
+      collectAssignedRootsFromExpression(statement.argument, roots);
       break;
     case "ExpressionStatement":
       collectAssignedRootsFromExpression(statement.expression, roots);
@@ -1338,6 +1382,13 @@ function statementUsesDefer(statement: Statement): boolean {
       return statement.arms.some((arm) => arm.body.some(statementUsesDefer));
     case "ForOfStatement":
       return statement.body.some(statementUsesDefer);
+    case "TryStatement":
+      return (
+        statement.block.some(statementUsesDefer) ||
+        statement.catchBlock.some(statementUsesDefer)
+      );
+    case "ThrowStatement":
+      return false;
     case "VariableDeclaration":
     case "DestructuringDeclaration":
     case "ReturnStatement":
@@ -1563,6 +1614,13 @@ function statementUsesPrint(statement: Statement): boolean {
         expressionUsesPrint(statement.iterable) ||
         statement.body.some(statementUsesPrint)
       );
+    case "TryStatement":
+      return (
+        statement.block.some(statementUsesPrint) ||
+        statement.catchBlock.some(statementUsesPrint)
+      );
+    case "ThrowStatement":
+      return expressionUsesPrint(statement.argument);
     case "ExpressionStatement":
       return expressionUsesPrint(statement.expression);
     default:

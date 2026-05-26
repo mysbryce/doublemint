@@ -1,5 +1,5 @@
 import { DoublemintDiagnostic } from "../diagnostics/diagnostic.js";
-import type { Token, TokenKind } from "../lexer/token.js";
+import type { SourceLocation, Token, TokenKind } from "../lexer/token.js";
 import type {
   Declaration,
   EnumDeclaration,
@@ -358,7 +358,50 @@ class Parser {
       return this.deferStatement();
     }
 
+    if (this.match("TRY")) {
+      return this.tryStatement();
+    }
+
+    if (this.match("THROW")) {
+      return this.throwStatement();
+    }
+
     return this.expressionStatement();
+  }
+
+  private tryStatement(): Statement {
+    const tryToken = this.previous();
+    const block = this.block();
+    this.consume("CATCH", "DLM2108", "Expected 'catch' after try block.");
+    let catchBinding: { id: string; location: SourceLocation } | null = null;
+    if (this.match("LEFT_PAREN")) {
+      const id = this.consume("IDENTIFIER", "DLM2109", "Expected catch binding name.");
+      // Optional ": string" — parsed but always treated as string today.
+      if (this.match("COLON")) {
+        this.typeNode();
+      }
+      this.consume("RIGHT_PAREN", "DLM2110", "Expected ')' after catch binding.");
+      catchBinding = { id: id.lexeme, location: id.location };
+    }
+    const catchBlock = this.block();
+    return {
+      type: "TryStatement",
+      block,
+      catchBinding,
+      catchBlock,
+      location: tryToken.location
+    };
+  }
+
+  private throwStatement(): Statement {
+    const throwToken = this.previous();
+    const argument = this.expression();
+    this.consume("SEMICOLON", "DLM2111", "Expected ';' after throw.");
+    return {
+      type: "ThrowStatement",
+      argument,
+      location: throwToken.location
+    };
   }
 
   private variableOrDestructuringDeclaration(kind: "let" | "const"): Statement {

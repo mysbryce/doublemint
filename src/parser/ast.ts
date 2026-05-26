@@ -171,8 +171,24 @@ export type Statement =
   | ForOfStatement
   | SwitchStatement
   | MatchStatement
+  | TryStatement
+  | ThrowStatement
   | DeferStatement
   | ExpressionStatement;
+
+export interface TryStatement {
+  type: "TryStatement";
+  block: Statement[];
+  catchBinding: { id: string; location: SourceLocation } | null;
+  catchBlock: Statement[];
+  location: SourceLocation;
+}
+
+export interface ThrowStatement {
+  type: "ThrowStatement";
+  argument: Expression;
+  location: SourceLocation;
+}
 
 export interface ForOfStatement {
   type: "ForOfStatement";
