@@ -658,6 +658,18 @@ function inferExpressionType(
     }
     case "UnaryExpression": {
       const argType = inferExpressionType(environment, scope, expression.argument);
+      if (expression.operator === "~") {
+        const integerNames = new Set(["int", "int64", "number"]);
+        if (!integerNames.has(canonicalTypeName(environment, argType))) {
+          throw new DoublemintDiagnostic({
+            code: "DLM4081",
+            severity: "error",
+            message: "Unary \"~\" requires an integer operand.",
+            location: expression.location
+          });
+        }
+        return argType;
+      }
       if (expression.operator === "++" || expression.operator === "--") {
         if (!isNumericType(environment, argType)) {
           throw new DoublemintDiagnostic({
@@ -736,7 +748,7 @@ function inferExpressionType(
         });
       }
 
-      if (expression.operator === "%") {
+      if (expression.operator === "%" || expression.operator === "&" || expression.operator === "|" || expression.operator === "^") {
         const integerNames = new Set(["int", "int64", "number"]);
         const leftName = canonicalTypeName(environment, left);
         const rightName = canonicalTypeName(environment, right);
@@ -744,7 +756,7 @@ function inferExpressionType(
           throw new DoublemintDiagnostic({
             code: "DLM4080",
             severity: "error",
-            message: "Operator \"%\" requires integer operands.",
+            message: `Operator "${expression.operator}" requires integer operands.`,
             location: expression.location
           });
         }

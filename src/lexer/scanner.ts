@@ -113,6 +113,12 @@ class Scanner {
       case "%":
         this.addToken("PERCENT");
         break;
+      case "^":
+        this.addToken("CARET");
+        break;
+      case "~":
+        this.addToken("TILDE");
+        break;
       case "+":
         this.addToken(
           this.match("+") ? "PLUS_PLUS" : this.match("=") ? "PLUS_EQUAL" : "PLUS"

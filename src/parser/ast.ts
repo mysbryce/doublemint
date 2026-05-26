@@ -322,7 +322,7 @@ export interface AwaitExpression {
 
 export interface UnaryExpression {
   type: "UnaryExpression";
-  operator: "-" | "!" | "++" | "--";
+  operator: "-" | "!" | "++" | "--" | "~";
   argument: Expression;
   postfix?: boolean;
   location: SourceLocation;
@@ -330,7 +330,7 @@ export interface UnaryExpression {
 
 export interface BinaryExpression {
   type: "BinaryExpression";
-  operator: "+" | "-" | "*" | "/" | "%" | "==" | "!=" | "<" | "<=" | ">" | ">=" | "&&" | "||";
+  operator: "+" | "-" | "*" | "/" | "%" | "==" | "!=" | "<" | "<=" | ">" | ">=" | "&&" | "||" | "&" | "|" | "^";
   left: Expression;
   right: Expression;
   /** Set by the checker when both operands are strings, so the emitter can wrap them in std::string. */

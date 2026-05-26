@@ -725,11 +725,53 @@ class Parser {
   }
 
   private logicalAnd(): Expression {
-    let expression = this.equality();
+    let expression = this.bitwiseOr();
     while (this.match("AMP_AMP")) {
       expression = {
         type: "BinaryExpression",
         operator: "&&",
+        left: expression,
+        right: this.bitwiseOr(),
+        location: expression.location
+      };
+    }
+    return expression;
+  }
+
+  private bitwiseOr(): Expression {
+    let expression = this.bitwiseXor();
+    while (this.match("PIPE")) {
+      expression = {
+        type: "BinaryExpression",
+        operator: "|",
+        left: expression,
+        right: this.bitwiseXor(),
+        location: expression.location
+      };
+    }
+    return expression;
+  }
+
+  private bitwiseXor(): Expression {
+    let expression = this.bitwiseAnd();
+    while (this.match("CARET")) {
+      expression = {
+        type: "BinaryExpression",
+        operator: "^",
+        left: expression,
+        right: this.bitwiseAnd(),
+        location: expression.location
+      };
+    }
+    return expression;
+  }
+
+  private bitwiseAnd(): Expression {
+    let expression = this.equality();
+    while (this.match("AMPERSAND")) {
+      expression = {
+        type: "BinaryExpression",
+        operator: "&",
         left: expression,
         right: this.equality(),
         location: expression.location
@@ -840,9 +882,10 @@ class Parser {
       };
     }
 
-    if (this.match("MINUS", "BANG")) {
+    if (this.match("MINUS", "BANG", "TILDE")) {
       const opToken = this.previous();
-      const operator = opToken.lexeme === "!" ? "!" : "-";
+      const operator =
+        opToken.lexeme === "!" ? "!" : opToken.lexeme === "~" ? "~" : "-";
       return {
         type: "UnaryExpression",
         operator,

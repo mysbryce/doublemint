@@ -51,6 +51,8 @@ export type TokenKind =
   | "PERCENT"
   | "AMPERSAND"
   | "PIPE"
+  | "CARET"
+  | "TILDE"
   | "AMP_AMP"
   | "PIPE_PIPE"
   | "TEMPLATE_LITERAL"

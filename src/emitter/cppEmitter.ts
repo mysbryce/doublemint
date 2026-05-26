@@ -926,6 +926,9 @@ function emitExpression(
       if (expression.stringConcat) {
         return `(std::string(${emitExpression(expression.left, undefined, context)}) + std::string(${emitExpression(expression.right, undefined, context)}))`;
       }
+      if (expression.operator === "&" || expression.operator === "|" || expression.operator === "^") {
+        return `(${emitExpression(expression.left, undefined, context)} ${expression.operator} ${emitExpression(expression.right, undefined, context)})`;
+      }
       return `${emitExpression(expression.left, undefined, context)} ${expression.operator} ${emitExpression(expression.right, undefined, context)}`;
     case "AssignmentExpression":
       return `${emitExpression(expression.left, undefined, context)} ${expression.operator} ${emitExpression(expression.right, undefined, context)}`;
