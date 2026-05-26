@@ -75,6 +75,7 @@ export interface FunctionDeclaration {
   returnType: TypeNode;
   body: Statement[];
   extern: boolean;
+  async?: boolean;
   nativeName?: string;
   location: SourceLocation;
 }
@@ -268,6 +269,7 @@ export type Expression =
   | IdentifierExpression
   | LiteralExpression
   | UnaryExpression
+  | AwaitExpression
   | BinaryExpression
   | AssignmentExpression
   | CallExpression
@@ -309,6 +311,12 @@ export interface LiteralExpression {
   value: string | number | boolean | null;
   raw: string;
   literalKind: "string" | "number" | "bool" | "null";
+  location: SourceLocation;
+}
+
+export interface AwaitExpression {
+  type: "AwaitExpression";
+  argument: Expression;
   location: SourceLocation;
 }
 

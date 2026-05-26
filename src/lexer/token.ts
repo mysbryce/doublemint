@@ -11,6 +11,8 @@ export type TokenKind =
   | "STRUCT"
   | "ENUM"
   | "MATCH"
+  | "ASYNC"
+  | "AWAIT"
   | "FUNCTION"
   | "FN"
   | "RETURN"

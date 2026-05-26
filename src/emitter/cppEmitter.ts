@@ -166,6 +166,7 @@ function emitHeader(
     "#pragma once",
     "",
     "#include <cstdint>",
+    "#include <future>",
     "#include <functional>",
     "#include <optional>",
     "#include <sstream>",
@@ -270,6 +271,10 @@ function emitSource(
     lines.push("#include <utility>");
   }
 
+  if (moduleUsesAsync(module.program)) {
+    lines.push("#include <future>");
+  }
+
   for (const declaration of module.program.body) {
     if (declaration.type === "ExternBlockDeclaration") {
       lines.push(`#include ${formatExternInclude(declaration.source)}`);
@@ -372,6 +377,17 @@ function emitFunctionDefinition(
     nativeMembers: nativeMemberMap(module),
     enumNames: enumNameSet(module)
   };
+
+  if (declaration.async) {
+    const innerType = emitType(declaration.returnType);
+    lines.push(`  return std::async(std::launch::async, [=]() -> ${innerType} {`);
+    for (const statement of declaration.body) {
+      lines.push(`    ${emitStatement(statement, declaration, context)}`);
+    }
+    lines.push("  });");
+    lines.push("}");
+    return lines.join("\n");
+  }
 
   for (const statement of declaration.body) {
     lines.push(`  ${emitStatement(statement, declaration, context)}`);
@@ -587,6 +603,10 @@ function emitFunctionReturnType(declaration: FunctionDeclaration): string {
     return "int";
   }
 
+  if (declaration.async) {
+    return `std::future<${emitType(declaration.returnType)}>`;
+  }
+
   return emitType(declaration.returnType);
 }
 
@@ -767,6 +787,9 @@ function collectAssignedRootsFromExpression(expression: Expression, roots: Set<s
     case "UnaryExpression":
       collectAssignedRootsFromExpression(expression.argument, roots);
       break;
+    case "AwaitExpression":
+      collectAssignedRootsFromExpression(expression.argument, roots);
+      break;
     case "BinaryExpression":
       collectAssignedRootsFromExpression(expression.left, roots);
       collectAssignedRootsFromExpression(expression.right, roots);
@@ -889,6 +912,8 @@ function emitExpression(
       return expression.name;
     case "Literal":
       return emitLiteral(expression, expectedType);
+    case "AwaitExpression":
+      return `(${emitExpression(expression.argument, undefined, context)}).get()`;
     case "UnaryExpression":
       if (expression.postfix) {
         return `(${emitExpression(expression.argument, undefined, context)}${expression.operator})`;
@@ -1151,6 +1176,9 @@ function emitType(type: TypeNode): string {
   }
 
   if (type.type === "GenericType") {
+    if (type.name === "Future") {
+      return `std::future<${type.typeArgs.map(emitType).join(", ")}>`;
+    }
     return `${type.name}<${type.typeArgs.map(emitType).join(", ")}>`;
   }
 
@@ -1219,6 +1247,10 @@ function moduleUsesDefer(program: Program): boolean {
   return functionDeclarations(program).some((declaration) =>
     declaration.body.some(statementUsesDefer)
   );
+}
+
+function moduleUsesAsync(program: Program): boolean {
+  return functionDeclarations(program).some((declaration) => declaration.async === true);
 }
 
 function statementUsesDefer(statement: Statement): boolean {
@@ -1473,6 +1505,8 @@ function expressionUsesPrint(expression: Expression): boolean {
     case "Literal":
       return false;
     case "UnaryExpression":
+      return expressionUsesPrint(expression.argument);
+    case "AwaitExpression":
       return expressionUsesPrint(expression.argument);
     case "BinaryExpression":
       return expressionUsesPrint(expression.left) || expressionUsesPrint(expression.right);

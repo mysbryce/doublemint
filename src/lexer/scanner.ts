@@ -14,6 +14,8 @@ const keywords = new Map<string, TokenKind>([
   ["struct", "STRUCT"],
   ["enum", "ENUM"],
   ["match", "MATCH"],
+  ["async", "ASYNC"],
+  ["await", "AWAIT"],
   ["function", "FUNCTION"],
   ["fn", "FN"],
   ["return", "RETURN"],

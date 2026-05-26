@@ -52,7 +52,7 @@ interface ModuleEnvironment {
   values: Map<string, SemanticSymbol>;
 }
 
-const builtInTypes = new Set(["void", "int", "int64", "float", "double", "string", "bool", "char"]);
+const builtInTypes = new Set(["void", "int", "int64", "float", "double", "string", "bool", "char", "Future"]);
 const numericTypes = new Set(["int", "int64", "float", "double", "number"]);
 
 export interface SemanticCheckResult {
@@ -184,12 +184,21 @@ function registerFunction(
   environment: ModuleEnvironment,
   declaration: FunctionDeclaration
 ): void {
+  const returnType: TypeNode = declaration.async
+    ? {
+        type: "GenericType",
+        name: "Future",
+        typeArgs: [declaration.returnType],
+        location: declaration.returnType.location
+      }
+    : declaration.returnType;
+
   declareSymbol(environment.values, {
     name: declaration.id,
     kind: "function",
     functionType: {
       params: declaration.params.map((param) => param.valueType),
-      returnType: declaration.returnType
+      returnType
     },
     mutability: "immutable",
     location: declaration.location
@@ -635,6 +644,18 @@ function inferExpressionType(
               : "string",
         expression.location
       );
+    case "AwaitExpression": {
+      const argType = inferExpressionType(environment, scope, expression.argument);
+      if (argType.type !== "GenericType" || argType.name !== "Future" || argType.typeArgs.length !== 1) {
+        throw new DoublemintDiagnostic({
+          code: "DLM4079",
+          severity: "error",
+          message: `"await" requires a Future<T> operand.`,
+          location: expression.location
+        });
+      }
+      return argType.typeArgs[0]!;
+    }
     case "UnaryExpression": {
       const argType = inferExpressionType(environment, scope, expression.argument);
       if (expression.operator === "++" || expression.operator === "--") {

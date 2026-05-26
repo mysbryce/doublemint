@@ -82,6 +82,11 @@ class Parser {
       return this.externBlockDeclaration();
     }
 
+    if (this.match("ASYNC")) {
+      this.consume("FUNCTION", "DLM2087", "Expected 'function' after 'async'.");
+      return this.functionDeclaration(exported, false, true);
+    }
+
     if (this.match("FUNCTION")) {
       return this.functionDeclaration(exported, false);
     }
@@ -239,7 +244,8 @@ class Parser {
 
   private functionDeclaration(
     exported: boolean,
-    extern: boolean
+    extern: boolean,
+    isAsync: boolean = false
   ): FunctionDeclaration {
     const functionToken = this.previous();
     const id = this.consume("IDENTIFIER", "DLM2022", "Expected function name.");
@@ -276,6 +282,7 @@ class Parser {
       returnType,
       body,
       extern,
+      async: isAsync || undefined,
       location: functionToken.location
     };
   }
@@ -815,6 +822,15 @@ class Parser {
   }
 
   private unary(): Expression {
+    if (this.match("AWAIT")) {
+      const awaitToken = this.previous();
+      return {
+        type: "AwaitExpression",
+        argument: this.unary(),
+        location: awaitToken.location
+      };
+    }
+
     if (this.match("COPY")) {
       const copyToken = this.previous();
       return {
