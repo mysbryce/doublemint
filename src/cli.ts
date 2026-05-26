@@ -9,6 +9,7 @@ import { DoublemintDiagnostic } from "./diagnostics/diagnostic.js";
 import { emitCppToDisk } from "./emitter/cppEmitter.js";
 import { resolveModuleGraph } from "./resolver/moduleGraph.js";
 import { checkModuleGraph } from "./semantic/checker.js";
+import { buildBuiltinManifest } from "./builtins/mintModules.js";
 
 function readVersion(): string {
   const here = dirname(fileURLToPath(import.meta.url));
@@ -46,12 +47,17 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (!["check", "emit", "build", "version"].includes(args.command)) {
+  if (args.command === "info") {
+    printInfo();
+    return;
+  }
+
+  if (!["check", "emit", "build", "version", "info"].includes(args.command)) {
     throw new DoublemintDiagnostic({
       code: "DLM0001",
       severity: "error",
       message: `Unknown command "${args.command}".`,
-      hint: "Use check, emit, build, or version."
+      hint: "Use check, emit, build, version, or info."
     });
   }
 
@@ -128,9 +134,23 @@ Usage:
   doublemint check --stdin-filepath <entry.dlm>
   doublemint emit <entry.dlm>
   doublemint build <entry.dlm> --out <binary> [--compiler <clang++|g++>] [--cpp-out <dir>]
+  doublemint info
   doublemint version
   doublemint --help
 `);
+}
+
+function printInfo(): void {
+  const manifest = buildBuiltinManifest();
+  console.log(`doublemint ${readVersion()}\n`);
+  console.log("Builtin modules:");
+  const modules = Object.keys(manifest.modules).sort();
+  for (const moduleId of modules) {
+    const entry = manifest.modules[moduleId]!;
+    const exportNames = entry.exports.map((exp) => `${exp.name} (${exp.kind})`).join(", ");
+    console.log(`  ${moduleId}  ->  ${exportNames}`);
+  }
+  console.log(`\n${modules.length} modules total.`);
 }
 
 interface CliArgs {
