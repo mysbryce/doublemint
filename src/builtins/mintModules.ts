@@ -512,6 +512,31 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
     }
   ],
   [
+    "mint:fmt",
+    {
+      builtin: true,
+      builtinIncludes: ["<cstdint>", "<iomanip>", "<sstream>", "<string>"],
+      program: emptyProgram("mint:fmt"),
+      imports: [],
+      exports: new Map([
+        [
+          "Fmt",
+          namespaceExport("Fmt", [
+            functionMember("padLeft", [namedType("string"), namedType("int"), namedType("string")], namedType("string"), "__doublemint_fmt_pad_left"),
+            functionMember("padRight", [namedType("string"), namedType("int"), namedType("string")], namedType("string"), "__doublemint_fmt_pad_right"),
+            functionMember("repeat", [namedType("string"), namedType("int")], namedType("string"), "__doublemint_fmt_repeat"),
+            functionMember("hex", [namedType("int64")], namedType("string"), "__doublemint_fmt_hex"),
+            functionMember("hexUpper", [namedType("int64")], namedType("string"), "__doublemint_fmt_hex_upper"),
+            functionMember("octal", [namedType("int64")], namedType("string"), "__doublemint_fmt_octal"),
+            functionMember("binary", [namedType("int64")], namedType("string"), "__doublemint_fmt_binary"),
+            functionMember("precision", [namedType("double"), namedType("int")], namedType("string"), "__doublemint_fmt_precision"),
+            functionMember("withThousands", [namedType("int64"), namedType("string")], namedType("string"), "__doublemint_fmt_with_thousands")
+          ])
+        ]
+      ])
+    }
+  ],
+  [
     "mint:json",
     {
       builtin: true,

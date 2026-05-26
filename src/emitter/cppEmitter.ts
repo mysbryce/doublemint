@@ -1428,6 +1428,7 @@ const RUNTIME_SOURCE_MODULES: Record<string, string> = {
   "mint:fs": "fs",
   "mint:time": "time",
   "mint:os": "os",
+  "mint:fmt": "fmt",
   "mint:json": "json",
   "mint:log": "log",
   "mint:crypto": "crypto",

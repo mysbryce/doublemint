@@ -1239,6 +1239,95 @@
         }
       ]
     },
+    "mint:fmt": {
+      "exports": [
+        {
+          "name": "Fmt",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "padLeft",
+              "kind": "function",
+              "params": [
+                "string",
+                "int",
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "padRight",
+              "kind": "function",
+              "params": [
+                "string",
+                "int",
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "repeat",
+              "kind": "function",
+              "params": [
+                "string",
+                "int"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "hex",
+              "kind": "function",
+              "params": [
+                "int64"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "hexUpper",
+              "kind": "function",
+              "params": [
+                "int64"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "octal",
+              "kind": "function",
+              "params": [
+                "int64"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "binary",
+              "kind": "function",
+              "params": [
+                "int64"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "precision",
+              "kind": "function",
+              "params": [
+                "double",
+                "int"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "withThousands",
+              "kind": "function",
+              "params": [
+                "int64",
+                "string"
+              ],
+              "returnType": "string"
+            }
+          ]
+        }
+      ]
+    },
     "mint:json": {
       "exports": [
         {

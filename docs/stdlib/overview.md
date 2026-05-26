@@ -11,7 +11,7 @@ domain.
 | **I/O & Console** | [`mint:io`](./io) |
 | **Files & Modules** | [`mint:fs`](./fs) |
 | **Strings & Collections** | [`mint:string`](./string), [`mint:array`](./array), [`mint:collections`](./collections) |
-| **Math & Numerics** | [`mint:math`](./math), [`mint:simd`](./simd) |
+| **Math & Numerics** | [`mint:math`](./math), [`mint:simd`](./simd), [`mint:fmt`](./fmt) |
 | **Time & OS** | [`mint:time`](./time), [`mint:os`](./os), [`mint:process`](./process) |
 | **HTTP Server** | [`mint:http`](./http) |
 | **Networking & Sockets** | [`mint:net`](./net) |

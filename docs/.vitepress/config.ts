@@ -143,7 +143,8 @@ export default defineConfig({
             collapsed: true,
             items: [
               { text: "mint:math", link: "/stdlib/math" },
-              { text: "mint:simd", link: "/stdlib/simd" }
+              { text: "mint:simd", link: "/stdlib/simd" },
+              { text: "mint:fmt", link: "/stdlib/fmt" }
             ]
           },
           {
