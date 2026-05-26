@@ -1,175 +1,204 @@
 # Doublemint Product Spec
 
+_Last updated: 2026-05-26 (0.0.1-dev-24)_
+
 ## Purpose
 
-Doublemint is a production-grade `.dlm` to C++20 transpiler. It gives developers TypeScript-like ergonomics while emitting clean, warning-free, high-performance C++.
+Doublemint is a production-grade `.dlm` → C++20 transpiler.
+It gives developers TypeScript-style ergonomics while
+emitting clean, warning-free, high-performance C++. The
+generated binary links against a curated stdlib of vendored
+C/C++ libraries (uWebSockets + libuv, SQLite, …) so a Mint
+program can build a HTTP server, talk to a database, do
+cryptography, or drive native subprocesses without manual
+FFI glue.
 
-This is not a disposable MVP. The first release is a production foundation: small enough to finish, strict enough to trust, and shaped so later language features do not require rewrites.
+This is not a disposable MVP — every release tightens the
+production foundation. The version line is `0.0.1-dev-N`,
+where each `N` corresponds to one shipped feature plus its
+patch note in `patch-notes/0.0.1-dev-N.md`.
 
 ## Product Goals
 
-- Compile real multi-file `.dlm` projects into `.hpp` and `.cpp` modules.
-- Preserve human-friendly syntax without hiding unsafe or expensive behavior.
-- Emit C++20 that passes `-Wall -Wextra -Werror -std=c++20 -O3`.
-- Provide rich diagnostics with file, line, column, source snippet, caret, and stable error codes.
-- Support a Node-based CLI installable as an npm package with a `doublemint` binary.
-- Use layered automated tests, golden output snapshots, native C++ compilation, and binary execution tests.
+- Compile real multi-file `.dlm` projects into `.hpp` /
+  `.cpp` modules plus a single native binary.
+- Preserve human-friendly syntax without hiding unsafe or
+  expensive behavior.
+- Emit C++20 that passes
+  `-Wall -Wextra -Werror -std=c++20 -O3`.
+- Rich diagnostics with file, line, column, source excerpt,
+  caret, and stable `DLMxxxx` error codes.
+- Ship as a Node-based CLI with a `doublemint` binary, plus
+  a first-party VS Code extension (hover, autocomplete,
+  goto-def, builtin manifest).
+- Layered tests: lexer / parser / checker unit tests,
+  golden C++ snapshots, integration tests that *actually
+  compile* the emitted C++ with g++/clang++, and runtime
+  tests that exec the binary.
 
-## Non-Goals For Production Foundation
+## Implemented Language Surface (through dev-24)
 
-- Full TypeScript-style inference.
-- C++ pointer/reference syntax exposed directly in `.dlm`.
-- Aggressive interprocedural `std::string_view` optimization in the first implementation.
-- Always-generated CMake projects.
-- Full language surface such as classes, async, generics, macros, templates, or package registry support.
+- **Bindings**: `let` (mutable), `const` (immutable),
+  `constexpr` (compile-time constant).
+- **Types**: `int`, `int64`, `float`, `double`, `string`,
+  `bool`, `char`, plus user-defined `struct`, `enum`, `type`
+  aliases, `Array<T>`, tuples, `Optional<T>`,
+  `T1 | T2 | …` unions.
+- **Functions**: named functions with typed params + return,
+  generic free functions with inference, `extern` blocks for
+  C/C++ interop, lambdas with single-expression and
+  block bodies.
+- **Statements**: `if`/`else`, `while`, `for`,
+  `switch`/`case`/`default`, `match`/`_`, `defer`,
+  `return`, tuple destructuring (`let [a, b] = expr;`).
+- **Expressions**: arithmetic (`+ - * / %`), comparisons
+  (`== != < <= > >=`), logical (`&& ||`), unary (`- !`),
+  prefix and postfix (`++ --`), compound assignment
+  (`+= -= *= /=`), ternary (`a ? b : c`), match
+  expressions (`match (x) { … _ => fallback }`), template
+  literals (`` `hello ${name}` ``), string concatenation,
+  member access, indexing, casts (`as T`), `copy`, `new T(…)`.
+- **Method-style on primitives**: any `mint:*` namespace
+  function whose first parameter unifies with the receiver
+  becomes a method (`name.upper()` ≡ `String.upper(name)`),
+  plus built-in numeric `n.toString()`.
 
-These are not rejected forever. They are deferred until the compiler core is stable.
+## Built-in `mint:*` Modules
 
-## First Production Scope
+`mint:io`, `mint:fs`, `mint:os`, `mint:time`, `mint:string`,
+`mint:array`, `mint:collections`, `mint:math`, `mint:json`,
+`mint:regex`, `mint:log`, `mint:crypto`, `mint:base64`,
+`mint:net`, `mint:http` (uWebSockets-backed, Elysia-style
+routing + WebSockets + outbound `Fetch`), `mint:async`
+(spawn / join / mutex / atomic / channel / parallelFor),
+`mint:memory`, `mint:simd`, `mint:db` (in-memory KV),
+`mint:sql` (vendored SQLite amalgamation), `mint:term`
+(ANSI styling), `mint:schema` (validation + constraints),
+`mint:process` (memory read/write, AOB scan, pointer
+chains), `mint:test` (assertions + runner).
 
-The first production foundation must support:
+Run `doublemint info` to enumerate them at any point.
 
-- `let` and `const`.
-- Explicit type annotations with limited safe inference for obvious internal literals.
-- Functions with typed parameters and return types.
-- Struct declarations and exported structs.
-- Relative `import`, `import type`, and `export`.
-- `extern` declarations for native C++ library bindings.
-- Opaque extern types and native pointer/reference signatures for C/C++ interop.
-- Prefix `copy` expressions.
-- Tuple destructuring declarations for tuple-return values.
-- Basic expressions, function calls, field access, assignment, and returns.
-- Strict module graph resolution.
-- `.hpp` and `.cpp` emission per module.
-- Optional native compiler invocation from the CLI.
-- Project configuration through `doublemint.config.json`.
-- Native linker configuration through `libraryDirs`, `linkLibraries`, and `linkerFlags`.
-- Native source compilation through `nativeSources`.
-- `defer` statements for deterministic native cleanup at scope exit.
+## CLI Surface
 
-## Language Decisions
+```bash
+doublemint check <entry.dlm>            # lex/parse/semantic only
+doublemint check --stdin-filepath <p>   # check unsaved source from stdin
+doublemint emit <entry.dlm>             # write .hpp / .cpp into outDir
+doublemint build <entry.dlm> --out <bin>
+                                        # emit + invoke native compiler
+doublemint fmt <entry.dlm> [--write | --check]
+doublemint repl                         # interactive evaluator (per-line compile)
+doublemint init [dir]                   # scaffold a hello-world project
+doublemint info                         # list builtin modules
+doublemint version                      # print version
+```
 
-### Type System
-
-Public declarations, variables, function parameters, and function returns require explicit types.
-
-Limited inference is allowed only where the compiler can prove the type locally and trivially, such as numeric and string literals inside internal expressions. Rich TypeScript-style inference is deferred.
-
-### Mutation
-
-`let` is mutable. `const` is immutable.
-
-Struct field mutation is allowed only when the owning variable is mutable.
-
-### Ownership And Passing
-
-Doublemint uses value semantics as the source-level default.
-
-The compiler may optimize large immutable struct parameters into `const T&` in emitted C++ when semantic analysis proves the parameter is not mutated and no explicit `copy` is requested.
-
-Explicit copying uses the `copy` keyword.
-
-### Strings
-
-For the production foundation, mutable or escaping `string` values emit as `std::string`.
-Safe local string literals may emit as `std::string_view`.
-
-Broader interprocedural `std::string_view` mapping is deferred until the semantic analyzer can prove read-only lifetime safety across module boundaries.
+`build` flags: `--compiler clang++|g++`, `--cpp-out <dir>`,
+`--out <binary>`.
 
 ## Compiler Architecture
 
-The compiler is implemented in TypeScript on Node.js.
-
-Core pipeline:
-
-1. Lexer scans source into tokens with source locations.
-2. Parser builds an AST with hand-written recursive descent.
-3. Module resolver builds a strict dependency graph.
-4. Semantic checker validates symbols, types, imports, exports, mutation, and copy behavior.
-5. Emitter generates `.hpp` and `.cpp` outputs.
-6. CLI optionally invokes GCC or Clang.
-
-## CLI
-
-Package form:
-
-```bash
-npm install -g doublemint
-doublemint build src/main.dlm --out dist/app
+```
+.dlm source
+   │
+   ▼
+ Lexer (src/lexer)        — chars → tokens with SourceLocation
+   │
+   ▼
+ Parser (src/parser)      — hand-written recursive descent → AST
+   │
+   ▼
+ Resolver (src/resolver)  — strict module graph + builtin manifest
+   │
+   ▼
+ Checker (src/semantic)   — symbols, types, imports, generics, mutation
+   │
+   ▼
+ Emitter (src/emitter)    — .hpp + .cpp per module, includes vendor sources
+   │
+   ▼
+ Native compiler (src/core/nativeCompiler.ts)
+                          — gcc for .c → .o, g++ for .cpp → .o, g++ for link;
+                            Windows MinGW collect2 fallback handles the silent
+                            exit-5 bug by stripping COMPILER_PATH/LIBRARY_PATH.
 ```
 
-Expected commands:
+The TypeScript build pipeline (`pnpm build`) embeds the
+runtime headers / sources, refreshes the builtin manifest
+for the VS Code extension, then bundles the CLI + library
+through `tsup`.
 
-```bash
-doublemint build <entry.dlm>
-doublemint check <entry.dlm>
-doublemint emit <entry.dlm>
-```
+## Configuration
 
-`build` emits C++ and optionally invokes the configured native compiler.
-
-`check` runs parse, graph, and semantic validation without emission.
-
-`emit` writes `.hpp` and `.cpp` files without native compilation.
-
-## Config
-
-Project config lives in `doublemint.config.json`.
-
-Minimum useful fields:
+Project config lives in `doublemint.config.json` (optional).
 
 ```json
 {
   "rootDir": "src",
   "outDir": "build/doublemint",
   "cppStandard": "c++20",
-  "compiler": "clang++",
+  "compiler": "g++",
   "includeDirs": [],
   "warningsAsErrors": true,
-  "optimization": "O3"
+  "optimization": "O3",
+  "nativeSources": [],
+  "libraryDirs": [],
+  "linkLibraries": [],
+  "linkerFlags": []
 }
 ```
 
 ## Diagnostics
 
-Diagnostics must be human-readable by default.
-
-Each diagnostic includes:
-
-- Error code.
-- Severity.
-- Message.
-- Absolute or project-relative file path.
-- Line and column.
-- Source excerpt.
-- Caret marker.
-- Optional fix hint.
-
-JSON diagnostics can be added later for editor tooling.
+Every error implements `DoublemintDiagnostic`. Each one
+carries an error code (e.g. `DLM4070`), severity, message,
+absolute path, line/column, source excerpt with caret, and
+an optional fix hint. The compiler never crashes on invalid
+source — bad input always surfaces a diagnostic.
 
 ## Testing Standard
 
-Required test layers:
+- Vitest unit tests for the lexer, parser, semantic
+  checker, formatter, and emitter.
+- Integration tests that build a real `.dlm` program, run
+  the full resolver / checker / emitter / native-compile
+  pipeline, then execute the resulting binary and assert on
+  its stdout.
+- Builtin coverage: dedicated build-and-run tests per
+  `mint:*` module (`tests/integration/mintXxxBuild.test.ts`).
+- `pnpm build:examples` builds all `examples/**/*.dlm`
+  end-to-end as a smoke test before any release.
 
-- Lexer unit tests.
-- Parser unit tests.
-- Semantic checker unit tests.
-- Module resolver tests.
-- Golden emitted C++ snapshots.
-- Integration tests that compile emitted C++ with GCC or Clang.
-- Runtime tests that execute compiled binaries.
-- Corrupt input tests for graceful diagnostics.
+A bump is not shipped until `pnpm test` is green and
+`pnpm build:examples` builds every example.
 
-No phase is complete until its automated tests pass.
+## Release Discipline
 
-## Production Acceptance Criteria
+1. `pnpm version:bump "<title>"` increments the `dev-N`
+   counter in `package.json` and in
+   `ext/doublemint-vscode/package.json`, and stubs a fresh
+   `patch-notes/0.0.1-dev-N.md`.
+2. Implement the feature with at least one integration
+   test.
+3. `pnpm test` + `pnpm build:examples` must pass.
+4. Fill in the patch note (Highlights / Files touched /
+   Tests / examples / Up next).
+5. Commit with
+   `chore(release): 0.0.1-dev-N — <title>`.
 
-The production foundation is acceptable when:
+## Roadmap (post-dev-24)
 
-- A multi-file `.dlm` sample compiles to `.hpp` and `.cpp`.
-- The emitted C++ compiles warning-free with C++20.
-- The generated binary runs and produces expected output.
-- Invalid source produces rich diagnostics without crashing.
-- Circular imports, missing imports, and duplicate exports are rejected.
-- `copy`, mutation, and const rules behave predictably.
-- CLI works through the npm package binary.
+Near-term:
+
+- Async/await syntax surface over `mint:async`.
+- HTTPS support via vendored OpenSSL.
+- `bool.toString()`, richer numeric formatting via
+  `mint:fmt`.
+
+Deferred (will land when the surface stabilises):
+
+- Trait/interface-style abstraction.
+- Cross-module enum discriminated unions.
+- Package registry + version pinning.
+- Optional GC / arena allocator strategy.
