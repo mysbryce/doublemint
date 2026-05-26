@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { stdin } from "node:process";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { resolve, dirname, join, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildNativeExecutable } from "./core/nativeCompiler.js";
 import { loadConfig } from "./core/config.js";
@@ -52,7 +52,12 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (!["check", "emit", "build", "version", "info"].includes(args.command)) {
+  if (args.command === "init") {
+    runInit(args.entry);
+    return;
+  }
+
+  if (!["check", "emit", "build", "version", "info", "init"].includes(args.command)) {
     throw new DoublemintDiagnostic({
       code: "DLM0001",
       severity: "error",
@@ -134,10 +139,32 @@ Usage:
   doublemint check --stdin-filepath <entry.dlm>
   doublemint emit <entry.dlm>
   doublemint build <entry.dlm> --out <binary> [--compiler <clang++|g++>] [--cpp-out <dir>]
+  doublemint init [dir]
   doublemint info
   doublemint version
   doublemint --help
 `);
+}
+
+function runInit(target?: string): void {
+  const dir = resolve(process.cwd(), target ?? ".");
+  if (!existsSync(dir)) { mkdirSync(dir, { recursive: true }); }
+  const projectName = basename(dir);
+  const entryPath = join(dir, "main.dlm");
+  if (existsSync(entryPath)) {
+    console.log(`refusing to overwrite ${entryPath}`);
+    return;
+  }
+  const template = `import { println } from "mint:io";
+
+export function main(): void {
+  let name: string = "${projectName}";
+  println("hello from \${name}");
+}
+`;
+  writeFileSync(entryPath, template, "utf8");
+  console.log(`wrote ${entryPath}`);
+  console.log("next: doublemint build " + entryPath + " --out " + join(dir, projectName) + (process.platform === "win32" ? ".exe" : ""));
 }
 
 function printInfo(): void {
