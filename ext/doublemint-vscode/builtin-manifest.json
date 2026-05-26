@@ -75,6 +75,48 @@
         }
       ]
     },
+    "mint:base64": {
+      "exports": [
+        {
+          "name": "Base64",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "encode",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "decode",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "encodeBytes",
+              "kind": "function",
+              "params": [
+                "int[]"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "decodeBytes",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "int[]"
+            }
+          ]
+        }
+      ]
+    },
     "mint:array": {
       "exports": [
         {
@@ -400,6 +442,16 @@
               "valueType": "double"
             },
             {
+              "name": "E",
+              "kind": "value",
+              "valueType": "double"
+            },
+            {
+              "name": "INFINITY",
+              "kind": "value",
+              "valueType": "double"
+            },
+            {
               "name": "sin",
               "kind": "function",
               "params": [
@@ -408,7 +460,64 @@
               "returnType": "double"
             },
             {
+              "name": "cos",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "tan",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "asin",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "acos",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "atan",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "atan2",
+              "kind": "function",
+              "params": [
+                "double",
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
               "name": "sqrt",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "cbrt",
               "kind": "function",
               "params": [
                 "double"
@@ -425,7 +534,191 @@
               "returnType": "double"
             },
             {
+              "name": "exp",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "log",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "log2",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "log10",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "floor",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "ceil",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "round",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "trunc",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "absInt",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "absFloat",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "minInt",
+              "kind": "function",
+              "params": [
+                "int",
+                "int"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "maxInt",
+              "kind": "function",
+              "params": [
+                "int",
+                "int"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "minFloat",
+              "kind": "function",
+              "params": [
+                "double",
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "maxFloat",
+              "kind": "function",
+              "params": [
+                "double",
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "clampInt",
+              "kind": "function",
+              "params": [
+                "int",
+                "int",
+                "int"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "clampFloat",
+              "kind": "function",
+              "params": [
+                "double",
+                "double",
+                "double"
+              ],
+              "returnType": "double"
+            },
+            {
               "name": "roundToInt",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "floorToInt",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "ceilToInt",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "truncToInt",
+              "kind": "function",
+              "params": [
+                "double"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "intToFloat",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "signInt",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "signFloat",
               "kind": "function",
               "params": [
                 "double"

@@ -148,6 +148,26 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
     }
   ],
   [
+    "mint:base64",
+    {
+      builtin: true,
+      builtinIncludes: ["<string>", "<string_view>", "<vector>"],
+      program: emptyProgram("mint:base64"),
+      imports: [],
+      exports: new Map([
+        [
+          "Base64",
+          namespaceExport("Base64", [
+            functionMember("encode", [namedType("string")], namedType("string"), "__doublemint_base64_encode"),
+            functionMember("decode", [namedType("string")], namedType("string"), "__doublemint_base64_decode"),
+            functionMember("encodeBytes", [arrayType(namedType("int"))], namedType("string"), "__doublemint_base64_encode_bytes"),
+            functionMember("decodeBytes", [namedType("string")], arrayType(namedType("int")), "__doublemint_base64_decode_bytes")
+          ])
+        ]
+      ])
+    }
+  ],
+  [
     "mint:array",
     {
       builtin: true,
@@ -261,7 +281,7 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
     "mint:math",
     {
       builtin: true,
-      builtinIncludes: ["<cmath>", "<numbers>"],
+      builtinIncludes: ["<algorithm>", "<cmath>", "<cstdlib>", "<limits>", "<numbers>"],
       program: emptyProgram("mint:math"),
       imports: [],
       exports: new Map([
@@ -269,20 +289,41 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
           "Math",
           namespaceExport("Math", [
             valueMember("PI", namedType("double"), "std::numbers::pi"),
+            valueMember("E", namedType("double"), "std::numbers::e"),
+            valueMember("INFINITY", namedType("double"), "std::numeric_limits<double>::infinity()"),
             functionMember("sin", [namedType("double")], namedType("double"), "std::sin"),
+            functionMember("cos", [namedType("double")], namedType("double"), "std::cos"),
+            functionMember("tan", [namedType("double")], namedType("double"), "std::tan"),
+            functionMember("asin", [namedType("double")], namedType("double"), "std::asin"),
+            functionMember("acos", [namedType("double")], namedType("double"), "std::acos"),
+            functionMember("atan", [namedType("double")], namedType("double"), "std::atan"),
+            functionMember("atan2", [namedType("double"), namedType("double")], namedType("double"), "std::atan2"),
             functionMember("sqrt", [namedType("double")], namedType("double"), "std::sqrt"),
-            functionMember(
-              "pow",
-              [namedType("double"), namedType("double")],
-              namedType("double"),
-              "std::pow"
-            ),
-            functionMember(
-              "roundToInt",
-              [namedType("double")],
-              namedType("int"),
-              "std::lround"
-            )
+            functionMember("cbrt", [namedType("double")], namedType("double"), "std::cbrt"),
+            functionMember("pow", [namedType("double"), namedType("double")], namedType("double"), "std::pow"),
+            functionMember("exp", [namedType("double")], namedType("double"), "std::exp"),
+            functionMember("log", [namedType("double")], namedType("double"), "std::log"),
+            functionMember("log2", [namedType("double")], namedType("double"), "std::log2"),
+            functionMember("log10", [namedType("double")], namedType("double"), "std::log10"),
+            functionMember("floor", [namedType("double")], namedType("double"), "std::floor"),
+            functionMember("ceil", [namedType("double")], namedType("double"), "std::ceil"),
+            functionMember("round", [namedType("double")], namedType("double"), "std::round"),
+            functionMember("trunc", [namedType("double")], namedType("double"), "std::trunc"),
+            functionMember("absInt", [namedType("int")], namedType("int"), "std::abs"),
+            functionMember("absFloat", [namedType("double")], namedType("double"), "std::fabs"),
+            functionMember("minInt", [namedType("int"), namedType("int")], namedType("int"), "std::min<int>"),
+            functionMember("maxInt", [namedType("int"), namedType("int")], namedType("int"), "std::max<int>"),
+            functionMember("minFloat", [namedType("double"), namedType("double")], namedType("double"), "std::fmin"),
+            functionMember("maxFloat", [namedType("double"), namedType("double")], namedType("double"), "std::fmax"),
+            functionMember("clampInt", [namedType("int"), namedType("int"), namedType("int")], namedType("int"), "std::clamp<int>"),
+            functionMember("clampFloat", [namedType("double"), namedType("double"), namedType("double")], namedType("double"), "std::clamp<double>"),
+            functionMember("roundToInt", [namedType("double")], namedType("int"), "std::lround"),
+            functionMember("floorToInt", [namedType("double")], namedType("int"), "__doublemint_math_floor_to_int"),
+            functionMember("ceilToInt", [namedType("double")], namedType("int"), "__doublemint_math_ceil_to_int"),
+            functionMember("truncToInt", [namedType("double")], namedType("int"), "__doublemint_math_trunc_to_int"),
+            functionMember("intToFloat", [namedType("int")], namedType("double"), "__doublemint_math_int_to_float"),
+            functionMember("signInt", [namedType("int")], namedType("int"), "__doublemint_math_sign_int"),
+            functionMember("signFloat", [namedType("double")], namedType("int"), "__doublemint_math_sign_float")
           ])
         ]
       ])
