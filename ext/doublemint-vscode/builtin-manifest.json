@@ -1087,6 +1087,40 @@
                 "int"
               ],
               "returnType": "string"
+            },
+            {
+              "name": "sha256",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "md5",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "hmacSha256",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "hmacMd5",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "string"
             }
           ]
         }

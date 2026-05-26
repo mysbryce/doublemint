@@ -468,7 +468,7 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
     "mint:crypto",
     {
       builtin: true,
-      builtinIncludes: ["<cstdint>", "<iomanip>", "<sstream>", "<string>", "<string_view>"],
+      builtinIncludes: ["<cstdint>", "<cstring>", "<iomanip>", "<sstream>", "<string>", "<string_view>", "<vector>"],
       program: emptyProgram("mint:crypto"),
       imports: [],
       exports: new Map([
@@ -477,7 +477,11 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
           namespaceExport("Crypto", [
             functionMember("hashFnv1a", [namedType("string")], namedType("int"), "__doublemint_crypto_fnv1a"),
             functionMember("xorCipher", [namedType("string"), namedType("string")], namedType("string"), "__doublemint_crypto_xor"),
-            functionMember("toHex", [namedType("int")], namedType("string"), "__doublemint_crypto_to_hex")
+            functionMember("toHex", [namedType("int")], namedType("string"), "__doublemint_crypto_to_hex"),
+            functionMember("sha256", [namedType("string")], namedType("string"), "__doublemint_crypto_sha256"),
+            functionMember("md5", [namedType("string")], namedType("string"), "__doublemint_crypto_md5"),
+            functionMember("hmacSha256", [namedType("string"), namedType("string")], namedType("string"), "__doublemint_crypto_hmac_sha256"),
+            functionMember("hmacMd5", [namedType("string"), namedType("string")], namedType("string"), "__doublemint_crypto_hmac_md5")
           ])
         ]
       ])

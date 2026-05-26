@@ -107,6 +107,31 @@ describe.skipIf(!hasGpp)("mint extended libraries", () => {
     expect(result.stdout.trim().split(/\r?\n/u).length).toBe(3);
   }, 15000);
 
+  it("computes SHA-256, MD5, and HMAC test vectors", async () => {
+    const result = await buildAndRun(`
+      import { Crypto } from "mint:crypto";
+      import { println } from "mint:io";
+
+      export function main(): void {
+        println(Crypto.sha256(""));
+        println(Crypto.sha256("abc"));
+        println(Crypto.md5(""));
+        println(Crypto.md5("abc"));
+        println(Crypto.hmacSha256("key", "The quick brown fox jumps over the lazy dog"));
+        println(Crypto.hmacMd5("key", "The quick brown fox jumps over the lazy dog"));
+      }
+    `);
+
+    expect(result.status).toBe(0);
+    const lines = result.stdout.trim().split(/\r?\n/u);
+    expect(lines[0]).toBe("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+    expect(lines[1]).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    expect(lines[2]).toBe("d41d8cd98f00b204e9800998ecf8427e");
+    expect(lines[3]).toBe("900150983cd24fb0d6963f7d28e17f72");
+    expect(lines[4]).toBe("f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8");
+    expect(lines[5]).toBe("80070713463e7749b90c2dc24911e275");
+  }, 30000);
+
   it("parses url components and builds http get request", async () => {
     const result = await buildAndRun(`
       import { Url, Http } from "mint:net";
