@@ -39,6 +39,7 @@ interface EmitContext {
   stringViewVariables: Set<string>;
   nativeFunctions: Map<string, string>;
   nativeMembers: Map<string, string>;
+  enumNames: Set<string>;
   usesTemplateLiteral?: boolean;
 }
 
@@ -229,6 +230,11 @@ function emitHeader(
       lines.push(emitStruct(declaration));
       lines.push("");
     }
+
+    if (declaration.type === "EnumDeclaration") {
+      lines.push(emitEnum(declaration));
+      lines.push("");
+    }
   }
 
   for (const declaration of functionDeclarations(module.program)) {
@@ -321,6 +327,27 @@ function emitTypeAlias(declaration: TypeAliasDeclaration): string {
   return `using ${declaration.id} = ${emitType(declaration.valueType)};`;
 }
 
+function emitEnum(declaration: { id: string; variants: string[] }): string {
+  return `enum class ${declaration.id} {\n  ${declaration.variants.join(",\n  ")}\n};`;
+}
+
+function enumNameSet(module: ResolvedModule): Set<string> {
+  const names = new Set<string>();
+  for (const declaration of module.program.body) {
+    if (declaration.type === "EnumDeclaration") {
+      names.add(declaration.id);
+    }
+  }
+  for (const resolvedImport of module.imports) {
+    if (resolvedImport.export.builtin) { continue; }
+    const exported = resolvedImport.export.declaration;
+    if (exported.type === "EnumDeclaration") {
+      names.add(resolvedImport.specifier);
+    }
+  }
+  return names;
+}
+
 function emitStruct(declaration: StructDeclaration): string {
   const lines = [`struct ${declaration.id} {`];
 
@@ -342,7 +369,8 @@ function emitFunctionDefinition(
     deferCounter: 0,
     stringViewVariables: stringViewVariableNames(declaration),
     nativeFunctions: nativeFunctionMap(module),
-    nativeMembers: nativeMemberMap(module)
+    nativeMembers: nativeMemberMap(module),
+    enumNames: enumNameSet(module)
   };
 
   for (const statement of declaration.body) {
@@ -832,6 +860,9 @@ function emitExpression(
         if (nativeMember) {
           return nativeMember;
         }
+        if (context?.enumNames.has(expression.object.name)) {
+          return `${expression.object.name}::${expression.property}`;
+        }
       }
 
       return `${emitExpression(expression.object, undefined, context)}.${expression.property}${expression.autoInvoke ? "()" : ""}`;
@@ -897,7 +928,8 @@ function emitLambdaExpression(
       deferCounter: 0,
       stringViewVariables: new Set<string>(),
       nativeFunctions: new Map<string, string>(),
-      nativeMembers: new Map<string, string>()
+      nativeMembers: new Map<string, string>(),
+      enumNames: new Set<string>()
     };
     const stmts = expression.blockBody
       .map((statement) => emitStatement(statement, fakeDecl, innerContext))

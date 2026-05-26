@@ -11,8 +11,17 @@ export type Declaration =
   | TypeAliasDeclaration
   | ExternTypeDeclaration
   | StructDeclaration
+  | EnumDeclaration
   | ExternBlockDeclaration
   | FunctionDeclaration;
+
+export interface EnumDeclaration {
+  type: "EnumDeclaration";
+  exported: boolean;
+  id: string;
+  variants: string[];
+  location: SourceLocation;
+}
 
 export interface ImportDeclaration {
   type: "ImportDeclaration";

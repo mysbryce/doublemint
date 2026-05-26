@@ -2,6 +2,7 @@ import { DoublemintDiagnostic } from "../diagnostics/diagnostic.js";
 import type { Token, TokenKind } from "../lexer/token.js";
 import type {
   Declaration,
+  EnumDeclaration,
   ExternTypeDeclaration,
   ExternBlockDeclaration,
   Expression,
@@ -63,6 +64,10 @@ class Parser {
 
     if (this.match("STRUCT")) {
       return this.structDeclaration(exported);
+    }
+
+    if (this.match("ENUM")) {
+      return this.enumDeclaration(exported);
     }
 
     if (this.match("EXTERN")) {
@@ -141,6 +146,38 @@ class Parser {
       id: id.lexeme,
       fields,
       location: structToken.location
+    };
+  }
+
+  private enumDeclaration(exported: boolean): EnumDeclaration {
+    const enumToken = this.previous();
+    const id = this.consume("IDENTIFIER", "DLM2080", "Expected enum name.");
+    this.consume("LEFT_BRACE", "DLM2081", "Expected '{' before enum variants.");
+    const variants: string[] = [];
+
+    while (!this.check("RIGHT_BRACE") && !this.isAtEnd()) {
+      const variant = this.consume("IDENTIFIER", "DLM2082", "Expected enum variant name.");
+      if (variants.includes(variant.lexeme)) {
+        throw this.error(variant, "DLM2083", `Duplicate enum variant "${variant.lexeme}".`);
+      }
+      variants.push(variant.lexeme);
+      if (!this.check("RIGHT_BRACE")) {
+        this.consume("COMMA", "DLM2084", "Expected ',' between enum variants.");
+      }
+    }
+
+    this.consume("RIGHT_BRACE", "DLM2085", "Expected '}' after enum variants.");
+
+    if (variants.length === 0) {
+      throw this.error(enumToken, "DLM2086", "Enum must have at least one variant.");
+    }
+
+    return {
+      type: "EnumDeclaration",
+      exported,
+      id: id.lexeme,
+      variants,
+      location: enumToken.location
     };
   }
 

@@ -4,6 +4,7 @@ import type {
   AssignmentExpression,
   Declaration,
   DestructuringDeclaration,
+  EnumDeclaration,
   Expression,
   FunctionDeclaration,
   MemberExpression,
@@ -21,7 +22,7 @@ import type {
   ResolvedModule
 } from "../resolver/moduleGraph.js";
 
-type SymbolKind = "variable" | "function" | "type" | "struct" | "namespace";
+type SymbolKind = "variable" | "function" | "type" | "struct" | "enum" | "namespace";
 type Mutability = "mutable" | "immutable";
 
 interface SemanticSymbol {
@@ -33,6 +34,7 @@ interface SemanticSymbol {
   classMethods?: Map<string, SemanticSymbol>;
   nativeName?: string;
   structDeclaration?: StructDeclaration;
+  enumDeclaration?: EnumDeclaration;
   typeAlias?: TypeAliasDeclaration;
   property?: boolean;
   mutability: Mutability;
@@ -104,6 +106,9 @@ function registerImports(environment: ModuleEnvironment, imports: ResolvedImport
       if (resolvedImport.export.builtin && resolvedImport.export.classMethods) {
         declareSymbol(environment.types, importedSymbol);
       }
+      if (importedSymbol.kind === "enum") {
+        declareSymbol(environment.types, importedSymbol);
+      }
       declareSymbol(environment.values, importedSymbol);
     }
   }
@@ -132,6 +137,22 @@ function registerModuleDeclarations(
           name: declaration.id,
           kind: "struct",
           structDeclaration: declaration,
+          mutability: "immutable",
+          location: declaration.location
+        });
+        break;
+      case "EnumDeclaration":
+        declareSymbol(environment.types, {
+          name: declaration.id,
+          kind: "enum",
+          enumDeclaration: declaration,
+          mutability: "immutable",
+          location: declaration.location
+        });
+        declareSymbol(environment.values, {
+          name: declaration.id,
+          kind: "enum",
+          enumDeclaration: declaration,
           mutability: "immutable",
           location: declaration.location
         });
@@ -270,6 +291,16 @@ function symbolFromExport(name: string, moduleExport: ModuleExport): SemanticSym
       name,
       kind: "struct",
       structDeclaration: declaration,
+      mutability: "immutable",
+      location: declaration.location
+    };
+  }
+
+  if (declaration.type === "EnumDeclaration") {
+    return {
+      name,
+      kind: "enum",
+      enumDeclaration: declaration,
       mutability: "immutable",
       location: declaration.location
     };
@@ -911,7 +942,24 @@ function inferMemberType(
   expression: MemberExpression
 ): TypeNode {
   if (expression.object.type === "Identifier") {
-    const namespace = scope.lookup(expression.object.name);
+    const looked = scope.lookup(expression.object.name);
+    if (looked?.kind === "enum" && looked.enumDeclaration) {
+      const variant = looked.enumDeclaration.variants.find((v) => v === expression.property);
+      if (!variant) {
+        throw new DoublemintDiagnostic({
+          code: "DLM4070",
+          severity: "error",
+          message: `Enum "${expression.object.name}" has no variant "${expression.property}".`,
+          location: expression.location
+        });
+      }
+      return {
+        type: "NamedType",
+        name: looked.enumDeclaration.id,
+        location: expression.location
+      };
+    }
+    const namespace = looked;
     if (namespace?.kind === "namespace") {
       const member = namespace.namespaceMembers?.get(expression.property);
       if (!member) {

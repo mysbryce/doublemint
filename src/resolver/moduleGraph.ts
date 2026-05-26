@@ -11,6 +11,7 @@ import type {
 import type {
   Declaration,
   FunctionDeclaration,
+  EnumDeclaration,
   ImportDeclaration,
   Program,
   StructDeclaration,
@@ -48,7 +49,7 @@ export interface AstModuleExport {
   name: string;
   kind: ExportKind;
   builtin?: false;
-  declaration: TypeAliasDeclaration | StructDeclaration | FunctionDeclaration;
+  declaration: TypeAliasDeclaration | StructDeclaration | EnumDeclaration | FunctionDeclaration;
 }
 
 export interface BuiltinModuleExport {
@@ -301,6 +302,14 @@ function exportFromDeclaration(declaration: Declaration): AstModuleExport | null
   }
 
   if (declaration.type === "StructDeclaration" && declaration.exported) {
+    return {
+      name: declaration.id,
+      kind: "type",
+      declaration
+    };
+  }
+
+  if (declaration.type === "EnumDeclaration" && declaration.exported) {
     return {
       name: declaration.id,
       kind: "type",
