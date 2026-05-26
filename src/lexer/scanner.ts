@@ -201,13 +201,34 @@ class Scanner {
   }
 
   private number(): void {
-    while (isDigit(this.peek())) {
+    // Optional radix prefix: 0x.., 0o.., 0b..
+    // (this.start is the index of the leading digit consumed before
+    //  number() was invoked.)
+    if (this.source[this.start] === "0") {
+      const radix = this.peek().toLowerCase();
+      if (radix === "x" || radix === "o" || radix === "b") {
+        this.advance();
+        const isValid =
+          radix === "x"
+            ? isHexDigit
+            : radix === "o"
+              ? isOctDigit
+              : isBinDigit;
+        while (isValid(this.peek()) || this.peek() === "_") {
+          this.advance();
+        }
+        this.addToken("NUMBER_LITERAL");
+        return;
+      }
+    }
+
+    while (isDigit(this.peek()) || this.peek() === "_") {
       this.advance();
     }
 
     if (this.peek() === "." && isDigit(this.peekNext())) {
       this.advance();
-      while (isDigit(this.peek())) {
+      while (isDigit(this.peek()) || this.peek() === "_") {
         this.advance();
       }
     }
@@ -306,6 +327,18 @@ class Scanner {
 
 function isDigit(char: string): boolean {
   return char >= "0" && char <= "9";
+}
+
+function isHexDigit(char: string): boolean {
+  return isDigit(char) || (char >= "a" && char <= "f") || (char >= "A" && char <= "F");
+}
+
+function isOctDigit(char: string): boolean {
+  return char >= "0" && char <= "7";
+}
+
+function isBinDigit(char: string): boolean {
+  return char === "0" || char === "1";
 }
 
 function isIdentifierStart(char: string): boolean {

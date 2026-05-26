@@ -1093,9 +1093,10 @@ class Parser {
 
     if (this.match("NUMBER_LITERAL")) {
       const literal = this.previous();
+      const stripped = literal.lexeme.replace(/_/gu, "");
       return {
         type: "Literal",
-        value: Number(literal.lexeme),
+        value: Number(stripped),
         raw: literal.lexeme,
         literalKind: "number",
         location: literal.location

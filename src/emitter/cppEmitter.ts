@@ -1174,14 +1174,23 @@ function emitLiteral(
     return "nullptr";
   }
 
-  if (
-    expression.literalKind === "number" &&
-    expectedType?.type === "NamedType" &&
-    expectedType.name === "float" &&
-    expression.raw.includes(".") &&
-    !/[fF]$/u.test(expression.raw)
-  ) {
-    return `${expression.raw}f`;
+  if (expression.literalKind === "number") {
+    let raw = expression.raw.replace(/_/gu, "");
+    // C++ supports 0x... and 0b... natively (C++14+) but uses 0... for
+    // octal — strip Mint's explicit "0o" prefix so we don't trip the
+    // "invalid numeric literal" warning.
+    if (/^0o/iu.test(raw)) {
+      raw = "0" + raw.slice(2);
+    }
+    if (
+      expectedType?.type === "NamedType" &&
+      expectedType.name === "float" &&
+      raw.includes(".") &&
+      !/[fF]$/u.test(raw)
+    ) {
+      return `${raw}f`;
+    }
+    return raw;
   }
 
   return expression.raw;
