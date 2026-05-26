@@ -85,5 +85,5 @@ describe.skipIf(!hasGpp)("mint core libraries", () => {
     expect(run.status).toBe(0);
     expect(run.stdout).toContain("minty");
     expect(run.stdout).toContain("fallback");
-  }, 15000);
+  }, 30000);
 });

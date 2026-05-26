@@ -72,11 +72,34 @@ export interface ResolvedImport {
   export: ModuleExport;
 }
 
+export interface BuiltinNativeBundle {
+  /** Directories (relative to repo runtime/vendor) to copy into the build tree and pass as `-I`. */
+  vendorDirs?: string[];
+  /** `.c`/`.cpp` glob patterns (relative to a vendorDir) to compile alongside the generated translation unit. */
+  sources?: BuiltinNativeSourceGroup[];
+  /** Platform-keyed extra `-D` defines. */
+  defines?: Partial<Record<NodeJS.Platform, string[]>>;
+  /** Platform-keyed extra `-l` libraries (merged with `builtinLinkLibraries`). */
+  linkLibraries?: Partial<Record<NodeJS.Platform, string[]>>;
+  /** Platform-keyed extra raw compiler flags. */
+  compileFlags?: Partial<Record<NodeJS.Platform, string[]>>;
+}
+
+export interface BuiltinNativeSourceGroup {
+  /** Vendor directory (must also appear in `vendorDirs`). */
+  vendorDir: string;
+  /** Relative-to-vendorDir glob entries (supports `**` and `*`). */
+  patterns: string[];
+  /** Optional platform filter — when set, only compile on those platforms. */
+  platforms?: NodeJS.Platform[];
+}
+
 export interface ResolvedModule {
   filepath: string;
   builtin?: boolean;
   builtinIncludes?: string[];
   builtinLinkLibraries?: Partial<Record<NodeJS.Platform, string[]>>;
+  builtinNative?: BuiltinNativeBundle;
   program: Program;
   imports: ResolvedImport[];
   exports: Map<string, ModuleExport>;

@@ -1,5 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, relative } from "node:path";
+import { existsSync, readdirSync, statSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { DoublemintConfig } from "../core/config.js";
 import { DoublemintDiagnostic } from "../diagnostics/diagnostic.js";
 import type {
@@ -25,6 +27,10 @@ export interface CppArtifact {
 export interface EmitResult {
   artifacts: CppArtifact[];
   linkLibraries: string[];
+  nativeSources: string[];
+  includeDirs: string[];
+  defines: string[];
+  compileFlags: string[];
 }
 
 interface EmitContext {
@@ -52,13 +58,43 @@ export async function emitCppToDisk(
 export function emitCpp(graph: ModuleGraph, config: DoublemintConfig): EmitResult {
   const artifacts: CppArtifact[] = [];
   const linkLibraries = new Set<string>();
+  const nativeSources = new Set<string>();
+  const includeDirs = new Set<string>();
+  const defines = new Set<string>();
+  const compileFlags = new Set<string>();
   const platform = process.platform;
+  const vendorRoot = resolveVendorRoot();
 
   for (const module of graph.modules.values()) {
     const libs = module.builtinLinkLibraries?.[platform];
     if (libs) {
       for (const lib of libs) {
         linkLibraries.add(lib);
+      }
+    }
+
+    const native = module.builtinNative;
+    if (native) {
+      for (const dir of native.vendorDirs ?? []) {
+        includeDirs.add(resolve(vendorRoot, dir));
+      }
+      for (const group of native.sources ?? []) {
+        if (group.platforms && !group.platforms.includes(platform)) { continue; }
+        const groupDir = resolve(vendorRoot, group.vendorDir);
+        for (const pattern of group.patterns) {
+          for (const filepath of expandVendorPattern(groupDir, pattern)) {
+            nativeSources.add(filepath);
+          }
+        }
+      }
+      for (const define of native.defines?.[platform] ?? []) {
+        defines.add(define);
+      }
+      for (const lib of native.linkLibraries?.[platform] ?? []) {
+        linkLibraries.add(lib);
+      }
+      for (const flag of native.compileFlags?.[platform] ?? []) {
+        compileFlags.add(flag);
       }
     }
 
@@ -70,7 +106,42 @@ export function emitCpp(graph: ModuleGraph, config: DoublemintConfig): EmitResul
     artifacts.push(emitSource(graph, module, config));
   }
 
-  return { artifacts, linkLibraries: [...linkLibraries] };
+  return {
+    artifacts,
+    linkLibraries: [...linkLibraries],
+    nativeSources: [...nativeSources],
+    includeDirs: [...includeDirs],
+    defines: [...defines],
+    compileFlags: [...compileFlags]
+  };
+}
+
+function resolveVendorRoot(): string {
+  const here = dirname(fileURLToPath(import.meta.url));
+  return resolve(here, "..", "runtime", "vendor");
+}
+
+function expandVendorPattern(rootDir: string, pattern: string): string[] {
+  const parts = pattern.split(/[/\\]/u).filter((segment) => segment.length > 0);
+  if (parts.length === 0) { return []; }
+  const lastSegment = parts[parts.length - 1];
+  const dirParts = parts.slice(0, -1);
+  const targetDir = dirParts.length > 0 ? join(rootDir, ...dirParts) : rootDir;
+  if (!existsSync(targetDir) || !statSync(targetDir).isDirectory()) { return []; }
+
+  if (!lastSegment.includes("*")) {
+    const candidate = join(targetDir, lastSegment);
+    return existsSync(candidate) && statSync(candidate).isFile() ? [candidate] : [];
+  }
+
+  const regex = new RegExp(
+    `^${lastSegment.replace(/\./gu, "\\.").replace(/\*/gu, ".*")}$`,
+    "u"
+  );
+  return readdirSync(targetDir)
+    .filter((name) => regex.test(name))
+    .map((name) => join(targetDir, name))
+    .filter((p) => statSync(p).isFile());
 }
 
 function emitHeader(

@@ -48,7 +48,11 @@ describe.skipIf(!hasGpp)("buildNativeExecutable", () => {
           content: "int main() { return 0; }\n"
         }
       ],
-      linkLibraries: []
+      linkLibraries: [],
+      nativeSources: [],
+      includeDirs: [],
+      defines: [],
+      compileFlags: []
     };
 
     const result = await buildNativeExecutable(emitResult, config, {
@@ -73,7 +77,11 @@ describe.skipIf(!hasGpp)("buildNativeExecutable", () => {
           content: "int main() { return 0; }\n"
         }
       ],
-      linkLibraries: []
+      linkLibraries: [],
+      nativeSources: [],
+      includeDirs: [],
+      defines: [],
+      compileFlags: []
     };
 
     const result = await buildNativeExecutable(
