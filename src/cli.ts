@@ -108,9 +108,18 @@ async function main(): Promise<void> {
   const semanticResult = checkModuleGraph(graph);
 
   if (args.command === "check") {
-    console.log(
-      `OK ${semanticResult.modulesChecked} modules checked using ${config.cppStandard}.`
-    );
+    if (args.json) {
+      console.log(JSON.stringify({
+        ok: true,
+        modulesChecked: semanticResult.modulesChecked,
+        cppStandard: config.cppStandard,
+        diagnostics: []
+      }));
+    } else {
+      console.log(
+        `OK ${semanticResult.modulesChecked} modules checked using ${config.cppStandard}.`
+      );
+    }
     return;
   }
 
@@ -147,8 +156,8 @@ function printHelp(): void {
   console.log(`doublemint ${readVersion()}
 
 Usage:
-  doublemint check <entry.dlm>
-  doublemint check --stdin-filepath <entry.dlm>
+  doublemint check <entry.dlm> [--json]
+  doublemint check --stdin-filepath <entry.dlm> [--json]
   doublemint emit <entry.dlm>
   doublemint build <entry.dlm> --out <binary> [--compiler <clang++|g++>] [--cpp-out <dir>]
   doublemint fmt <entry.dlm> [--write | --check]
@@ -245,6 +254,7 @@ interface CliArgs {
   stdinFilepath?: string;
   write?: boolean;
   check?: boolean;
+  json?: boolean;
   help: boolean;
   version: boolean;
 }
@@ -295,6 +305,11 @@ function parseCliArgs(argv: string[]): CliArgs {
 
     if (arg === "--check") {
       parsed.check = true;
+      continue;
+    }
+
+    if (arg === "--json") {
+      parsed.json = true;
       continue;
     }
 
@@ -352,11 +367,29 @@ function readStdin(): Promise<string> {
 
 main().catch((error: unknown) => {
   if (error instanceof DoublemintDiagnostic) {
-    console.error(error.format());
+    if (args.json) {
+      console.log(JSON.stringify({
+        ok: false,
+        diagnostics: [error.toJSON()]
+      }));
+    } else {
+      console.error(error.format());
+    }
     process.exitCode = 1;
     return;
   }
 
-  console.error(error);
+  if (args.json) {
+    console.log(JSON.stringify({
+      ok: false,
+      diagnostics: [{
+        code: "DLM9999",
+        severity: "error",
+        message: error instanceof Error ? error.message : String(error)
+      }]
+    }));
+  } else {
+    console.error(error);
+  }
   process.exitCode = 1;
 });

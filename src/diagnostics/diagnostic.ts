@@ -28,6 +28,21 @@ export class DoublemintDiagnostic extends Error {
     this.hint = input.hint;
   }
 
+  toJSON(): Record<string, unknown> {
+    const sourceLine = this.sourceLine ?? this.location?.sourceLine;
+    return {
+      code: this.code,
+      severity: this.severity,
+      message: this.message,
+      filepath: this.location?.filepath,
+      line: this.location?.line,
+      column: this.location?.column,
+      offset: this.location?.offset,
+      sourceLine,
+      hint: this.hint
+    };
+  }
+
   format(): string {
     const header = `${this.severity.toUpperCase()} ${this.code}: ${this.message}`;
 
