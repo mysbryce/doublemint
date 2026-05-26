@@ -1194,7 +1194,8 @@ const RUNTIME_HEADER_MODULES: Record<string, string> = {
   "mint:collections": "collections",
   "mint:regex": "regex",
   "mint:schema": "schema",
-  "mint:http": "http"
+  "mint:http": "http",
+  "mint:sql": "sql"
 };
 
 const RUNTIME_SOURCE_MODULES: Record<string, string> = {
@@ -1216,7 +1217,8 @@ const RUNTIME_SOURCE_MODULES: Record<string, string> = {
   "mint:string": "string",
   "mint:array": "array",
   "mint:math": "math",
-  "mint:base64": "base64"
+  "mint:base64": "base64",
+  "mint:sql": "sql"
 };
 
 function lookupRuntime(map: Record<string, string>, key: string): string {

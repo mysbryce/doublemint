@@ -148,6 +148,59 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
     }
   ],
   [
+    "mint:sql",
+    {
+      builtin: true,
+      builtinIncludes: ["<cstdint>", "<memory>", "<string>", "<string_view>", "<vector>"],
+      builtinNative: {
+        vendorDirs: ["sqlite"],
+        sources: [
+          { vendorDir: "sqlite", patterns: ["sqlite3.c"] }
+        ],
+        defines: {
+          win32: ["SQLITE_THREADSAFE=0", "SQLITE_OMIT_LOAD_EXTENSION=1", "SQLITE_DEFAULT_MEMSTATUS=0"],
+          linux: ["SQLITE_THREADSAFE=0", "SQLITE_OMIT_LOAD_EXTENSION=1", "SQLITE_DEFAULT_MEMSTATUS=0"],
+          darwin: ["SQLITE_THREADSAFE=0", "SQLITE_OMIT_LOAD_EXTENSION=1", "SQLITE_DEFAULT_MEMSTATUS=0"]
+        }
+      },
+      program: emptyProgram("mint:sql"),
+      imports: [],
+      exports: new Map([
+        [
+          "SqlResult",
+          classExport("SqlResult", [
+            method("hasNext", [], namedType("bool")),
+            method("next", [], namedType("void")),
+            method("getString", [namedType("string")], namedType("string")),
+            method("getInt", [namedType("string")], namedType("int")),
+            method("getInt64", [namedType("string")], namedType("int64")),
+            method("getDouble", [namedType("string")], namedType("double")),
+            method("isNull", [namedType("string")], namedType("bool")),
+            method("columnCount", [], namedType("int")),
+            method("columnName", [namedType("int")], namedType("string")),
+            property("error", namedType("string")),
+            method("close", [], namedType("void"))
+          ])
+        ],
+        [
+          "Database",
+          classExport("Database", [
+            method("open", [namedType("string")], namedType("bool")),
+            method("openMemory", [], namedType("bool")),
+            method("close", [], namedType("void")),
+            method("exec", [namedType("string")], namedType("bool")),
+            method("execParams", [namedType("string"), arrayType(namedType("string"))], namedType("bool")),
+            method("query", [namedType("string")], namedType("SqlResult")),
+            method("queryParams", [namedType("string"), arrayType(namedType("string"))], namedType("SqlResult")),
+            method("lastInsertRowId", [], namedType("int64")),
+            method("changes", [], namedType("int")),
+            property("error", namedType("string"))
+          ])
+        ]
+      ])
+    }
+  ],
+  [
     "mint:base64",
     {
       builtin: true,

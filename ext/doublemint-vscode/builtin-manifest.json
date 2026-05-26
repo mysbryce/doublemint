@@ -75,6 +75,172 @@
         }
       ]
     },
+    "mint:sql": {
+      "exports": [
+        {
+          "name": "SqlResult",
+          "kind": "class",
+          "members": [
+            {
+              "name": "hasNext",
+              "kind": "function",
+              "params": [],
+              "returnType": "bool"
+            },
+            {
+              "name": "next",
+              "kind": "function",
+              "params": [],
+              "returnType": "void"
+            },
+            {
+              "name": "getString",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "getInt",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "getInt64",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "int64"
+            },
+            {
+              "name": "getDouble",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "double"
+            },
+            {
+              "name": "isNull",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "columnCount",
+              "kind": "function",
+              "params": [],
+              "returnType": "int"
+            },
+            {
+              "name": "columnName",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "error",
+              "kind": "function",
+              "params": [],
+              "returnType": "string"
+            },
+            {
+              "name": "close",
+              "kind": "function",
+              "params": [],
+              "returnType": "void"
+            }
+          ]
+        },
+        {
+          "name": "Database",
+          "kind": "class",
+          "members": [
+            {
+              "name": "open",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "openMemory",
+              "kind": "function",
+              "params": [],
+              "returnType": "bool"
+            },
+            {
+              "name": "close",
+              "kind": "function",
+              "params": [],
+              "returnType": "void"
+            },
+            {
+              "name": "exec",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "execParams",
+              "kind": "function",
+              "params": [
+                "string",
+                "string[]"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "query",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "SqlResult"
+            },
+            {
+              "name": "queryParams",
+              "kind": "function",
+              "params": [
+                "string",
+                "string[]"
+              ],
+              "returnType": "SqlResult"
+            },
+            {
+              "name": "lastInsertRowId",
+              "kind": "function",
+              "params": [],
+              "returnType": "int64"
+            },
+            {
+              "name": "changes",
+              "kind": "function",
+              "params": [],
+              "returnType": "int"
+            },
+            {
+              "name": "error",
+              "kind": "function",
+              "params": [],
+              "returnType": "string"
+            }
+          ]
+        }
+      ]
+    },
     "mint:base64": {
       "exports": [
         {
