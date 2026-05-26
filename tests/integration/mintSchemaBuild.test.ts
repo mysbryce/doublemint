@@ -74,6 +74,46 @@ describe.skipIf(!hasGpp)("mint:schema", () => {
     expect(lines[2]).toBe("0");
   }, 30000);
 
+  it("enforces min/max, minItems/maxItems, oneOf, and pattern constraints", async () => {
+    const result = await buildAndRun(`
+      import { Schema, ValidationResult } from "mint:schema";
+      import { println } from "mint:io";
+
+      export function main(): void {
+        let s: Schema = new Schema();
+        s.required("name", "string");
+        s.min("name", 2);
+        s.max("name", 10);
+        s.required("age", "int");
+        s.min("age", 0);
+        s.max("age", 150);
+        s.required("role", "string");
+        s.oneOf("role", ["admin", "user", "guest"]);
+        s.requiredArray("tags", "string");
+        s.minItems("tags", 1);
+        s.maxItems("tags", 3);
+        s.required("email", "string");
+        s.pattern("email", "[^@]+@[^@]+\\\\.[^@]+");
+
+        println(s.validate("{\\"name\\":\\"a\\",\\"age\\":1,\\"role\\":\\"admin\\",\\"tags\\":[\\"x\\"],\\"email\\":\\"a@b.co\\"}").error);
+        println(s.validate("{\\"name\\":\\"ok\\",\\"age\\":999,\\"role\\":\\"admin\\",\\"tags\\":[\\"x\\"],\\"email\\":\\"a@b.co\\"}").error);
+        println(s.validate("{\\"name\\":\\"ok\\",\\"age\\":1,\\"role\\":\\"super\\",\\"tags\\":[\\"x\\"],\\"email\\":\\"a@b.co\\"}").error);
+        println(s.validate("{\\"name\\":\\"ok\\",\\"age\\":1,\\"role\\":\\"admin\\",\\"tags\\":[],\\"email\\":\\"a@b.co\\"}").error);
+        println(s.validate("{\\"name\\":\\"ok\\",\\"age\\":1,\\"role\\":\\"admin\\",\\"tags\\":[\\"a\\",\\"b\\",\\"c\\",\\"d\\"],\\"email\\":\\"a@b.co\\"}").error);
+        println(s.validate("{\\"name\\":\\"ok\\",\\"age\\":1,\\"role\\":\\"admin\\",\\"tags\\":[\\"x\\"],\\"email\\":\\"bad\\"}").error);
+      }
+    `);
+
+    expect(result.status).toBe(0);
+    const lines = result.stdout.trim().split(/\r?\n/u);
+    expect(lines[0]).toContain("name: length 1 is below min 2");
+    expect(lines[1]).toContain("age: value 999 exceeds max 150");
+    expect(lines[2]).toContain("role: value not in allowed set");
+    expect(lines[3]).toContain("tags: 0 items, requires at least 1");
+    expect(lines[4]).toContain("tags: 4 items, allows at most 3");
+    expect(lines[5]).toContain("email: value does not match pattern");
+  }, 30000);
+
   it("rejects missing required field, type mismatch, and nested errors", async () => {
     const result = await buildAndRun(`
       import { Schema, ValidationResult } from "mint:schema";

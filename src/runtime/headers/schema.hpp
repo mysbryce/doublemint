@@ -33,5 +33,11 @@ class Schema {
   void optionalArray(std::string_view name, std::string_view elementTypeKind);
   void requiredObject(std::string_view name, const Schema& sub);
   void optionalObject(std::string_view name, const Schema& sub);
+  void min(std::string_view name, std::int64_t value);
+  void max(std::string_view name, std::int64_t value);
+  void minItems(std::string_view name, std::int64_t value);
+  void maxItems(std::string_view name, std::int64_t value);
+  void oneOf(std::string_view name, const std::vector<std::string_view>& options);
+  void pattern(std::string_view name, std::string_view regex);
   ValidationResult validate(std::string_view json) const;
 };

@@ -184,6 +184,17 @@ struct FieldRule {
   std::string elementType;
   std::shared_ptr<SchemaHolder> subSchema;
   bool required = true;
+  bool hasMin = false;
+  std::int64_t minValue = 0;
+  bool hasMax = false;
+  std::int64_t maxValue = 0;
+  bool hasMinItems = false;
+  std::int64_t minItems = 0;
+  bool hasMaxItems = false;
+  std::int64_t maxItems = 0;
+  std::vector<std::string> oneOf;
+  bool hasPattern = false;
+  std::string pattern;
 };
 
 struct SchemaHolder {
@@ -222,6 +233,76 @@ struct ValidationData {
 [[maybe_unused]] static bool validateAgainst(
     const SchemaHolder& schema, const JsonValue& root, ValidationData& out, const std::string& pathPrefix);
 
+[[maybe_unused]] static bool applyConstraints(
+    const FieldRule& rule, const JsonValue& value, std::string& err, const std::string& fieldPath) {
+  if (rule.kind == RuleKind::Primitive) {
+    if (rule.primitiveType == "string") {
+      auto length = static_cast<std::int64_t>(value.stringValue.size());
+      if (rule.hasMin && length < rule.minValue) {
+        err = fieldPath + ": length " + std::to_string(length) + " is below min " + std::to_string(rule.minValue);
+        return false;
+      }
+      if (rule.hasMax && length > rule.maxValue) {
+        err = fieldPath + ": length " + std::to_string(length) + " exceeds max " + std::to_string(rule.maxValue);
+        return false;
+      }
+      if (!rule.oneOf.empty()) {
+        bool match = false;
+        for (const auto& candidate : rule.oneOf) {
+          if (candidate == value.stringValue) { match = true; break; }
+        }
+        if (!match) {
+          err = fieldPath + ": value not in allowed set";
+          return false;
+        }
+      }
+      if (rule.hasPattern) {
+        try {
+          std::regex re(rule.pattern);
+          if (!std::regex_match(value.stringValue, re)) {
+            err = fieldPath + ": value does not match pattern";
+            return false;
+          }
+        } catch (...) {
+          err = fieldPath + ": invalid pattern";
+          return false;
+        }
+      }
+    } else if (rule.primitiveType == "int" || rule.primitiveType == "int64") {
+      auto v = value.intValue;
+      if (rule.hasMin && v < rule.minValue) {
+        err = fieldPath + ": value " + std::to_string(v) + " is below min " + std::to_string(rule.minValue);
+        return false;
+      }
+      if (rule.hasMax && v > rule.maxValue) {
+        err = fieldPath + ": value " + std::to_string(v) + " exceeds max " + std::to_string(rule.maxValue);
+        return false;
+      }
+    } else if (rule.primitiveType == "double" || rule.primitiveType == "float" || rule.primitiveType == "number") {
+      double v = value.kind == JsonKind::Double ? value.doubleValue : static_cast<double>(value.intValue);
+      if (rule.hasMin && v < static_cast<double>(rule.minValue)) {
+        err = fieldPath + ": value below min";
+        return false;
+      }
+      if (rule.hasMax && v > static_cast<double>(rule.maxValue)) {
+        err = fieldPath + ": value exceeds max";
+        return false;
+      }
+    }
+  } else if (rule.kind == RuleKind::Array) {
+    auto count = static_cast<std::int64_t>(value.arrayValue.size());
+    if (rule.hasMinItems && count < rule.minItems) {
+      err = fieldPath + ": " + std::to_string(count) + " items, requires at least " + std::to_string(rule.minItems);
+      return false;
+    }
+    if (rule.hasMaxItems && count > rule.maxItems) {
+      err = fieldPath + ": " + std::to_string(count) + " items, allows at most " + std::to_string(rule.maxItems);
+      return false;
+    }
+  }
+  return true;
+}
+
 [[maybe_unused]] static bool validateField(
     const FieldRule& rule, const JsonValue& value, std::string& err, const std::string& fieldPath) {
   if (rule.kind == RuleKind::Primitive) {
@@ -230,6 +311,7 @@ struct ValidationData {
       err = fieldPath + ": " + localErr;
       return false;
     }
+    if (!applyConstraints(rule, value, err, fieldPath)) { return false; }
     return true;
   }
   if (rule.kind == RuleKind::Array) {
@@ -244,6 +326,7 @@ struct ValidationData {
         return false;
       }
     }
+    if (!applyConstraints(rule, value, err, fieldPath)) { return false; }
     return true;
   }
   if (rule.kind == RuleKind::Object) {
@@ -395,6 +478,58 @@ void Schema::optionalObject(std::string_view name, const Schema& sub) {
   rule.subSchema = sub.holder_;
   rule.required = false;
   holder_->rules.push_back(std::move(rule));
+}
+
+namespace doublemint_schema_detail {
+[[maybe_unused]] static FieldRule* findRule(SchemaHolder& holder, std::string_view name) {
+  for (auto& rule : holder.rules) {
+    if (rule.name == name) { return &rule; }
+  }
+  return nullptr;
+}
+}  // namespace doublemint_schema_detail
+
+void Schema::min(std::string_view name, std::int64_t value) {
+  if (auto* rule = doublemint_schema_detail::findRule(*holder_, name)) {
+    rule->hasMin = true;
+    rule->minValue = value;
+  }
+}
+
+void Schema::max(std::string_view name, std::int64_t value) {
+  if (auto* rule = doublemint_schema_detail::findRule(*holder_, name)) {
+    rule->hasMax = true;
+    rule->maxValue = value;
+  }
+}
+
+void Schema::minItems(std::string_view name, std::int64_t value) {
+  if (auto* rule = doublemint_schema_detail::findRule(*holder_, name)) {
+    rule->hasMinItems = true;
+    rule->minItems = value;
+  }
+}
+
+void Schema::maxItems(std::string_view name, std::int64_t value) {
+  if (auto* rule = doublemint_schema_detail::findRule(*holder_, name)) {
+    rule->hasMaxItems = true;
+    rule->maxItems = value;
+  }
+}
+
+void Schema::oneOf(std::string_view name, const std::vector<std::string_view>& options) {
+  if (auto* rule = doublemint_schema_detail::findRule(*holder_, name)) {
+    rule->oneOf.clear();
+    rule->oneOf.reserve(options.size());
+    for (auto value : options) { rule->oneOf.emplace_back(value); }
+  }
+}
+
+void Schema::pattern(std::string_view name, std::string_view regex) {
+  if (auto* rule = doublemint_schema_detail::findRule(*holder_, name)) {
+    rule->hasPattern = true;
+    rule->pattern = std::string(regex);
+  }
 }
 
 ValidationResult Schema::validate(std::string_view json) const {

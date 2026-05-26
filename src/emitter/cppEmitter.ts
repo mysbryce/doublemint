@@ -807,6 +807,15 @@ function emitArrayLiteral(
     return `{${elements}}`;
   }
 
+  if (
+    expression.elements.length > 0 &&
+    expression.elements.every(
+      (element) => element.type === "Literal" && element.literalKind === "string"
+    )
+  ) {
+    return `std::vector<std::string_view>{${elements}}`;
+  }
+
   return `std::vector{${elements}}`;
 }
 

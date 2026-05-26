@@ -1261,6 +1261,60 @@
               "returnType": "void"
             },
             {
+              "name": "min",
+              "kind": "function",
+              "params": [
+                "string",
+                "int64"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "max",
+              "kind": "function",
+              "params": [
+                "string",
+                "int64"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "minItems",
+              "kind": "function",
+              "params": [
+                "string",
+                "int64"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "maxItems",
+              "kind": "function",
+              "params": [
+                "string",
+                "int64"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "oneOf",
+              "kind": "function",
+              "params": [
+                "string",
+                "string[]"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "pattern",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
               "name": "validate",
               "kind": "function",
               "params": [

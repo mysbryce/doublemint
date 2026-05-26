@@ -543,6 +543,7 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
       builtinIncludes: [
         "<cstdint>",
         "<memory>",
+        "<regex>",
         "<string>",
         "<string_view>",
         "<unordered_map>",
@@ -573,6 +574,12 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
             method("optionalArray", [namedType("string"), namedType("string")], namedType("void")),
             method("requiredObject", [namedType("string"), namedType("Schema")], namedType("void")),
             method("optionalObject", [namedType("string"), namedType("Schema")], namedType("void")),
+            method("min", [namedType("string"), namedType("int64")], namedType("void")),
+            method("max", [namedType("string"), namedType("int64")], namedType("void")),
+            method("minItems", [namedType("string"), namedType("int64")], namedType("void")),
+            method("maxItems", [namedType("string"), namedType("int64")], namedType("void")),
+            method("oneOf", [namedType("string"), arrayType(namedType("string"))], namedType("void")),
+            method("pattern", [namedType("string"), namedType("string")], namedType("void")),
             method("validate", [namedType("string")], namedType("ValidationResult"))
           ])
         ]
