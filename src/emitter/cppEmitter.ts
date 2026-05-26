@@ -563,7 +563,11 @@ function emitForOfStatement(
   context: EmitContext
 ): string {
   const iterable = emitExpression(statement.iterable, undefined, context);
-  const lines = [`for (const auto& ${statement.binding.id} : ${iterable}) {`];
+  const binding =
+    statement.binding.style === "destructure"
+      ? `[${statement.binding.ids.join(", ")}]`
+      : statement.binding.id;
+  const lines = [`for (const auto& ${binding} : ${iterable}) {`];
   for (const nestedStatement of statement.body) {
     lines.push(`  ${emitStatement(nestedStatement, declaration, context)}`);
   }

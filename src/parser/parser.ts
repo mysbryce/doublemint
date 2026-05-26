@@ -3,6 +3,7 @@ import type { Token, TokenKind } from "../lexer/token.js";
 import type {
   Declaration,
   EnumDeclaration,
+  ForOfBinding,
   MatchArm,
   MatchExpression,
   MatchExpressionArm,
@@ -454,24 +455,47 @@ class Parser {
 
     // for (let x of expr) { ... }
     // for (let x: T of expr) { ... }
+    // for (let [a, b] of expr) { ... }
     if (
       (this.check("LET") || this.check("CONST")) &&
       this.looksLikeForOf()
     ) {
       const kindToken = this.advance();
       const kind = kindToken.kind === "LET" ? "let" : "const";
-      const id = this.consume("IDENTIFIER", "DLM2104", "Expected for-of binding name.");
-      let valueType: TypeNode | null = null;
-      if (this.match("COLON")) {
-        valueType = this.typeNode();
+
+      let binding: ForOfBinding;
+      if (this.match("LEFT_BRACKET")) {
+        const startToken = this.previous();
+        const ids = this.identifierList("for-of destructuring binding");
+        this.consume("RIGHT_BRACKET", "DLM2107", "Expected ']' after for-of destructuring binding.");
+        binding = {
+          kind,
+          style: "destructure",
+          ids,
+          location: startToken.location
+        };
+      } else {
+        const id = this.consume("IDENTIFIER", "DLM2104", "Expected for-of binding name.");
+        let valueType: TypeNode | null = null;
+        if (this.match("COLON")) {
+          valueType = this.typeNode();
+        }
+        binding = {
+          kind,
+          style: "single",
+          id: id.lexeme,
+          valueType,
+          location: id.location
+        };
       }
+
       this.consume("OF", "DLM2105", "Expected 'of' in for-of loop.");
       const iterable = this.expression();
       this.consume("RIGHT_PAREN", "DLM2106", "Expected ')' after for-of expression.");
       const body = this.block();
       return {
         type: "ForOfStatement",
-        binding: { kind, id: id.lexeme, valueType, location: id.location },
+        binding,
         iterable,
         body,
         location: forToken.location
@@ -496,8 +520,23 @@ class Parser {
   }
 
   private looksLikeForOf(): boolean {
-    // Look ahead from "let"/"const" for IDENTIFIER ":"|"of"
+    // Look ahead from "let"/"const" for:
+    //   IDENTIFIER ("of" | ":" type "of")
+    //   "[" identifier ("," identifier)* "]" "of"
     let offset = 1;
+    if (this.tokenAt(offset).kind === "LEFT_BRACKET") {
+      offset += 1;
+      while (true) {
+        if (this.tokenAt(offset).kind !== "IDENTIFIER") { return false; }
+        offset += 1;
+        if (this.tokenAt(offset).kind === "RIGHT_BRACKET") {
+          offset += 1;
+          return this.tokenAt(offset).kind === "OF";
+        }
+        if (this.tokenAt(offset).kind !== "COMMA") { return false; }
+        offset += 1;
+      }
+    }
     if (this.tokenAt(offset).kind !== "IDENTIFIER") { return false; }
     offset += 1;
     if (this.tokenAt(offset).kind === "OF") { return true; }
@@ -1392,8 +1431,22 @@ class Parser {
   private finishPostfixType(typeNode: TypeNode): TypeNode {
     let current = typeNode;
 
-    while (this.match("STAR", "AMPERSAND", "QUESTION")) {
-      const token = this.previous();
+    while (
+      this.check("STAR") ||
+      this.check("AMPERSAND") ||
+      this.check("QUESTION") ||
+      this.check("LEFT_BRACKET")
+    ) {
+      if (this.match("LEFT_BRACKET")) {
+        this.consume("RIGHT_BRACKET", "DLM2047", "Expected ']' after array type.");
+        current = {
+          type: "ArrayType",
+          elementType: current,
+          location: current.location
+        };
+        continue;
+      }
+      const token = this.advance();
       if (token.kind === "STAR") {
         current = {
           type: "PointerType",

@@ -176,11 +176,15 @@ export type Statement =
 
 export interface ForOfStatement {
   type: "ForOfStatement";
-  binding: { kind: "let" | "const"; id: string; valueType: TypeNode | null; location: SourceLocation };
+  binding: ForOfBinding;
   iterable: Expression;
   body: Statement[];
   location: SourceLocation;
 }
+
+export type ForOfBinding =
+  | { kind: "let" | "const"; style: "single"; id: string; valueType: TypeNode | null; location: SourceLocation }
+  | { kind: "let" | "const"; style: "destructure"; ids: string[]; location: SourceLocation };
 
 export interface MatchStatement {
   type: "MatchStatement";

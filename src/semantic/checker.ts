@@ -510,23 +510,55 @@ function validateStatement(
         });
       }
       const elementType = iterableType.elementType;
-      if (statement.binding.valueType) {
-        assertKnownType(environment, statement.binding.valueType);
-        assertAssignable(
-          environment,
-          statement.binding.valueType,
-          elementType,
-          statement.binding.location
-        );
-      }
       const loopScope = scope.createChild();
-      loopScope.declare({
-        name: statement.binding.id,
-        kind: "variable",
-        valueType: statement.binding.valueType ?? elementType,
-        mutability: statement.binding.kind === "let" ? "mutable" : "immutable",
-        location: statement.binding.location
-      });
+      const mutability = statement.binding.kind === "let" ? "mutable" : "immutable";
+
+      if (statement.binding.style === "destructure") {
+        const tupleType = resolveTupleType(environment, elementType);
+        if (!tupleType) {
+          throw new DoublemintDiagnostic({
+            code: "DLM4085",
+            severity: "error",
+            message: "for-of destructuring requires a tuple-array iterable.",
+            location: statement.binding.location
+          });
+        }
+        if (tupleType.elements.length !== statement.binding.ids.length) {
+          throw new DoublemintDiagnostic({
+            code: "DLM4086",
+            severity: "error",
+            message: `for-of destructuring expects ${tupleType.elements.length} bindings, got ${statement.binding.ids.length}.`,
+            location: statement.binding.location
+          });
+        }
+        for (let index = 0; index < statement.binding.ids.length; index += 1) {
+          loopScope.declare({
+            name: statement.binding.ids[index]!,
+            kind: "variable",
+            valueType: tupleType.elements[index]!,
+            mutability,
+            location: statement.binding.location
+          });
+        }
+      } else {
+        if (statement.binding.valueType) {
+          assertKnownType(environment, statement.binding.valueType);
+          assertAssignable(
+            environment,
+            statement.binding.valueType,
+            elementType,
+            statement.binding.location
+          );
+        }
+        loopScope.declare({
+          name: statement.binding.id,
+          kind: "variable",
+          valueType: statement.binding.valueType ?? elementType,
+          mutability,
+          location: statement.binding.location
+        });
+      }
+
       for (const nestedStatement of statement.body) {
         validateStatement(environment, loopScope, returnType, nestedStatement);
       }
