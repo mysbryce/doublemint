@@ -240,10 +240,12 @@ Deferred (will land when the surface stabilises):
 
 - classes with methods, traits, or virtual dispatch
 - generic structs / classes (only generic free functions today)
+- enum payload variants + pattern bindings (`Some(x) => x`)
+- `Result<T, E>` sum type + error propagation operator
 - HTTPS via vendored OpenSSL
 - package registry + version pinning
 - CMake project generation
-- richer numeric formatting (`mint:fmt`)
+- LSP server (beyond `doublemint check --json`)
 
 ## Documentation
 
