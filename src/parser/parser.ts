@@ -678,6 +678,32 @@ class Parser {
       };
     }
 
+    if (this.check("LESS") && this.peekNext()?.kind === "LESS_EQUAL") {
+      const start = this.peek();
+      this.advance();
+      this.advance();
+      return {
+        type: "AssignmentExpression",
+        operator: "<<=",
+        left: expression,
+        right: this.assignment(),
+        location: start.location
+      };
+    }
+
+    if (this.check("GREATER") && this.peekNext()?.kind === "GREATER_EQUAL") {
+      const start = this.peek();
+      this.advance();
+      this.advance();
+      return {
+        type: "AssignmentExpression",
+        operator: ">>=",
+        left: expression,
+        right: this.assignment(),
+        location: start.location
+      };
+    }
+
     if (this.match("PLUS_EQUAL", "MINUS_EQUAL", "STAR_EQUAL", "SLASH_EQUAL", "PERCENT_EQUAL", "AMPERSAND_EQUAL", "PIPE_EQUAL", "CARET_EQUAL")) {
       const opToken = this.previous();
       const operator = opToken.lexeme as "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=";
@@ -800,7 +826,16 @@ class Parser {
   private comparison(): Expression {
     let expression = this.shift();
 
-    while (this.match("LESS", "LESS_EQUAL", "GREATER", "GREATER_EQUAL")) {
+    while (true) {
+      if (this.check("LESS")) {
+        const nextKind = this.peekNext()?.kind;
+        if (nextKind === "LESS" || nextKind === "LESS_EQUAL") { break; }
+      }
+      if (this.check("GREATER")) {
+        const nextKind = this.peekNext()?.kind;
+        if (nextKind === "GREATER" || nextKind === "GREATER_EQUAL") { break; }
+      }
+      if (!this.match("LESS", "LESS_EQUAL", "GREATER", "GREATER_EQUAL")) { break; }
       const operator = this.previous();
       expression = {
         type: "BinaryExpression",
@@ -818,7 +853,10 @@ class Parser {
     let expression = this.cast();
 
     while (true) {
-      if (this.check("LESS") && this.peekNext()?.kind === "LESS") {
+      if (
+        this.check("LESS") &&
+        this.peekNext()?.kind === "LESS"
+      ) {
         const start = this.previous();
         this.advance();
         this.advance();
@@ -831,7 +869,10 @@ class Parser {
         };
         continue;
       }
-      if (this.check("GREATER") && this.peekNext()?.kind === "GREATER") {
+      if (
+        this.check("GREATER") &&
+        this.peekNext()?.kind === "GREATER"
+      ) {
         const start = this.previous();
         this.advance();
         this.advance();

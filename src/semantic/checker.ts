@@ -906,7 +906,7 @@ function inferAssignmentType(
         location: expression.location
       });
     }
-    const integerOps = new Set(["%=", "&=", "|=", "^="]);
+    const integerOps = new Set(["%=", "&=", "|=", "^=", "<<=", ">>="]);
     if (integerOps.has(expression.operator)) {
       const integerNames = new Set(["int", "int64", "number"]);
       if (

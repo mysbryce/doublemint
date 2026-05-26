@@ -340,7 +340,7 @@ export interface BinaryExpression {
 
 export interface AssignmentExpression {
   type: "AssignmentExpression";
-  operator: "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=";
+  operator: "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>=";
   left: Expression;
   right: Expression;
   location: SourceLocation;
