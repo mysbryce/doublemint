@@ -811,6 +811,17 @@ class Parser {
       };
     }
 
+    if (this.match("MINUS", "BANG")) {
+      const opToken = this.previous();
+      const operator = opToken.lexeme === "!" ? "!" : "-";
+      return {
+        type: "UnaryExpression",
+        operator,
+        argument: this.unary(),
+        location: opToken.location
+      };
+    }
+
     return this.call();
   }
 

@@ -53,6 +53,7 @@ export type TokenKind =
   | "TEMPLATE_LITERAL"
   | "EQUAL"
   | "EQUAL_EQUAL"
+  | "BANG"
   | "BANG_EQUAL"
   | "LESS"
   | "LESS_EQUAL"

@@ -764,6 +764,9 @@ function collectAssignedRootsFromExpression(expression: Expression, roots: Set<s
       collectAssignedRootsFromExpression(expression.right, roots);
       break;
     }
+    case "UnaryExpression":
+      collectAssignedRootsFromExpression(expression.argument, roots);
+      break;
     case "BinaryExpression":
       collectAssignedRootsFromExpression(expression.left, roots);
       collectAssignedRootsFromExpression(expression.right, roots);
@@ -886,6 +889,8 @@ function emitExpression(
       return expression.name;
     case "Literal":
       return emitLiteral(expression, expectedType);
+    case "UnaryExpression":
+      return `(${expression.operator}(${emitExpression(expression.argument, undefined, context)}))`;
     case "BinaryExpression":
       if (expression.stringConcat) {
         return `(std::string(${emitExpression(expression.left, undefined, context)}) + std::string(${emitExpression(expression.right, undefined, context)}))`;
@@ -1464,6 +1469,8 @@ function expressionUsesPrint(expression: Expression): boolean {
     case "Identifier":
     case "Literal":
       return false;
+    case "UnaryExpression":
+      return expressionUsesPrint(expression.argument);
     case "BinaryExpression":
       return expressionUsesPrint(expression.left) || expressionUsesPrint(expression.right);
     case "AssignmentExpression":

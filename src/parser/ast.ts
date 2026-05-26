@@ -267,6 +267,7 @@ export interface DeferStatement {
 export type Expression =
   | IdentifierExpression
   | LiteralExpression
+  | UnaryExpression
   | BinaryExpression
   | AssignmentExpression
   | CallExpression
@@ -308,6 +309,13 @@ export interface LiteralExpression {
   value: string | number | boolean | null;
   raw: string;
   literalKind: "string" | "number" | "bool" | "null";
+  location: SourceLocation;
+}
+
+export interface UnaryExpression {
+  type: "UnaryExpression";
+  operator: "-" | "!";
+  argument: Expression;
   location: SourceLocation;
 }
 

@@ -126,10 +126,7 @@ class Scanner {
         );
         break;
       case "!":
-        if (!this.match("=")) {
-          throw this.error("DLM1001", `Unexpected character "${char}".`);
-        }
-        this.addToken("BANG_EQUAL");
+        this.addToken(this.match("=") ? "BANG_EQUAL" : "BANG");
         break;
       case "<":
         this.addToken(this.match("=") ? "LESS_EQUAL" : "LESS");

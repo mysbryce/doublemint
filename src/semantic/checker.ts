@@ -635,6 +635,29 @@ function inferExpressionType(
               : "string",
         expression.location
       );
+    case "UnaryExpression": {
+      const argType = inferExpressionType(environment, scope, expression.argument);
+      if (expression.operator === "-") {
+        if (!isNumericType(environment, argType)) {
+          throw new DoublemintDiagnostic({
+            code: "DLM4075",
+            severity: "error",
+            message: "Unary \"-\" requires a numeric operand.",
+            location: expression.location
+          });
+        }
+        return argType;
+      }
+      if (canonicalTypeName(environment, argType) !== "bool") {
+        throw new DoublemintDiagnostic({
+          code: "DLM4076",
+          severity: "error",
+          message: "Unary \"!\" requires a bool operand.",
+          location: expression.location
+        });
+      }
+      return namedType("bool", expression.location);
+    }
     case "BinaryExpression": {
       const left = inferExpressionType(environment, scope, expression.left);
       const right = inferExpressionType(environment, scope, expression.right);
