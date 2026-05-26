@@ -835,6 +835,17 @@ class Parser {
       };
     }
 
+    if (this.match("PLUS_PLUS", "MINUS_MINUS")) {
+      const opToken = this.previous();
+      const operator = opToken.lexeme as "++" | "--";
+      return {
+        type: "UnaryExpression",
+        operator,
+        argument: this.unary(),
+        location: opToken.location
+      };
+    }
+
     return this.call();
   }
 
