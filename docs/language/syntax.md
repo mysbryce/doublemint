@@ -82,6 +82,10 @@ for (let i: int = 0; i < 5; i++) {
   println(i.toString());
 }
 
+for (let name of ["alpha", "beta"]) {
+  println(name);
+}
+
 while (running) {
   step();
 }
@@ -125,6 +129,20 @@ let block: function(int): int = fn(value: int): int => {
 let name: string = "mint";
 println(`hello ${name}`);
 ```
+
+## Numeric literals
+
+```mint
+let dec: int = 1_000_000;
+let hex: int = 0xFF;
+let oct: int = 0o755;
+let bin: int = 0b1010;
+let pi: double = 3.141_592;
+```
+
+- `0x` / `0o` / `0b` prefixes for hex / oct / bin.
+- `_` may appear anywhere inside a numeric literal as a digit
+  separator; it has no effect on the parsed value.
 
 ## Tuples and destructuring
 

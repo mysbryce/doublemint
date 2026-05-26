@@ -84,14 +84,15 @@ node dist/cli.js build examples/language_tour/main.dlm --out build/language-tour
 
 ## Language Surface
 
-Supported (through `0.0.1-dev-25`):
+Supported (through `0.0.1-dev-35`):
 
 - **Bindings**: `let` (mutable), `const` (immutable), `constexpr`.
 - **Types**: `int`, `int64`, `float`, `double`, `string`, `bool`, `char`, `Array<T>`, tuples, `Optional<T>`, `T1 | T2 | …` unions, `Future<T>`, plus user-defined `struct`, `enum`, `type` aliases.
 - **Functions**: named functions with typed params + return, `async function` (returns `Future<T>`), generic free functions with inference, `extern` blocks for C/C++ interop, lambdas (single-expression and block bodies).
-- **Statements**: `if`/`else`, `while`, `for`, `switch`/`case`/`default`, `match`/`_`, `defer`, `return`, tuple destructuring (`let [a, b] = expr;`).
-- **Expressions**: arithmetic `+ - * /`, comparisons `== != < <= > >=`, logical `&& ||`, unary `- !`, prefix and postfix `++ --`, compound assignment `+= -= *= /=`, ternary `a ? b : c`, match expressions (`match (x) { … _ => fallback }`), template literals (`` `hello ${name}` ``), string concat with `+`, member access, indexing, `as` casts, `copy`, `new T(…)`, `await expr`.
-- **Method-style on primitives**: any `mint:*` namespace function whose first parameter unifies with the receiver becomes a method (`name.upper()` ≡ `String.upper(name)`); numeric `n.toString()` always works without an import.
+- **Statements**: `if`/`else`, `while`, C-style `for`, `for (let x of arr)` range loop, `switch`/`case`/`default`, `match` (guards allowed) / `_`, `defer`, `return`, tuple destructuring (`let [a, b] = expr;`).
+- **Expressions**: arithmetic `+ - * / %`, comparisons `== != < <= > >=`, logical `&& ||`, unary `- ! ~`, prefix + postfix `++ --`, bitwise `& | ^ << >>`, compound assignment (`+= -= *= /= %= &= |= ^= <<= >>=`), ternary `a ? b : c`, match expressions, template literals (`` `hello ${name}` ``), string concat with `+`, member access, indexing, `as` casts, `copy`, `new T(…)`, `await expr`.
+- **Numeric literals**: `1_000_000`, `0xFF`, `0o755`, `0b1010` plus the standard decimal / float forms.
+- **Method-style on primitives**: any `mint:*` namespace function whose first parameter unifies with the receiver becomes a method (`name.upper()` ≡ `String.upper(name)`); numeric and bool primitives also have a built-in `.toString()` without needing an import.
 
 Run `doublemint info` to enumerate the active stdlib modules at any time. The current set:
 

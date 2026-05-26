@@ -16,6 +16,42 @@ OK 3 modules checked using c++20.
 | Flag | Purpose |
 | --- | --- |
 | `--stdin-filepath <path>` | Read source from stdin but report diagnostics relative to `<path>`. |
+| `--json` | Emit a JSON object on stdout instead of the text format. |
+
+## `--json`
+
+```bash
+$ doublemint check ok.dlm --json
+{"ok":true,"modulesChecked":2,"cppStandard":"c++20","diagnostics":[]}
+
+$ doublemint check bad.dlm --json
+{"ok":false,"diagnostics":[{"code":"DLM2003","severity":"error","message":"Expected declaration but found LET.","filepath":"bad.dlm","line":1,"column":1,"offset":0,"sourceLine":"let x: int = \"hi\";"}]}
+```
+
+Schema:
+
+```ts
+type CheckOutput = {
+  ok: boolean;
+  modulesChecked?: number;
+  cppStandard?: string;
+  diagnostics: Array<{
+    code: string;                          // "DLM####"
+    severity: "error" | "warning";
+    message: string;
+    filepath?: string;
+    line?: number;
+    column?: number;
+    offset?: number;
+    sourceLine?: string;
+    hint?: string;
+  }>;
+};
+```
+
+Exit code matches the text mode: `0` on success, `1` on any
+diagnostic. Errors caught outside the diagnostic system come through
+as `DLM9999`.
 
 ## `--stdin-filepath`
 
