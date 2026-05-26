@@ -6,6 +6,7 @@ export default defineConfig({
     "A production-oriented .dlm to C++20 transpiler with TypeScript-style ergonomics and a curated native stdlib.",
   cleanUrls: true,
   lastUpdated: true,
+  appearance: "dark",
   markdown: {
     languageAlias: {
       mint: "typescript",
@@ -28,11 +29,7 @@ export default defineConfig({
   themeConfig: {
     siteTitle: "Doublemint",
     nav: [
-      { text: "Get Started", link: "/start/welcome" },
-      { text: "Core", link: "/core/pipeline" },
-      { text: "Language", link: "/language/overview" },
-      { text: "Stdlib", link: "/stdlib/overview" },
-      { text: "CLI", link: "/cli/commands" },
+      { text: "Docs", link: "/start/welcome" },
       { text: "Releases", link: "/releases/" },
       {
         text: "0.0.1-dev-32",
@@ -45,178 +42,166 @@ export default defineConfig({
         ]
       }
     ],
-    sidebar: {
-      "/start/": [
-        {
-          text: "1. Get Started",
-          collapsed: false,
-          items: [
-            { text: "Welcome", link: "/start/welcome" },
-            { text: "Install", link: "/start/install" },
-            { text: "Quickstart", link: "/start/quickstart" },
-            { text: "Project layout", link: "/start/project-layout" },
-            { text: "Editor (VS Code)", link: "/start/editor" },
-            { text: "Release workflow", link: "/start/release-workflow" }
-          ]
-        }
-      ],
-      "/core/": [
-        {
-          text: "2. Core & Transpiler",
-          collapsed: false,
-          items: [
-            { text: "Pipeline", link: "/core/pipeline" },
-            { text: "Type system", link: "/core/types" },
-            { text: "Module resolver", link: "/core/modules" },
-            { text: "Semantic checker", link: "/core/checker" },
-            { text: "Emitter", link: "/core/emitter" },
-            { text: "Native compiler", link: "/core/native-compiler" },
-            { text: "Diagnostics", link: "/core/diagnostics" },
-            { text: "Configuration", link: "/core/config" }
-          ]
-        }
-      ],
-      "/language/": [
-        {
-          text: "3. Language",
-          collapsed: false,
-          items: [
-            { text: "Overview", link: "/language/overview" },
-            { text: "Syntax", link: "/language/syntax" },
-            { text: "Operators", link: "/language/operators" },
-            { text: "Pattern matching", link: "/language/match" },
-            { text: "Async / Await", link: "/language/async" },
-            { text: "Lambdas & Generics", link: "/language/lambdas-generics" },
-            { text: "Structs & Enums", link: "/language/structs-enums" },
-            { text: "Native interop", link: "/language/native-interop" }
-          ]
-        }
-      ],
-      "/cli/": [
-        {
-          text: "4. CLI",
-          collapsed: false,
-          items: [
-            { text: "Commands", link: "/cli/commands" },
-            { text: "build", link: "/cli/build" },
-            { text: "check", link: "/cli/check" },
-            { text: "fmt", link: "/cli/fmt" },
-            { text: "repl", link: "/cli/repl" },
-            { text: "init / info / version", link: "/cli/meta" }
-          ]
-        }
-      ],
-      "/stdlib/": [
-        {
-          text: "5. Standard Library",
-          collapsed: false,
-          items: [
-            { text: "Overview", link: "/stdlib/overview" }
-          ]
-        },
-        {
-          text: "5.1 I/O & Console",
-          collapsed: false,
-          items: [{ text: "mint:io", link: "/stdlib/io" }]
-        },
-        {
-          text: "5.2 Files & Modules",
-          collapsed: false,
-          items: [{ text: "mint:fs", link: "/stdlib/fs" }]
-        },
-        {
-          text: "5.3 Strings & Collections",
-          collapsed: false,
-          items: [
-            { text: "mint:string", link: "/stdlib/string" },
-            { text: "mint:array", link: "/stdlib/array" },
-            { text: "mint:collections", link: "/stdlib/collections" }
-          ]
-        },
-        {
-          text: "5.4 Math & Numerics",
-          collapsed: false,
-          items: [
-            { text: "mint:math", link: "/stdlib/math" },
-            { text: "mint:simd", link: "/stdlib/simd" }
-          ]
-        },
-        {
-          text: "5.5 Time & OS",
-          collapsed: false,
-          items: [
-            { text: "mint:time", link: "/stdlib/time" },
-            { text: "mint:os", link: "/stdlib/os" },
-            { text: "mint:process", link: "/stdlib/process" }
-          ]
-        },
-        {
-          text: "5.6 HTTP Server",
-          collapsed: false,
-          items: [{ text: "mint:http", link: "/stdlib/http" }]
-        },
-        {
-          text: "5.7 Networking & Sockets",
-          collapsed: false,
-          items: [{ text: "mint:net", link: "/stdlib/net" }]
-        },
-        {
-          text: "5.8 JSON & Schema",
-          collapsed: false,
-          items: [
-            { text: "mint:json", link: "/stdlib/json" },
-            { text: "mint:schema", link: "/stdlib/schema" }
-          ]
-        },
-        {
-          text: "5.9 Crypto & Hashing",
-          collapsed: false,
-          items: [
-            { text: "mint:crypto", link: "/stdlib/crypto" },
-            { text: "mint:base64", link: "/stdlib/base64" }
-          ]
-        },
-        {
-          text: "5.10 Regex & Logging",
-          collapsed: false,
-          items: [
-            { text: "mint:regex", link: "/stdlib/regex" },
-            { text: "mint:log", link: "/stdlib/log" }
-          ]
-        },
-        {
-          text: "5.11 Database",
-          collapsed: false,
-          items: [
-            { text: "mint:sql", link: "/stdlib/sql" },
-            { text: "mint:db", link: "/stdlib/db" }
-          ]
-        },
-        {
-          text: "5.12 Async & Memory",
-          collapsed: false,
-          items: [
-            { text: "mint:async", link: "/stdlib/async" },
-            { text: "mint:memory", link: "/stdlib/memory" }
-          ]
-        },
-        {
-          text: "5.13 Terminal & Testing",
-          collapsed: false,
-          items: [
-            { text: "mint:term", link: "/stdlib/term" },
-            { text: "mint:test", link: "/stdlib/test" }
-          ]
-        }
-      ],
-      "/releases/": [
-        {
-          text: "6. Releases",
-          collapsed: false,
-          items: [{ text: "Changelog", link: "/releases/" }]
-        }
-      ]
-    },
+    sidebar: [
+      {
+        text: "Get Started",
+        collapsed: false,
+        items: [
+          { text: "Welcome", link: "/start/welcome" },
+          { text: "Install", link: "/start/install" },
+          { text: "Quickstart", link: "/start/quickstart" },
+          { text: "Project layout", link: "/start/project-layout" },
+          { text: "Editor (VS Code)", link: "/start/editor" },
+          { text: "Release workflow", link: "/start/release-workflow" }
+        ]
+      },
+      {
+        text: "Core & Transpiler",
+        collapsed: false,
+        items: [
+          { text: "Pipeline", link: "/core/pipeline" },
+          { text: "Type system", link: "/core/types" },
+          { text: "Module resolver", link: "/core/modules" },
+          { text: "Semantic checker", link: "/core/checker" },
+          { text: "Emitter", link: "/core/emitter" },
+          { text: "Native compiler", link: "/core/native-compiler" },
+          { text: "Diagnostics", link: "/core/diagnostics" },
+          { text: "Configuration", link: "/core/config" }
+        ]
+      },
+      {
+        text: "Language",
+        collapsed: false,
+        items: [
+          { text: "Overview", link: "/language/overview" },
+          { text: "Syntax", link: "/language/syntax" },
+          { text: "Operators", link: "/language/operators" },
+          { text: "Pattern matching", link: "/language/match" },
+          { text: "Async / Await", link: "/language/async" },
+          { text: "Lambdas & Generics", link: "/language/lambdas-generics" },
+          { text: "Structs & Enums", link: "/language/structs-enums" },
+          { text: "Native interop", link: "/language/native-interop" }
+        ]
+      },
+      {
+        text: "CLI",
+        collapsed: false,
+        items: [
+          { text: "Commands", link: "/cli/commands" },
+          { text: "build", link: "/cli/build" },
+          { text: "check", link: "/cli/check" },
+          { text: "fmt", link: "/cli/fmt" },
+          { text: "repl", link: "/cli/repl" },
+          { text: "init / info / version", link: "/cli/meta" }
+        ]
+      },
+      {
+        text: "Standard Library",
+        collapsed: false,
+        items: [
+          { text: "Overview", link: "/stdlib/overview" },
+          {
+            text: "I/O & Console",
+            collapsed: true,
+            items: [{ text: "mint:io", link: "/stdlib/io" }]
+          },
+          {
+            text: "Files & Modules",
+            collapsed: true,
+            items: [{ text: "mint:fs", link: "/stdlib/fs" }]
+          },
+          {
+            text: "Strings & Collections",
+            collapsed: true,
+            items: [
+              { text: "mint:string", link: "/stdlib/string" },
+              { text: "mint:array", link: "/stdlib/array" },
+              { text: "mint:collections", link: "/stdlib/collections" }
+            ]
+          },
+          {
+            text: "Math & Numerics",
+            collapsed: true,
+            items: [
+              { text: "mint:math", link: "/stdlib/math" },
+              { text: "mint:simd", link: "/stdlib/simd" }
+            ]
+          },
+          {
+            text: "Time & OS",
+            collapsed: true,
+            items: [
+              { text: "mint:time", link: "/stdlib/time" },
+              { text: "mint:os", link: "/stdlib/os" },
+              { text: "mint:process", link: "/stdlib/process" }
+            ]
+          },
+          {
+            text: "HTTP Server",
+            collapsed: true,
+            items: [{ text: "mint:http", link: "/stdlib/http" }]
+          },
+          {
+            text: "Networking & Sockets",
+            collapsed: true,
+            items: [{ text: "mint:net", link: "/stdlib/net" }]
+          },
+          {
+            text: "JSON & Schema",
+            collapsed: true,
+            items: [
+              { text: "mint:json", link: "/stdlib/json" },
+              { text: "mint:schema", link: "/stdlib/schema" }
+            ]
+          },
+          {
+            text: "Crypto & Hashing",
+            collapsed: true,
+            items: [
+              { text: "mint:crypto", link: "/stdlib/crypto" },
+              { text: "mint:base64", link: "/stdlib/base64" }
+            ]
+          },
+          {
+            text: "Regex & Logging",
+            collapsed: true,
+            items: [
+              { text: "mint:regex", link: "/stdlib/regex" },
+              { text: "mint:log", link: "/stdlib/log" }
+            ]
+          },
+          {
+            text: "Database",
+            collapsed: true,
+            items: [
+              { text: "mint:sql", link: "/stdlib/sql" },
+              { text: "mint:db", link: "/stdlib/db" }
+            ]
+          },
+          {
+            text: "Async & Memory",
+            collapsed: true,
+            items: [
+              { text: "mint:async", link: "/stdlib/async" },
+              { text: "mint:memory", link: "/stdlib/memory" }
+            ]
+          },
+          {
+            text: "Terminal & Testing",
+            collapsed: true,
+            items: [
+              { text: "mint:term", link: "/stdlib/term" },
+              { text: "mint:test", link: "/stdlib/test" }
+            ]
+          }
+        ]
+      },
+      {
+        text: "Releases",
+        collapsed: false,
+        items: [{ text: "Changelog", link: "/releases/" }]
+      }
+    ],
     socialLinks: [
       { icon: "github", link: "https://github.com/mysbryce/doublemint" }
     ],

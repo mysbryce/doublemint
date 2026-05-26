@@ -1,0 +1,234 @@
+/*
+ * Doublemint docs — bun-style theme.
+ *
+ * Goals: tight typography, mint accent, persistent sidebar that always
+ * shows every section, slim chrome on top, generous main content
+ * column.
+ */
+
+:root {
+  /* Brand palette — mint green on neutral charcoal */
+  --vp-c-brand-1: #14d195;
+  --vp-c-brand-2: #2ee0a8;
+  --vp-c-brand-3: #5cd3a8;
+  --vp-c-brand-soft: rgba(20, 209, 149, 0.16);
+
+  --vp-c-default-1: var(--vp-c-gray-1);
+  --vp-c-default-2: var(--vp-c-gray-2);
+  --vp-c-default-3: var(--vp-c-gray-3);
+  --vp-c-default-soft: var(--vp-c-gray-soft);
+
+  --vp-c-tip-1: var(--vp-c-brand-1);
+  --vp-c-tip-2: var(--vp-c-brand-2);
+  --vp-c-tip-3: var(--vp-c-brand-3);
+  --vp-c-tip-soft: var(--vp-c-brand-soft);
+
+  /* Hero gradient */
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: -webkit-linear-gradient(
+    120deg,
+    #14d195 30%,
+    #41a78a
+  );
+  --vp-home-hero-image-background-image: linear-gradient(
+    -45deg,
+    #14d19533 50%,
+    #41a78a33 50%
+  );
+  --vp-home-hero-image-filter: blur(56px);
+
+  /* Layout tweaks */
+  --vp-layout-max-width: 1440px;
+  --vp-sidebar-width: 272px;
+
+  /* Tighter base typography */
+  --vp-font-family-base: "Inter", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --vp-font-family-mono: "JetBrains Mono", ui-monospace, SFMono-Regular,
+    "SF Mono", Menlo, monospace;
+}
+
+.dark {
+  --vp-c-bg: #0b0c0d;
+  --vp-c-bg-alt: #0f1112;
+  --vp-c-bg-elv: #121416;
+  --vp-c-bg-soft: #15181b;
+
+  --vp-c-divider: #21242a;
+  --vp-c-gutter: #0b0c0d;
+
+  --vp-c-text-1: rgba(255, 255, 255, 0.94);
+  --vp-c-text-2: rgba(235, 235, 245, 0.66);
+  --vp-c-text-3: rgba(235, 235, 245, 0.4);
+
+  --vp-c-default-soft: rgba(255, 255, 255, 0.05);
+  --vp-c-brand-soft: rgba(20, 209, 149, 0.22);
+}
+
+/* Header — slim, bun-like */
+.VPNav {
+  background-color: var(--vp-c-bg) !important;
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+.dark .VPNav {
+  background-color: rgba(11, 12, 13, 0.85) !important;
+  backdrop-filter: saturate(180%) blur(14px);
+}
+.VPNavBar:not(.has-sidebar) .container .title {
+  border-bottom: none;
+}
+
+/* Sidebar — always-visible nested categories like bun */
+.VPSidebar {
+  padding-top: 24px !important;
+  background-color: var(--vp-c-bg) !important;
+  border-right: 1px solid var(--vp-c-divider);
+}
+.dark .VPSidebar {
+  background-color: var(--vp-c-bg-alt) !important;
+}
+.VPSidebarItem.level-0 > .item .text {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--vp-c-text-1);
+}
+.VPSidebarItem.level-1 > .item .link .text,
+.VPSidebarItem.level-2 > .item .link .text {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--vp-c-text-2);
+}
+.VPSidebarItem.level-1.is-active > .item .link .text,
+.VPSidebarItem.level-2.is-active > .item .link .text {
+  color: var(--vp-c-brand-1);
+  font-weight: 600;
+}
+.VPSidebarItem.level-1 > .item > .indicator,
+.VPSidebarItem.level-2 > .item > .indicator {
+  border-radius: 2px;
+}
+.VPSidebarItem.level-1.is-active > .item > .indicator,
+.VPSidebarItem.level-2.is-active > .item > .indicator {
+  background-color: var(--vp-c-brand-1);
+}
+
+/* Content column */
+.VPDoc.has-sidebar .content {
+  padding-top: 32px;
+}
+.VPDoc h1 {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.VPDoc h2 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-top: 48px;
+  border-top: 1px solid var(--vp-c-divider);
+  padding-top: 24px;
+}
+.VPDoc h3 {
+  font-size: 17px;
+  font-weight: 600;
+}
+.VPDoc p,
+.VPDoc li {
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+/* Code */
+.vp-doc div[class*="language-"] {
+  border-radius: 8px;
+  border: 1px solid var(--vp-c-divider);
+}
+.vp-doc code {
+  font-size: 0.85em;
+  background-color: var(--vp-c-default-soft);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+.vp-doc div[class*="language-"] code {
+  background: transparent;
+  padding: 0;
+}
+
+/* Tables — bun-style tidy */
+.vp-doc table {
+  margin: 20px 0;
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.vp-doc table th {
+  background-color: var(--vp-c-default-soft);
+  font-weight: 600;
+  text-align: left;
+}
+.vp-doc tr:nth-child(2n) {
+  background-color: transparent;
+}
+.vp-doc tr:hover td {
+  background-color: var(--vp-c-default-soft);
+}
+
+/* Hero */
+.VPHero .name,
+.VPHero .text {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.VPHero .tagline {
+  color: var(--vp-c-text-2);
+  font-size: 18px;
+}
+
+/* Features */
+.VPFeature {
+  border-radius: 12px !important;
+  border: 1px solid var(--vp-c-divider) !important;
+  background-color: var(--vp-c-bg-soft) !important;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.VPFeature:hover {
+  transform: translateY(-2px);
+  border-color: var(--vp-c-brand-2) !important;
+}
+.VPFeature .title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.VPFeature .details {
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* Outline (right) */
+.VPDocAside .outline-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vp-c-text-3);
+}
+.VPDocAsideOutline .outline-link {
+  font-size: 13px;
+}
+.VPDocAsideOutline .outline-link.active {
+  color: var(--vp-c-brand-1);
+}
+
+/* Search input — bun-shaped */
+.VPNavBarSearch .DocSearch-Button {
+  border-radius: 8px;
+  background-color: var(--vp-c-default-soft);
+  border: 1px solid var(--vp-c-divider);
+}
