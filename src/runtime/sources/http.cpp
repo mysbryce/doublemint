@@ -263,6 +263,69 @@ void Http::options(std::string_view pattern, const std::function<void(const Cont
   doublemint_http_detail::registerRoute(*holder_, "OPTIONS", pattern, handler);
 }
 
+namespace doublemint_http_detail {
+
+struct WsPerSocket {};
+
+using WsType = uWS::WebSocket<false, true, WsPerSocket>;
+
+}  // namespace doublemint_http_detail
+
+void WebSocket::send(std::string_view message) const {
+  auto* ws = static_cast<doublemint_http_detail::WsType*>(socket_);
+  if (ws != nullptr) { ws->send(message, uWS::OpCode::TEXT); }
+}
+
+void WebSocket::sendBinary(const std::vector<int>& data) const {
+  auto* ws = static_cast<doublemint_http_detail::WsType*>(socket_);
+  if (ws == nullptr) { return; }
+  std::string buffer;
+  buffer.reserve(data.size());
+  for (int byte : data) { buffer.push_back(static_cast<char>(byte & 0xff)); }
+  ws->send(buffer, uWS::OpCode::BINARY);
+}
+
+void WebSocket::close() const {
+  auto* ws = static_cast<doublemint_http_detail::WsType*>(socket_);
+  if (ws != nullptr) { ws->close(); }
+}
+
+void WebSocket::closeWithCode(int code, std::string_view reason) const {
+  auto* ws = static_cast<doublemint_http_detail::WsType*>(socket_);
+  if (ws != nullptr) { ws->end(code, reason); }
+}
+
+std::string WebSocket::remoteAddress() const {
+  auto* ws = static_cast<doublemint_http_detail::WsType*>(socket_);
+  if (ws == nullptr) { return std::string(); }
+  return std::string(ws->getRemoteAddressAsText());
+}
+
+void Http::ws(
+    std::string_view pattern,
+    const std::function<void(const WebSocket&)>& openHandler,
+    const std::function<void(const WebSocket&, std::string_view)>& messageHandler,
+    const std::function<void(const WebSocket&)>& closeHandler) {
+  using namespace doublemint_http_detail;
+  uWS::App::WebSocketBehavior<WsPerSocket> behavior{};
+  behavior.open = [openHandler](WsType* ws) {
+    WebSocket wrapper(ws);
+    if (openHandler) { openHandler(wrapper); }
+  };
+  behavior.message = [messageHandler](WsType* ws, std::string_view message, uWS::OpCode opCode) {
+    (void)opCode;
+    WebSocket wrapper(ws);
+    if (messageHandler) { messageHandler(wrapper, message); }
+  };
+  behavior.close = [closeHandler](WsType* ws, int code, std::string_view reason) {
+    (void)code;
+    (void)reason;
+    WebSocket wrapper(ws);
+    if (closeHandler) { closeHandler(wrapper); }
+  };
+  holder_->app->ws<WsPerSocket>(std::string(pattern), std::move(behavior));
+}
+
 bool Http::listen(std::string_view host, int port) {
   auto* shared = holder_.get();
   bool ok = false;

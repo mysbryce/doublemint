@@ -1974,6 +1974,49 @@
           "members": []
         },
         {
+          "name": "WebSocket",
+          "kind": "class",
+          "members": [
+            {
+              "name": "send",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "sendBinary",
+              "kind": "function",
+              "params": [
+                "int[]"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "close",
+              "kind": "function",
+              "params": [],
+              "returnType": "void"
+            },
+            {
+              "name": "closeWithCode",
+              "kind": "function",
+              "params": [
+                "int",
+                "string"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "remoteAddress",
+              "kind": "function",
+              "params": [],
+              "returnType": "string"
+            }
+          ]
+        },
+        {
           "name": "Context",
           "kind": "class",
           "members": [
@@ -2145,6 +2188,17 @@
               "params": [
                 "string",
                 "fn(Context): void"
+              ],
+              "returnType": "void"
+            },
+            {
+              "name": "ws",
+              "kind": "function",
+              "params": [
+                "string",
+                "fn(WebSocket): void",
+                "fn(WebSocket, string): void",
+                "fn(WebSocket): void"
               ],
               "returnType": "void"
             },

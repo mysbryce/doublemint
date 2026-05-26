@@ -802,6 +802,16 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
           classExport("HeaderMap", [])
         ],
         [
+          "WebSocket",
+          classExport("WebSocket", [
+            method("send", [namedType("string")], namedType("void")),
+            method("sendBinary", [arrayType(namedType("int"))], namedType("void")),
+            method("close", [], namedType("void")),
+            method("closeWithCode", [namedType("int"), namedType("string")], namedType("void")),
+            method("remoteAddress", [], namedType("string"))
+          ])
+        ],
+        [
           "Context",
           classExport("Context", [
             property("method", namedType("string")),
@@ -830,6 +840,16 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
             method("del", [namedType("string"), functionType([namedType("Context")], namedType("void"))], namedType("void")),
             method("patch", [namedType("string"), functionType([namedType("Context")], namedType("void"))], namedType("void")),
             method("options", [namedType("string"), functionType([namedType("Context")], namedType("void"))], namedType("void")),
+            method(
+              "ws",
+              [
+                namedType("string"),
+                functionType([namedType("WebSocket")], namedType("void")),
+                functionType([namedType("WebSocket"), namedType("string")], namedType("void")),
+                functionType([namedType("WebSocket")], namedType("void"))
+              ],
+              namedType("void")
+            ),
             method("listen", [namedType("string"), namedType("int")], namedType("bool")),
             method("stop", [], namedType("void"))
           ])

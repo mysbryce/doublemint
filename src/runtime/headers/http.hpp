@@ -57,6 +57,19 @@ class Context {
   void send(int status, std::string_view contentType, std::string_view body) const;
 };
 
+class WebSocket {
+ private:
+  void* socket_;
+
+ public:
+  explicit WebSocket(void* socket) noexcept : socket_(socket) {}
+  void send(std::string_view message) const;
+  void sendBinary(const std::vector<int>& data) const;
+  void close() const;
+  void closeWithCode(int code, std::string_view reason) const;
+  std::string remoteAddress() const;
+};
+
 class Http {
  private:
   std::shared_ptr<doublemint_http_detail::ServerHolder> holder_;
@@ -69,6 +82,11 @@ class Http {
   void del(std::string_view pattern, const std::function<void(const Context&)>& handler);
   void patch(std::string_view pattern, const std::function<void(const Context&)>& handler);
   void options(std::string_view pattern, const std::function<void(const Context&)>& handler);
+  void ws(
+      std::string_view pattern,
+      const std::function<void(const WebSocket&)>& open,
+      const std::function<void(const WebSocket&, std::string_view)>& message,
+      const std::function<void(const WebSocket&)>& close);
   bool listen(std::string_view host, int port);
   void stop();
 };
