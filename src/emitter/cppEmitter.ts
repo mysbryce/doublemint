@@ -1203,7 +1203,8 @@ const RUNTIME_SOURCE_MODULES: Record<string, string> = {
   "mint:term": "term",
   "mint:process": "process",
   "mint:schema": "schema",
-  "mint:http": "http"
+  "mint:http": "http",
+  "mint:string": "string"
 };
 
 function lookupRuntime(map: Record<string, string>, key: string): string {

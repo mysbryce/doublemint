@@ -75,6 +75,184 @@
         }
       ]
     },
+    "mint:string": {
+      "exports": [
+        {
+          "name": "String",
+          "kind": "namespace",
+          "members": [
+            {
+              "name": "upper",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "lower",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "trim",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "split",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "string[]"
+            },
+            {
+              "name": "replace",
+              "kind": "function",
+              "params": [
+                "string",
+                "string",
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "contains",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "startsWith",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "endsWith",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "bool"
+            },
+            {
+              "name": "indexOf",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "lastIndexOf",
+              "kind": "function",
+              "params": [
+                "string",
+                "string"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "substring",
+              "kind": "function",
+              "params": [
+                "string",
+                "int",
+                "int"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "length",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "int"
+            },
+            {
+              "name": "repeat",
+              "kind": "function",
+              "params": [
+                "string",
+                "int"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "padLeft",
+              "kind": "function",
+              "params": [
+                "string",
+                "int",
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "padRight",
+              "kind": "function",
+              "params": [
+                "string",
+                "int",
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "join",
+              "kind": "function",
+              "params": [
+                "string[]",
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "reverse",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "fromInt",
+              "kind": "function",
+              "params": [
+                "int"
+              ],
+              "returnType": "string"
+            },
+            {
+              "name": "toInt",
+              "kind": "function",
+              "params": [
+                "string"
+              ],
+              "returnType": "int"
+            }
+          ]
+        }
+      ]
+    },
     "mint:math": {
       "exports": [
         {

@@ -148,6 +148,41 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
     }
   ],
   [
+    "mint:string",
+    {
+      builtin: true,
+      builtinIncludes: ["<algorithm>", "<string>", "<string_view>", "<vector>"],
+      program: emptyProgram("mint:string"),
+      imports: [],
+      exports: new Map([
+        [
+          "String",
+          namespaceExport("String", [
+            functionMember("upper", [namedType("string")], namedType("string"), "__doublemint_string_upper"),
+            functionMember("lower", [namedType("string")], namedType("string"), "__doublemint_string_lower"),
+            functionMember("trim", [namedType("string")], namedType("string"), "__doublemint_string_trim"),
+            functionMember("split", [namedType("string"), namedType("string")], arrayType(namedType("string")), "__doublemint_string_split"),
+            functionMember("replace", [namedType("string"), namedType("string"), namedType("string")], namedType("string"), "__doublemint_string_replace"),
+            functionMember("contains", [namedType("string"), namedType("string")], namedType("bool"), "__doublemint_string_contains"),
+            functionMember("startsWith", [namedType("string"), namedType("string")], namedType("bool"), "__doublemint_string_starts_with"),
+            functionMember("endsWith", [namedType("string"), namedType("string")], namedType("bool"), "__doublemint_string_ends_with"),
+            functionMember("indexOf", [namedType("string"), namedType("string")], namedType("int"), "__doublemint_string_index_of"),
+            functionMember("lastIndexOf", [namedType("string"), namedType("string")], namedType("int"), "__doublemint_string_last_index_of"),
+            functionMember("substring", [namedType("string"), namedType("int"), namedType("int")], namedType("string"), "__doublemint_string_substring"),
+            functionMember("length", [namedType("string")], namedType("int"), "__doublemint_string_length"),
+            functionMember("repeat", [namedType("string"), namedType("int")], namedType("string"), "__doublemint_string_repeat"),
+            functionMember("padLeft", [namedType("string"), namedType("int"), namedType("string")], namedType("string"), "__doublemint_string_pad_left"),
+            functionMember("padRight", [namedType("string"), namedType("int"), namedType("string")], namedType("string"), "__doublemint_string_pad_right"),
+            functionMember("join", [arrayType(namedType("string")), namedType("string")], namedType("string"), "__doublemint_string_join"),
+            functionMember("reverse", [namedType("string")], namedType("string"), "__doublemint_string_reverse"),
+            functionMember("fromInt", [namedType("int")], namedType("string"), "__doublemint_string_from_int"),
+            functionMember("toInt", [namedType("string")], namedType("int"), "__doublemint_string_to_int")
+          ])
+        ]
+      ])
+    }
+  ],
+  [
     "mint:math",
     {
       builtin: true,
