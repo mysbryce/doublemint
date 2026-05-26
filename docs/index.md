@@ -8,7 +8,7 @@ hero:
   actions:
     - theme: brand
       text: Get started
-      link: /guide/getting-started
+      link: /start/welcome
     - theme: alt
       text: View on GitHub
       link: https://github.com/mysbryce/doublemint

@@ -39,6 +39,8 @@ try {
   const page = await ctx.newPage();
 
   const pagesToCheck = [
+    { url: baseUrl, label: "Home" },
+    { url: baseUrl + "start/welcome", label: "Welcome" },
     { url: baseUrl + "start/quickstart", label: "Quickstart" },
     { url: baseUrl + "language/operators", label: "Operators" },
     { url: baseUrl + "stdlib/http", label: "mint:http" }
@@ -46,6 +48,38 @@ try {
 
   for (const target of pagesToCheck) {
     await page.goto(target.url, { waitUntil: "networkidle" });
+
+    // Home page specific checks
+    if (target.label === "Home") {
+      const getStartedHref = await page.evaluate(() => {
+        const anchor = Array.from(document.querySelectorAll("a"))
+          .find((a) => (a.textContent ?? "").trim().toLowerCase() === "get started");
+        return anchor ? anchor.getAttribute("href") : null;
+      });
+      console.log(`--- Home (${target.url})`);
+      console.log("  Get started href:", getStartedHref);
+      if (!getStartedHref || getStartedHref === "/guide/getting-started") {
+        console.warn("  WARNING: Get started link points at the old path");
+      }
+      console.log("");
+      continue;
+    }
+
+    // Sidebar overlap check — confirm the first .level-0 header is
+    // not covered by the navbar.
+    const sidebarVisibility = await page.evaluate(() => {
+      const firstHeader = document.querySelector(".VPSidebarItem.level-0 .text");
+      const nav = document.querySelector(".VPNavBar");
+      if (!firstHeader || !nav) { return null; }
+      const navRect = nav.getBoundingClientRect();
+      const headerRect = firstHeader.getBoundingClientRect();
+      return {
+        navBottom: Math.round(navRect.bottom),
+        firstHeaderTop: Math.round(headerRect.top),
+        headerText: firstHeader.textContent?.trim(),
+        clear: headerRect.top >= navRect.bottom
+      };
+    });
 
     const codeFont = await page.evaluate(() => {
       const block = document.querySelector("div[class*='language-'] code");
@@ -78,6 +112,18 @@ try {
     });
 
     console.log(`--- ${target.label} (${target.url})`);
+    if (sidebarVisibility) {
+      console.log(
+        "  sidebar / navbar:",
+        `nav bottom = ${sidebarVisibility.navBottom}px,`,
+        `first header top = ${sidebarVisibility.firstHeaderTop}px,`,
+        `header = "${sidebarVisibility.headerText}",`,
+        sidebarVisibility.clear ? "clear of navbar" : "BEHIND NAVBAR"
+      );
+      if (!sidebarVisibility.clear) {
+        console.warn("  WARNING: first sidebar header is hidden behind the navbar");
+      }
+    }
     console.log("  code font:", codeFont);
     console.log("  sidebar sections:", sidebarSections);
     console.log("  icons applied:", icons.length, "items");

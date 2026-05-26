@@ -78,14 +78,25 @@
   border-bottom: none;
 }
 
-/* Sidebar — always-visible nested categories like bun */
+/* Sidebar — always-visible nested categories like bun. The top
+   padding has to clear the fixed navbar (--vp-nav-height, 64px by
+   default) plus a comfortable gutter, otherwise the first section
+   header sits underneath the navbar. */
 .VPSidebar {
-  padding-top: 24px !important;
+  padding-top: calc(var(--vp-nav-height) + 24px) !important;
   background-color: var(--vp-c-bg) !important;
   border-right: 1px solid var(--vp-c-divider);
 }
 .dark .VPSidebar {
   background-color: var(--vp-c-bg-alt) !important;
+}
+/* On screens narrow enough that VitePress hides the navbar and the
+   sidebar slides over, undo the navbar offset so the first item
+   doesn't disappear above the fold. */
+@media (max-width: 959px) {
+  .VPSidebar {
+    padding-top: 24px !important;
+  }
 }
 .VPSidebarItem.level-0 > .item .text {
   font-size: 12px;
