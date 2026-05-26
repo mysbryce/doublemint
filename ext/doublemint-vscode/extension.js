@@ -713,6 +713,52 @@ function indexFile(filepath, source, symbols, seen) {
       location: locationAt(filepath, lineStarts, nameIndex)
     });
   }
+
+  const variableRegex = /\b(let|const)\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([^=;\n]+?)\s*(=|;)/gu;
+  for (const match of clean.matchAll(variableRegex)) {
+    const nameIndex = match.index + match[0].indexOf(match[2]);
+    const declarator = match[1];
+    const name = match[2];
+    const type = match[3].trim();
+    upsert(symbols, name, {
+      name,
+      kind: declarator === "const" ? "const" : "variable",
+      signature: `${declarator} ${name}: ${type}`,
+      location: locationAt(filepath, lineStarts, nameIndex)
+    });
+  }
+
+  const functionParamRegex = /\bfunction\s+[A-Za-z_][A-Za-z0-9_]*\s*\(([^)]*)\)/gu;
+  for (const match of clean.matchAll(functionParamRegex)) {
+    const listStart = match.index + match[0].indexOf(match[1]);
+    indexParams(filepath, lineStarts, match[1], listStart, symbols);
+  }
+
+  const lambdaParamRegex = /\bfn\s*\(([^)]*)\)\s*:\s*[^=]+=>/gu;
+  for (const match of clean.matchAll(lambdaParamRegex)) {
+    const listStart = match.index + match[0].indexOf(match[1]);
+    indexParams(filepath, lineStarts, match[1], listStart, symbols);
+  }
+}
+
+function indexParams(filepath, lineStarts, raw, listStartOffset, symbols) {
+  let offset = 0;
+  for (const part of raw.split(",")) {
+    const partMatch = /^(\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.+?)\s*$/u.exec(part);
+    if (partMatch) {
+      const leading = partMatch[1].length;
+      const nameIndex = listStartOffset + offset + leading;
+      const name = partMatch[2];
+      const type = partMatch[3];
+      upsert(symbols, name, {
+        name,
+        kind: "parameter",
+        signature: `${name}: ${type}`,
+        location: locationAt(filepath, lineStarts, nameIndex)
+      });
+    }
+    offset += part.length + 1;
+  }
 }
 
 function upsert(map, key, value) {
