@@ -807,11 +807,11 @@ class Parser {
   private factor(): Expression {
     let expression = this.unary();
 
-    while (this.match("STAR", "SLASH")) {
+    while (this.match("STAR", "SLASH", "PERCENT")) {
       const operator = this.previous();
       expression = {
         type: "BinaryExpression",
-        operator: operator.lexeme as "*" | "/",
+        operator: operator.lexeme as "*" | "/" | "%",
         left: expression,
         right: this.unary(),
         location: expression.location

@@ -110,6 +110,9 @@ class Scanner {
       case "?":
         this.addToken("QUESTION");
         break;
+      case "%":
+        this.addToken("PERCENT");
+        break;
       case "+":
         this.addToken(
           this.match("+") ? "PLUS_PLUS" : this.match("=") ? "PLUS_EQUAL" : "PLUS"

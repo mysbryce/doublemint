@@ -736,6 +736,20 @@ function inferExpressionType(
         });
       }
 
+      if (expression.operator === "%") {
+        const integerNames = new Set(["int", "int64", "number"]);
+        const leftName = canonicalTypeName(environment, left);
+        const rightName = canonicalTypeName(environment, right);
+        if (!integerNames.has(leftName) || !integerNames.has(rightName)) {
+          throw new DoublemintDiagnostic({
+            code: "DLM4080",
+            severity: "error",
+            message: "Operator \"%\" requires integer operands.",
+            location: expression.location
+          });
+        }
+      }
+
       if (isOrderingOperator(expression.operator)) {
         return namedType("bool", expression.location);
       }

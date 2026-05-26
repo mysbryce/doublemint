@@ -48,6 +48,7 @@ export type TokenKind =
   | "MINUS"
   | "STAR"
   | "SLASH"
+  | "PERCENT"
   | "AMPERSAND"
   | "PIPE"
   | "AMP_AMP"
