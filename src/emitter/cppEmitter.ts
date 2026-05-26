@@ -809,6 +809,15 @@ function emitExpression(
         return emitPrintCall(expression.callee.name, expression.arguments, context);
       }
 
+      if (
+        expression.callee.type === "MemberExpression" &&
+        expression.callee.primitiveExtensionNative
+      ) {
+        const receiver = emitExpression(expression.callee.object, undefined, context);
+        const args = expression.arguments.map((argument) => emitExpression(argument, undefined, context));
+        return `${expression.callee.primitiveExtensionNative}(${[receiver, ...args].join(", ")})`;
+      }
+
       if (expression.callee.type === "Identifier") {
         const callee = context?.nativeFunctions.get(expression.callee.name) ?? expression.callee.name;
         return `${callee}(${expression.arguments.map((argument) => emitExpression(argument, undefined, context)).join(", ")})`;

@@ -299,6 +299,8 @@ export interface MemberExpression {
   property: string;
   /** When true (set by the checker), the emitter should call the underlying 0-arg method automatically. */
   autoInvoke?: boolean;
+  /** When set (by the checker), a primitive value is calling a namespace function via `value.method(args)` sugar. */
+  primitiveExtensionNative?: string;
   location: SourceLocation;
 }
 

@@ -83,6 +83,31 @@ describe.skipIf(!hasGpp)("mint:string", () => {
     expect(lines[11]).toBe("4");
   }, 30000);
 
+  it("supports method-style calls on string primitives", async () => {
+    const result = await buildAndRun(`
+      import { String } from "mint:string";
+      import { println } from "mint:io";
+      export function main(): void {
+        let name: string = "doublemint";
+        println(name.upper());
+        println(name.length());
+        println(name.contains("mint"));
+        println(name.substring(6, 10));
+        println("  hi  ".trim());
+        let parts: string[] = "a,b,c".split(",");
+        println(parts[2]);
+      }
+    `);
+    expect(result.status).toBe(0);
+    const lines = result.stdout.trim().split(/\r?\n/u);
+    expect(lines[0]).toBe("DOUBLEMINT");
+    expect(lines[1]).toBe("10");
+    expect(lines[2]).toBe("1");
+    expect(lines[3]).toBe("mint");
+    expect(lines[4]).toBe("hi");
+    expect(lines[5]).toBe("c");
+  }, 30000);
+
   it("substrings, lengths, repeats, pads, reverses, and number-converts", async () => {
     const result = await buildAndRun(`
       import { String } from "mint:string";

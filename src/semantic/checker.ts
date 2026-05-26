@@ -775,6 +775,20 @@ function inferCallType(
         );
         return classMethod.returnType;
       }
+      const extension = resolvePrimitiveExtension(environment, scope, objectType, memberExpr.property);
+      if (extension) {
+        memberExpr.autoInvoke = false;
+        memberExpr.primitiveExtensionNative = extension.nativeName;
+        validateCallArguments(
+          environment,
+          scope,
+          memberExpr.property,
+          extension.remainingParams,
+          expression.arguments,
+          expression.location
+        );
+        return extension.returnType;
+      }
     }
   }
 
@@ -1548,6 +1562,39 @@ function resolveClassMethod(
   };
 }
 
+interface PrimitiveExtensionMatch {
+  nativeName: string;
+  remainingParams: TypeNode[];
+  returnType: TypeNode;
+}
+
+function resolvePrimitiveExtension(
+  environment: ModuleEnvironment,
+  scope: Scope,
+  receiverType: TypeNode,
+  methodName: string
+): PrimitiveExtensionMatch | null {
+  const receiverName = canonicalTypeName(environment, receiverType);
+  if (!receiverName) { return null; }
+  const primitives = new Set(["string", "int", "int64", "float", "double", "bool"]);
+  if (!primitives.has(receiverName)) { return null; }
+
+  for (const namespaceSymbol of scope.allNamespaceSymbols()) {
+    const member = namespaceSymbol.namespaceMembers?.get(methodName);
+    if (!member?.functionType || !member.nativeName) { continue; }
+    const params = member.functionType.params;
+    if (params.length < 1) { continue; }
+    const firstParam = params[0]!;
+    if (canonicalTypeName(environment, firstParam) !== receiverName) { continue; }
+    return {
+      nativeName: member.nativeName,
+      remainingParams: params.slice(1),
+      returnType: member.functionType.returnType
+    };
+  }
+  return null;
+}
+
 function resolveClassProperty(
   environment: ModuleEnvironment,
   type: TypeNode,
@@ -1685,6 +1732,26 @@ class Scope {
 
   createChild(): Scope {
     return new Scope(this.globals, this);
+  }
+
+  *allNamespaceSymbols(): Iterable<SemanticSymbol> {
+    const seen = new Set<string>();
+    let current: Scope | undefined = this;
+    while (current !== undefined) {
+      for (const symbol of current.locals.values()) {
+        if (symbol.kind === "namespace" && !seen.has(symbol.name)) {
+          seen.add(symbol.name);
+          yield symbol;
+        }
+      }
+      current = current.parent;
+    }
+    for (const symbol of this.globals.values()) {
+      if (symbol.kind === "namespace" && !seen.has(symbol.name)) {
+        seen.add(symbol.name);
+        yield symbol;
+      }
+    }
   }
 }
 
