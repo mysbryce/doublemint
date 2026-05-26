@@ -243,4 +243,10 @@ Deferred (will land when the surface stabilises):
 - CMake project generation
 - richer numeric formatting (`mint:fmt`)
 
-See [`PRODUCT_SPEC.md`](PRODUCT_SPEC.md) for product direction and [`docs/adr/ADR-0001-production-foundation.md`](docs/adr/ADR-0001-production-foundation.md) for architecture decisions.
+See [`PRODUCT_SPEC.md`](PRODUCT_SPEC.md) for product direction. The browsable docs site (VitePress) lives in [`docs/`](docs):
+
+```bash
+pnpm docs:dev      # http://localhost:5173
+pnpm docs:build    # static site → docs/.vitepress/dist
+pnpm docs:preview  # serve the built site locally
+```

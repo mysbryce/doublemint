@@ -8,3 +8,5 @@ coverage/
 build/
 out/
 ext/doublemint-vscode/server/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
