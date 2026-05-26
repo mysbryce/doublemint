@@ -40,6 +40,13 @@ const functionType = (params: TypeNode[], returnType: TypeNode): TypeNode => ({
   location: builtinLocation
 });
 
+const genericType = (name: string, typeArgs: TypeNode[]): TypeNode => ({
+  type: "GenericType",
+  name,
+  typeArgs,
+  location: builtinLocation
+});
+
 const namespaceExport = (
   name: string,
   members: BuiltinNamespaceMember[]
@@ -622,6 +629,7 @@ const builtinModules = new Map<string, Omit<ResolvedModule, "filepath">>([
         [
           "Async",
           namespaceExport("Async", [
+            functionMember("run", [functionType([], namedType("T"))], genericType("Future", [namedType("T")]), "__doublemint_async_run"),
             functionMember("sleepMs", [namedType("int")], namedType("void"), "__doublemint_async_sleep_ms"),
             functionMember("parallelSum", [arrayType(namedType("int"))], namedType("int"), "__doublemint_async_parallel_sum"),
             functionMember("parallelMax", [arrayType(namedType("int"))], namedType("int"), "__doublemint_async_parallel_max"),

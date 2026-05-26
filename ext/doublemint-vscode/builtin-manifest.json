@@ -1464,6 +1464,14 @@
           "kind": "namespace",
           "members": [
             {
+              "name": "run",
+              "kind": "function",
+              "params": [
+                "fn(): T"
+              ],
+              "returnType": "Future<T>"
+            },
+            {
               "name": "sleepMs",
               "kind": "function",
               "params": [

@@ -194,6 +194,10 @@ function emitHeader(
     "inline std::string __doublemint_bool_to_string(bool value) {",
     "  return value ? std::string(\"true\") : std::string(\"false\");",
     "}",
+    "template <typename F>",
+    "inline auto __doublemint_async_run(F fn) {",
+    "  return std::async(std::launch::async, std::move(fn));",
+    "}",
     "#endif",
     ""
   ];
