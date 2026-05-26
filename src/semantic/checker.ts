@@ -965,6 +965,16 @@ function inferCallType(
         memberExpr.primitiveExtensionNative = "std::to_string";
         return namedType("string", expression.location);
       }
+
+      if (
+        memberExpr.property === "toString" &&
+        canonicalTypeName(environment, objectType) === "bool" &&
+        expression.arguments.length === 0
+      ) {
+        memberExpr.autoInvoke = false;
+        memberExpr.primitiveExtensionNative = "__doublemint_bool_to_string";
+        return namedType("string", expression.location);
+      }
     }
   }
 

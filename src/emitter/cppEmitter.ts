@@ -191,6 +191,9 @@ function emitHeader(
     "    std::ostringstream s; s << value; return s.str();",
     "  }",
     "}",
+    "inline std::string __doublemint_bool_to_string(bool value) {",
+    "  return value ? std::string(\"true\") : std::string(\"false\");",
+    "}",
     "#endif",
     ""
   ];
