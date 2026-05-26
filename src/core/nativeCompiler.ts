@@ -40,9 +40,7 @@ export async function buildNativeExecutable(
     ...emitResult.includeDirs.map((includeDir) => `-I${includeDir}`),
     ...emitResult.defines.map((define) => `-D${define}`),
     ...emitResult.compileFlags,
-    ...cppFiles,
-    ...nativeSources,
-    ...emitResult.nativeSources,
+    ...interleaveLanguageFlags([...emitResult.nativeSources, ...nativeSources, ...cppFiles]),
     ...(config.libraryDirs ?? []).map((libraryDir) => `-L${libraryDir}`),
     ...(config.linkLibraries ?? []).map((library) => `-l${library}`),
     ...emitResult.linkLibraries.map((library) => `-l${library}`),
@@ -52,6 +50,9 @@ export async function buildNativeExecutable(
   ];
 
   await mkdir(dirname(outputPath), { recursive: true });
+  if (process.env.DOUBLEMINT_DEBUG_COMPILE) {
+    console.error("[doublemint] compile args:", JSON.stringify(args, null, 2));
+  }
   await runCompiler(compiler, args);
 
   return {
@@ -59,6 +60,23 @@ export async function buildNativeExecutable(
     outputPath,
     args
   };
+}
+
+function interleaveLanguageFlags(files: string[]): string[] {
+  const result: string[] = [];
+  let lastLang: "c" | "cpp" | null = null;
+  for (const filepath of files) {
+    const lang: "c" | "cpp" = filepath.toLowerCase().endsWith(".c") ? "c" : "cpp";
+    if (lang !== lastLang) {
+      result.push("-x", lang === "c" ? "c" : "c++");
+      lastLang = lang;
+    }
+    result.push(filepath);
+  }
+  if (lastLang !== null) {
+    result.push("-x", "none");
+  }
+  return result;
 }
 
 export function selectCompiler(preferred: string): string {

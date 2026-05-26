@@ -118,7 +118,17 @@ export function emitCpp(graph: ModuleGraph, config: DoublemintConfig): EmitResul
 
 function resolveVendorRoot(): string {
   const here = dirname(fileURLToPath(import.meta.url));
-  return resolve(here, "..", "runtime", "vendor");
+  const candidates = [
+    resolve(here, "..", "runtime", "vendor"),
+    resolve(here, "..", "src", "runtime", "vendor"),
+    resolve(here, "..", "..", "src", "runtime", "vendor"),
+    resolve(here, "..", "..", "..", "src", "runtime", "vendor"),
+    resolve(here, "runtime", "vendor")
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) { return candidate; }
+  }
+  return candidates[0];
 }
 
 function expandVendorPattern(rootDir: string, pattern: string): string[] {
