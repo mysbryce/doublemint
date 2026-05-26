@@ -109,10 +109,10 @@ class Scanner {
         this.addToken("QUESTION");
         break;
       case "+":
-        this.addToken("PLUS");
+        this.addToken(this.match("=") ? "PLUS_EQUAL" : "PLUS");
         break;
       case "*":
-        this.addToken("STAR");
+        this.addToken(this.match("=") ? "STAR_EQUAL" : "STAR");
         break;
       case "&":
         this.addToken(this.match("&") ? "AMP_AMP" : "AMPERSAND");
@@ -135,11 +135,15 @@ class Scanner {
         this.addToken(this.match("=") ? "GREATER_EQUAL" : "GREATER");
         break;
       case "-":
-        this.addToken(this.match(">") ? "ARROW" : "MINUS");
+        this.addToken(
+          this.match(">") ? "ARROW" : this.match("=") ? "MINUS_EQUAL" : "MINUS"
+        );
         break;
       case "/":
         if (this.match("/")) {
           this.skipLineComment();
+        } else if (this.match("=")) {
+          this.addToken("SLASH_EQUAL");
         } else {
           this.addToken("SLASH");
         }

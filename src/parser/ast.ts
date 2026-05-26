@@ -331,6 +331,7 @@ export interface BinaryExpression {
 
 export interface AssignmentExpression {
   type: "AssignmentExpression";
+  operator: "=" | "+=" | "-=" | "*=" | "/=";
   left: Expression;
   right: Expression;
   location: SourceLocation;

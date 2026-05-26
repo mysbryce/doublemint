@@ -830,6 +830,19 @@ function inferAssignmentType(
   const rightType = inferExpressionType(environment, scope, expression.right);
 
   assertMutableAssignmentTarget(scope, expression.left);
+
+  if (expression.operator !== "=") {
+    if (!isNumericType(environment, leftType) || !isNumericType(environment, rightType)) {
+      throw new DoublemintDiagnostic({
+        code: "DLM4077",
+        severity: "error",
+        message: `Compound assignment "${expression.operator}" requires numeric operands.`,
+        location: expression.location
+      });
+    }
+    return leftType;
+  }
+
   assertAssignable(environment, leftType, rightType, expression.location);
   return leftType;
 }

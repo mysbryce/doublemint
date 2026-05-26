@@ -2,7 +2,7 @@
   "name": "doublemint-vscode",
   "displayName": "Doublemint",
   "description": "Syntax highlighting, autocomplete, and realtime diagnostics for the Doublemint .dlm language.",
-  "version": "0.0.1-dev-20",
+  "version": "0.0.1-dev-21",
   "publisher": "doublemint",
   "main": "./extension.js",
   "scripts": {

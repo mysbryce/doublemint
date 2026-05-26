@@ -897,7 +897,7 @@ function emitExpression(
       }
       return `${emitExpression(expression.left, undefined, context)} ${expression.operator} ${emitExpression(expression.right, undefined, context)}`;
     case "AssignmentExpression":
-      return `${emitExpression(expression.left, undefined, context)} = ${emitExpression(expression.right, undefined, context)}`;
+      return `${emitExpression(expression.left, undefined, context)} ${expression.operator} ${emitExpression(expression.right, undefined, context)}`;
     case "CallExpression":
       if (
         expression.callee.type === "Identifier" &&

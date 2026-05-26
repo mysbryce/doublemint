@@ -664,6 +664,19 @@ class Parser {
     if (this.match("EQUAL")) {
       return {
         type: "AssignmentExpression",
+        operator: "=",
+        left: expression,
+        right: this.assignment(),
+        location: expression.location
+      };
+    }
+
+    if (this.match("PLUS_EQUAL", "MINUS_EQUAL", "STAR_EQUAL", "SLASH_EQUAL")) {
+      const opToken = this.previous();
+      const operator = opToken.lexeme as "+=" | "-=" | "*=" | "/=";
+      return {
+        type: "AssignmentExpression",
+        operator,
         left: expression,
         right: this.assignment(),
         location: expression.location
