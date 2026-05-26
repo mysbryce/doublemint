@@ -1,7 +1,7 @@
 # Configuration
 
-`doublemint.config.json` lives next to the entry `.dlm` file. All fields
-are optional — defaults are listed below.
+`doublemint.config.json` lives next to the entry `.dlm` file. All
+fields are optional — defaults are listed below.
 
 ```json
 {
@@ -47,8 +47,8 @@ Extra `-I<dir>` flags forwarded to every translation unit.
 
 ### `nativeSources`
 
-`.c` / `.cpp` files that should be compiled into the final binary.
-`gcc` is used for `.c`, `g++` for `.cpp`.
+`.c` / `.cpp` files compiled into the final binary. `gcc` is used for
+`.c`, `g++` for `.cpp`.
 
 ### `libraryDirs`
 

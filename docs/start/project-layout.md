@@ -1,6 +1,6 @@
 # Project layout
 
-A minimal Doublemint project looks like this:
+## Minimal
 
 ```text
 my-app/
@@ -8,9 +8,9 @@ my-app/
 └── doublemint.config.json   (optional)
 ```
 
-That's enough to run `doublemint build main.dlm --out my-app`.
+Enough to run `doublemint build main.dlm --out my-app`.
 
-## A larger project
+## A real-shaped project
 
 ```text
 my-app/
@@ -27,12 +27,12 @@ my-app/
     └── doublemint/         # generated .hpp / .cpp / object files
 ```
 
-- **`src/`** — your `.dlm` source tree. Imports between modules are *relative*:
-  `import { Math } from "./util/math";` (no extension needed).
-- **`native/`** — optional native C/C++ files compiled into the final binary
-  via the `nativeSources` config key.
-- **`build/doublemint/`** — emitted C++. Doublemint keeps these on disk so you
-  can debug what the compiler produced.
+- **`src/`** — your `.dlm` source tree. Imports between modules are
+  *relative*: `import { Math } from "./util/math";` (no extension).
+- **`native/`** — optional native C/C++ files compiled into the final
+  binary via the `nativeSources` config key.
+- **`build/doublemint/`** — emitted C++. Doublemint keeps these on disk
+  so you can debug what the compiler produced.
 
 ## Module resolution
 
@@ -40,17 +40,17 @@ my-app/
 
 | Source | Resolves to |
 | --- | --- |
-| `"./util/math"` | a sibling `util/math.dlm` |
-| `"../shared/strings"` | a parent-relative `shared/strings.dlm` |
+| `"./util/math"` | sibling `util/math.dlm` |
+| `"../shared/strings"` | parent-relative `shared/strings.dlm` |
 | `"mint:io"` | a builtin module (see `doublemint info`) |
 
-There is no package registry yet — every dependency is either a sibling
-`.dlm` file or a builtin `mint:*` module.
+No package registry yet — every dependency is either a sibling `.dlm`
+file or a builtin `mint:*` module.
 
 ## Config
 
-`doublemint.config.json` lives next to your project root. All fields are
-optional.
+`doublemint.config.json` is optional. See
+[Core → Configuration](/core/config) for the full field reference.
 
 ```json
 {
@@ -67,5 +67,3 @@ optional.
   "optimization": "O3"
 }
 ```
-
-See the [config reference](/cli/config) for what each key does.

@@ -243,10 +243,26 @@ Deferred (will land when the surface stabilises):
 - CMake project generation
 - richer numeric formatting (`mint:fmt`)
 
-See [`PRODUCT_SPEC.md`](PRODUCT_SPEC.md) for product direction. The browsable docs site (VitePress) lives in [`docs/`](docs):
+## Documentation
+
+The browsable docs (VitePress) live in [`docs/`](docs) — six sections
+organised by audience:
+
+1. **Get Started** — install, quickstart, project layout, editor.
+2. **Core & Transpiler** — pipeline, type system, module resolver,
+   checker, emitter, native compiler, diagnostics, config.
+3. **Language** — syntax, operators, pattern matching, async, lambdas /
+   generics, structs / enums, native interop.
+4. **CLI** — every `doublemint` command and flag.
+5. **Standard Library** — every `mint:*` module, grouped by domain.
+6. **Releases** — patch notes and roadmap.
 
 ```bash
 pnpm docs:dev      # http://localhost:5173
 pnpm docs:build    # static site → docs/.vitepress/dist
 pnpm docs:preview  # serve the built site locally
 ```
+
+See also [`PRODUCT_SPEC.md`](PRODUCT_SPEC.md) for product direction and
+[`CLAUDE.md`](CLAUDE.md) for the contributor playbook (release
+discipline, file map, when to update docs).

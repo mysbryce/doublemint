@@ -38,11 +38,17 @@ hello
 ## Source / build / run
 
 - [Syntax](./syntax) — declarations, statements, expressions, literals.
-- [Types](./types) — the full type vocabulary.
 - [Operators](./operators) — arithmetic, comparison, logical, bitwise,
   shift, assignment, ternary.
-- [Pattern matching](./match) — `match` as a statement and as an expression.
-- [Async / Await](./async) — declaring async functions and awaiting them.
-- [Native interop](./native-interop) — `extern` blocks, pointers, defer.
+- [Pattern matching](./match) — `match` as a statement and as an
+  expression.
+- [Async / Await](./async) — declaring async functions and awaiting
+  them.
+- [Lambdas & Generics](./lambdas-generics) — `fn` and free-function
+  generics.
+- [Structs & Enums](./structs-enums) — user-defined types.
+- [Native interop](./native-interop) — `extern` blocks, pointers,
+  `defer`.
 
-For the `mint:*` modules, see [Stdlib](./stdlib).
+For the type system itself, see [Core → Types](/core/types). For the
+`mint:*` modules, see [Stdlib overview](/stdlib/overview).
